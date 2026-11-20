@@ -946,8 +946,12 @@
       const Uw = U * Math.min(1, Math.max(0.45, (2.0 * r - base) / (U * wH * k * 1.15)));   // keep the wing on the canvas
       const aE = A(wrT * 0.3), rE = base + Uw * wH * 0.6 * k, aW = A(wrT), rW = base + Uw * wH * k;
       const arm = arcPts(A(0), backR(A(0)) - T * 0.15, aE, rE, 6, Uw * 0.12, U * 0.42, U * 0.3).concat(arcPts(aE, rE, aW, rW, 6, Uw * 0.26, U * 0.3, U * 0.2).slice(1));   // bowed, never a straight edge
-      const fingers = tipT.map((t, j) => arcPts(aW, rW, A(t), base + Uw * Math.max(0.1, tipR[j]) * k, 10, Uw * wBulge * (1 - j / nF) * k, U * 0.13, U * 0.03));
-      const attach = { a: A(tipT[nF - 1] + 0.12) }; attach.r = backR(attach.a);
+      const tipCap = Math.max(0.25, (uAt(aSh) - (hipU - 0.02)) * sweep / span) + 0.28;   // overhang the hips a little at most
+      const fingers = tipT.map((t, j) => arcPts(aW, rW, A(Math.min(t, tipCap - (nF - 1 - j) * 0.05)), base + Uw * Math.max(0.1, tipR[j]) * k, 10, Uw * wBulge * (1 - j / nF) * k, U * 0.13, U * 0.03));
+      // The membrane joins the back no further than the hips: it never runs along the thin tail
+      // (that looked like a loose sheath beside the tail).
+      const uSh = uAt(aSh), tLim = Math.max(0.25, (uSh - (hipU - 0.02)) * sweep / span);
+      const attach = { a: A(Math.min(tipT[nF - 1] + 0.12, tLim)) }; attach.r = backR(attach.a);
       const W = pol(aW, rW);
       // scalloped (and maybe torn) trailing edge as a point list
       const edge = [];

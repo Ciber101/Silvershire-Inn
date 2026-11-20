@@ -259,7 +259,7 @@ object FrameRenderer {
     }
 
     /** Bump whenever assets/frames.js changes how frames look: old cached pictures are dropped. */
-    private const val CACHE_VERSION = 6
+    private const val CACHE_VERSION = 7
     @Volatile private var cleaned = false
 
     private fun file(ctx: Context, key: String): File {
