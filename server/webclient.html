@@ -6501,7 +6501,32 @@ function fitFriendBannerHero(media) {
   ar = Math.min(maxAr, Math.max(minAr, ar));
   hero.style.aspectRatio = String(ar);
   hero.style.height = 'auto';
+  if (hero.dataset.u) _bannerAR.set(hero.dataset.u, ar);
   // If max-height clamps the box, width stays 100% and cover still fills.
+  _revealHero(hero);
+}
+/* The profile sheet is shown only once its banner has its final size (no small version first):
+   banner shape and picture are remembered per person, and the sheet appears when the banner is
+   in place (or there is none, or after 1.5 s at most). Borders are fitted again afterwards. */
+const _bannerAR = new Map();          // user -> banner aspect ratio
+const _bannerBlobs = new Map();       // user -> { blob, gen }
+function _revealHero(hero) {
+  if (!hero) return;
+  hero.style.visibility = '';
+  const fpw = hero.closest('.friend-profile'); if (fpw) fpw.style.visibility = '';
+  requestAnimationFrame(() => { refitFrames(); const fp = document.getElementById('fpAvatar'); if (fp && fp.dataset.u) applyFullFrame(fp, fp.dataset.u); });
+}
+function _prepareHero(username) {
+  const hero = document.querySelector('.friend-profile .fp-hero');
+  if (!hero) return;
+  hero.dataset.u = username;
+  const ar = _bannerAR.get(username);
+  const expectBanner = username === state.me ? state.contactBanners[username] !== false : state.contactBanners[username] === true;
+  if (ar) { hero.style.aspectRatio = String(ar); hero.style.height = 'auto'; }
+  else if (expectBanner) {
+    const fpw = hero.closest('.friend-profile'); if (fpw) fpw.style.visibility = 'hidden';
+    setTimeout(() => _revealHero(hero), 1500);
+  }
 }
 function fitFriendBannerHeroMedia(media) { fitFriendBannerHero(media); }
 
@@ -6509,12 +6534,17 @@ let _bannerBlobUrl = null;
 function loadProfileBannerInto(ban, username) {
   const hero = document.querySelector('.friend-profile .fp-hero');
   if (!ban) return;
+  _prepareHero(username);
   const hide = () => {
     ban.classList.add('hidden'); ban.innerHTML = '';
     if (hero) { hero.style.aspectRatio = '16 / 9'; }
+    _bannerAR.delete(username);
+    _revealHero(hero);
   };
   if (username !== state.me && state.contactBanners[username] === false) { hide(); return; }
+  const gen = String(picCacheBust[username] || 0);
   const mountBlob = (blob) => {
+    _bannerBlobs.set(username, { blob, gen });
     const mime = blob.type || '';
     if (_bannerBlobUrl) { try { URL.revokeObjectURL(_bannerBlobUrl); } catch (_) {} }
     const src = _bannerBlobUrl = URL.createObjectURL(blob);
@@ -6541,6 +6571,8 @@ function loadProfileBannerInto(ban, username) {
       }
     }
   };
+  const cached = _bannerBlobs.get(username);
+  if (cached && cached.gen === gen) { mountBlob(cached.blob); return; }   // instant, already loaded once
   const bare = `${httpBase()}/banner_pic/${encodeURIComponent(username)}?t=${picCacheBust[username] || 0}`;
   fetch(bare, { headers: mediaHeaders(), credentials: fetchCreds(), cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error('banner'); return r.blob(); })
