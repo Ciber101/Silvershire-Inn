@@ -277,6 +277,16 @@ function findUserMediaFile(dir, username) {
 function hasUserMedia(dir, username) {
   return !!findUserMediaFile(dir, username);
 }
+/** Changes whenever the person's picture or banner changes (file times), so browsers that
+ *  were closed during the change don't keep showing the old one from their cache. */
+function mediaVersion(username) {
+  let v = 0;
+  for (const dir of [PROFILE_PICS_DIR, BANNER_PICS_DIR]) {
+    const f = findUserMediaFile(dir, username);
+    if (f) try { v = Math.max(v, Math.floor(fs.statSync(f.path).mtimeMs)); } catch (_) {}
+  }
+  return v;
+}
 
 function removeUserMediaSiblings(dir, username, keepExt) {
   for (const ext of PROFILE_MEDIA_EXTS) {
@@ -2101,6 +2111,7 @@ wss.on('connection', (ws, req) => {
                    httpToken: mintHttpToken(username, ws.prevHttpToken),
           hasPic:    hasUserMedia(PROFILE_PICS_DIR, username),
           hasBanner: hasUserMedia(BANNER_PICS_DIR,  username),
+          picVersion: mediaVersion(username),
           avatarShape: normalizeAvatarShape(users[username]?.settings?.avatarShape) || undefined,
           profileFrame: userFrame(username) || 'none', savedFrames: userSavedFrames(username),
           displayName: users[username]?.displayName || username,
@@ -2121,7 +2132,9 @@ wss.on('connection', (ws, req) => {
         const contactBanners = {};
         const contactAvatarShapes = {};
         const contactFrames = {};
+        const picVersions = {};
         myFriends.forEach(f => {
+          const _pv = mediaVersion(f); if (_pv) picVersions[f] = _pv;
           const _fr = userFrame(f); if (_fr) contactFrames[f] = _fr;
           if (users[f]?.publicKey) publicKeys[f] = users[f].publicKey;
           contactPics[f] = hasUserMedia(PROFILE_PICS_DIR, f);
@@ -2132,7 +2145,7 @@ wss.on('connection', (ws, req) => {
         });
         const displayNames = {};
         myFriends.forEach(f => { displayNames[f] = (users[f] && users[f].displayName) || f; });
-        send(ws, { type: 'contacts_list', contacts: myFriends, publicKeys, contactPics, contactBanners, contactAvatarShapes, contactFrames, displayNames });
+        send(ws, { type: 'contacts_list', contacts: myFriends, publicKeys, contactPics, contactBanners, contactAvatarShapes, contactFrames, picVersions, displayNames });
         // Group memberships are the server's truth. Clients reconcile against this list so a
         // phone that lost its local group rows (reinstall / old update wipe) gets them back,
         // and groups the user left are removed.

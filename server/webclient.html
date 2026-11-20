@@ -465,6 +465,16 @@
   .friend-profile .fp-avatar.framed { border-color:transparent; }
   .fp-frame { position:absolute; pointer-events:none; z-index:3; max-width:none; }
   .friend-profile .fp-identity, .friend-profile .fp-hero, .friend-profile .fp-avatar-wrap { overflow:visible; }
+  /* room for the border around framed pictures, and names always drawn above it */
+  #meBar .avatar.has-frame, #chatHeader .avatar.has-frame, .contact .avatar.has-frame { margin-left:12px; margin-right:16px; }
+  #meBar .me-ident, #meBar .name, #meBar .conn, #chatHeader .cname, #chatHeader .status, .contact .col, .contact .cname, .contact .sub,
+  .friend-profile .fp-name, .friend-profile .fp-handle, .friend-profile .fp-status {
+    position:relative; z-index:4;
+  }
+  #meBar .name, #chatHeader .cname, .contact .cname, .friend-profile .fp-name { text-shadow:0 1px 2px #000, 0 0 6px rgba(0,0,0,.9); }
+  .friend-profile .fp-avatar.framed { margin-bottom:54px; }
+  .friend-profile .fp-avatar-wrap:has(> .fp-avatar.framed) { margin-bottom:54px; }
+  .friend-profile .fp-avatar-wrap > .fp-avatar.framed { margin-bottom:0; }
   .fg-body { display:flex; flex-direction:column; gap:10px; }
   .fg-preview { display:flex; justify-content:center; }
   .fg-preview canvas { width:min(320px, 80vw); height:auto; aspect-ratio:1; }
@@ -2820,6 +2830,9 @@ async function handleServerMessage(msg) {
         state.shareUrl = (typeof msg.shareUrl === 'string' && /^https?:\/\//.test(msg.shareUrl)) ? msg.shareUrl : null;
         if (msg.profileFrame !== undefined) state.myFrame = msg.profileFrame || 'none';
         if (Array.isArray(msg.savedFrames)) state.savedFrames = msg.savedFrames;
+        // Picture / banner changed on another device while this page was closed: load the new one
+        if (msg.picVersion && msg.picVersion > (picCacheBust[state.me] || 0)) { picCacheBust[state.me] = msg.picVersion; revokeAvatarBlob(state.me); }
+        setTimeout(() => { try { refreshFrames(); renderAvatar(document.getElementById('meAvatar'), state.me); } catch (_) {} }, 0);
         if (msg.avatarShape) {
           state.contactAvatarShapes[state.me] = normalizeAvatarShape(msg.avatarShape) || 'circle';
           if (state.prefs.avatarShape == null || state.prefs.avatarShape === '') {
@@ -2878,6 +2891,9 @@ async function handleServerMessage(msg) {
       if (msg.contactBanners) Object.assign(state.contactBanners, msg.contactBanners);
       if (msg.contactAvatarShapes) Object.assign(state.contactAvatarShapes, msg.contactAvatarShapes);
       if (msg.contactFrames) Object.assign(state.contactFrames, msg.contactFrames);
+      if (msg.picVersions) for (const [u, v] of Object.entries(msg.picVersions)) {
+        if (v > (picCacheBust[u] || 0)) { picCacheBust[u] = v; revokeAvatarBlob(u); }
+      }
       if (msg.displayNames) Object.assign(state.displayNames, msg.displayNames);
       LS.set('contactKeys', state.contactKeys);
       renderContacts();
