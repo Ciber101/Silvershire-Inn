@@ -6,7 +6,9 @@ import com.silvershireinn.app.SilvershireApp
 import com.silvershireinn.app.model.Conversation
 import com.silvershireinn.app.repository.GroupRepository
 import com.silvershireinn.app.repository.MessageRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -21,7 +23,20 @@ class ChatsViewModel : ViewModel() {
      * When the fragment's view is recreated (e.g. after screen unlock), the collector
      * immediately receives the cached list — no blank flash while Room re-queries.
      */
+    private val notesOn = MutableStateFlow(com.silvershireinn.app.utils.PreferenceManager.notesEnabled)
+
+    /** Call when the Notes setting may have changed (screen shown again). */
+    fun refreshNotes() { notesOn.value = com.silvershireinn.app.utils.PreferenceManager.notesEnabled }
+
+    /** Chats, with Notes (your chat with yourself) pinned first while it's turned on. */
     val conversations: StateFlow<List<Conversation>> = repo.getConversations()
+        .combine(notesOn) { list, on ->
+            val me = com.silvershireinn.app.utils.PreferenceManager.username
+            val notes = list.firstOrNull { it.contactUsername == me }
+            val rest = list.filter { it.contactUsername != me }
+            if (!on || me.isBlank()) rest
+            else listOf(notes ?: Conversation(contactUsername = me, lastMessagePreview = "Your private notes")) + rest
+        }
         .stateIn(
             scope        = viewModelScope,
             started      = SharingStarted.WhileSubscribed(5_000),

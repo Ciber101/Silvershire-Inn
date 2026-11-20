@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="end"
     android:paddingVertical="5dp"
     android:paddingStart="56dp"
-    android:paddingEnd="10dp">
+    android:paddingEnd="10dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
-    <LinearLayout
+    <com.silvershireinn.app.ui.chat.SealBubble
         android:id="@+id/bubbleAudioSent"
+        android:layout_gravity="end"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:minWidth="200dp"
@@ -71,7 +72,7 @@
                 <TextView
                     android:id="@+id/tvAudioSpeed"
                     android:layout_width="34dp"
-                    android:layout_height="18dp"
+                    android:layout_height="wrap_content" android:minHeight="18dp"
                     android:layout_marginEnd="8dp"
                     android:gravity="center"
                     android:includeFontPadding="false"
@@ -100,14 +101,13 @@
                     android:letterSpacing="-0.12" />
             </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+    </com.silvershireinn.app.ui.chat.SealBubble>
     <!-- Your own picture beside your messages (setting "My picture in chats", off by default) -->
     <FrameLayout
         android:id="@+id/avatarFrameMine"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:layout_gravity="bottom"
-        android:layout_marginStart="6dp"
+        android:layout_gravity="top|end"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
@@ -130,4 +130,4 @@
             android:visibility="gone" />
     </FrameLayout>
 
-</LinearLayout>
+</FrameLayout>

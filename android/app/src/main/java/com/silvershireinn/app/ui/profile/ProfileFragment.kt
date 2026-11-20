@@ -454,6 +454,12 @@ class ProfileFragment : Fragment() {
             PreferenceManager.showMyAvatar = checked
         }
 
+        binding.switchNotesChat.isChecked = PreferenceManager.notesEnabled
+        binding.switchNotesChat.setOnCheckedChangeListener { _, checked ->
+            HapticUtil.vibrate(requireContext())
+            PreferenceManager.notesEnabled = checked
+        }
+
         binding.switchCompactBubbles.isChecked = PreferenceManager.compactBubbles
         binding.switchCompactBubbles.setOnCheckedChangeListener { _, checked ->
             PreferenceManager.compactBubbles = checked

@@ -11,7 +11,9 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:paddingVertical="4dp"
         android:background="@color/color_surface"
         app:titleTextColor="@color/color_text_primary"
         app:elevation="4dp"
@@ -66,7 +68,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="-8dp"
+                android:layout_marginTop="0dp"
                 android:layout_marginBottom="16dp">
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnClearNickname"
@@ -75,6 +77,8 @@
                     android:layout_height="wrap_content" android:minHeight="48dp"
                     android:layout_weight="1"
                     android:text="Remove nickname"
+                    android:insetTop="0dp" android:insetBottom="0dp"
+                    android:paddingHorizontal="8dp"
                     android:textColor="@color/color_text_secondary"
                     app:strokeColor="@color/color_divider"
                     app:cornerRadius="12dp"
@@ -86,6 +90,7 @@
                     android:layout_height="wrap_content" android:minHeight="48dp"
                     android:layout_weight="1"
                     android:text="Save"
+                    android:insetTop="0dp" android:insetBottom="0dp"
                     app:cornerRadius="12dp" />
             </LinearLayout>
 

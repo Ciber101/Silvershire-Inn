@@ -221,6 +221,9 @@ object ChatSender {
         return try {
             val dao = SilvershireApp.database.contactDao()
             var key = dao.getContact(contactId)?.publicKey?.takeIf { it.isNotBlank() }
+            // Notes (a chat with yourself): encrypted to your own key, readable on all your devices
+            if (key == null && com.silvershireinn.app.utils.NotesChat.isNotes(contactId))
+                key = CryptoManager.getRsaPublicKey()?.let { CryptoManager.publicKeyToBase64(it) }
             if (key == null) {
                 WebSocketManager.sendRaw(JSONObject().put("type", "get_public_key").put("target", contactId).toString())
                 repeat(15) {

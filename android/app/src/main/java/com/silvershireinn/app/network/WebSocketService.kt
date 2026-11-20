@@ -594,7 +594,9 @@ class WebSocketService : Service() {
 
                 // After syncing contacts, request message history for each confirmed contact
                 // so chats appear on new devices. Existing devices skip duplicates by messageId.
-                for (contactName in serverContacts) {
+                // Plus the Notes chat (messages to yourself), synced from your other devices.
+                val meName = PreferenceManager.username
+                for (contactName in serverContacts + listOfNotNull(meName.takeIf { it.isNotBlank() && it !in serverContacts })) {
                     scope.launch {
                         WebSocketManager.sendRaw(org.json.JSONObject().apply {
                             put("type", "history_request")

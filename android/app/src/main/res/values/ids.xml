@@ -6,4 +6,5 @@
     <item name="profile_frame_float" type="id" />
     <item name="profile_frame_margins" type="id" />
     <item name="profile_frame_room" type="id" />
+    <item name="seal_padding" type="id" />
 </resources>

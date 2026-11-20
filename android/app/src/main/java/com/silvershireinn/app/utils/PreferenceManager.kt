@@ -152,6 +152,11 @@ object PreferenceManager {
         get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getBoolean("show_my_avatar", false)
         set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putBoolean("show_my_avatar", v).apply() }
 
+    /** The Notes chat (messages to yourself) pinned at the top of the chats list. */
+    var notesEnabled: Boolean
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getBoolean("notes_enabled", true)
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putBoolean("notes_enabled", v).apply() }
+
     /** Friend's picture beside received messages: 0 = every message (default), 1 = last of a run, 2 = off. */
     var chatAvatarMode: Int
         get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("chat_avatar_mode", 0)

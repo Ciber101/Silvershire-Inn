@@ -101,7 +101,7 @@ object ProfileFrames {
      * inside that room, with a little to spare. Drawn on the row's overlay.
      */
     /** Returns the room reserved on each side (0 when there is no border). */
-    fun applyFloating(avatar: View?, user: String?): Int {
+    fun applyFloating(avatar: View?, user: String?, reserve: Boolean = true): Int {
         avatar ?: return 0
         val first = avatar.parent as? ViewGroup ?: return 0
         // The slot is the picture itself, or the small box holding it (picture + online dot)
@@ -111,7 +111,7 @@ object ProfileFrames {
         val id = frameFor(user)
         val old = avatar.getTag(R_FLOAT) as? FloatingFrame
         val framed = !(id == "none" || id.startsWith("gen:none"))
-        reserveRoom(slot, avatar, framed)
+        reserveRoom(slot, avatar, framed, reserve)
         if (!framed) {
             if (old != null) { old.host.overlay.remove(old); avatar.setTag(R_FLOAT, null); old.host.invalidate() }
             avatar.scaleX = 1f; avatar.scaleY = 1f
@@ -129,11 +129,12 @@ object ProfileFrames {
     }
 
     /** Margins around a framed picture's slot (the room the border may use); restored when unframed. */
-    private fun reserveRoom(slot: View, avatar: View, framed: Boolean) {
-        val lp = slot.layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        val orig = (slot.getTag(R_MARGINS) as? IntArray) ?: intArrayOf(lp.leftMargin, lp.topMargin, lp.rightMargin, lp.bottomMargin).also { slot.setTag(R_MARGINS, it) }
+    private fun reserveRoom(slot: View, avatar: View, framed: Boolean, reserve: Boolean = true) {
         val a = (avatar.layoutParams?.width?.takeIf { it > 0 } ?: avatar.width).coerceAtLeast(1)
         val m = if (framed) (a * 0.3f).toInt() else 0
+        if (!reserve) { slot.setTag(R_ROOM, m); return }   // the caller placed it with room around it
+        val lp = slot.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val orig = (slot.getTag(R_MARGINS) as? IntArray) ?: intArrayOf(lp.leftMargin, lp.topMargin, lp.rightMargin, lp.bottomMargin).also { slot.setTag(R_MARGINS, it) }
         val want = intArrayOf(orig[0] + m, orig[1] + m / 2, orig[2] + m, orig[3] + m / 2)
         if (lp.leftMargin != want[0] || lp.topMargin != want[1] || lp.rightMargin != want[2] || lp.bottomMargin != want[3]) {
             lp.setMargins(want[0], want[1], want[2], want[3]); slot.layoutParams = lp

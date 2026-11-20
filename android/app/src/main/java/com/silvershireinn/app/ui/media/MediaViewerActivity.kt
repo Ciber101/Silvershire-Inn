@@ -115,6 +115,34 @@ class MediaViewerActivity : AppCompatActivity() {
         override fun run() { updateProgress(); handler.postDelayed(this, 250) }
     }
     private val resumePrefs by lazy { getSharedPreferences("video_resume", MODE_PRIVATE) }
+    private lateinit var btnEdit: ImageButton
+
+    /** Edited photo back from the editor: send it in this chat (as a draft) or save it. */
+    private val editLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { r ->
+        if (r.resultCode != RESULT_OK) return@registerForActivityResult
+        val f = r.data?.data?.path?.let { File(it) }?.takeIf { it.exists() } ?: return@registerForActivityResult
+        val conv = intent.getStringExtra(CONVERSATION_ID)
+        val opts = mutableListOf<Pair<String, () -> Unit>>()
+        if (!conv.isNullOrBlank()) opts += "Send in this chat" to {
+            EditedMedia.offer(conv, f)
+            toast("Ready to send in the chat")
+            finish()
+        }
+        opts += "Save to phone" to {
+            lifecycleScope.launch {
+                val ok = withContext(Dispatchers.IO) { FileRepository.saveFileToGallery(this@MediaViewerActivity, f, "edited_${System.currentTimeMillis()}.jpg", "image/jpeg") }
+                toast(if (ok) "Saved to gallery" else "Save failed")
+            }
+        }
+        AlertDialog.Builder(this).setTitle("Edited photo").setItems(opts.map { it.first }.toTypedArray()) { _, i -> opts[i].second() }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    /** Crop, rotate, draw, text, filters (the same editor as the camera). */
+    private fun editCurrent() = withLocalFile { item, f ->
+        if (item.isVideo) return@withLocalFile
+        try { editLauncher.launch(PhotoEditorActivity.intent(this, Uri.fromFile(f))) } catch (_: Throwable) { toast("Can't open the editor") }
+    }
 
     /** Largest edge images are decoded at, by phone memory (cheap phones get less). */
     private val imageCap: Int by lazy {
@@ -182,6 +210,8 @@ class MediaViewerActivity : AppCompatActivity() {
         tvSub = TextView(this).apply { setTextColor(0xBBFFFFFF.toInt()); textSize = 12f; maxLines = 1 }
         titles.addView(tvTitle); titles.addView(tvSub)
         topBar.addView(titles, LinearLayout.LayoutParams(0, -2, 1f))
+        btnEdit = icon(R.drawable.ic_edit, "Edit") { editCurrent() }
+        topBar.addView(btnEdit)
         topBar.addView(icon(R.drawable.ic_share, "Share") { share() })
         topBar.addView(icon(R.drawable.ic_image_save, "Save to gallery") { saveToGallery() })
         topBar.addView(icon(R.drawable.ic_more_vert, "More") { showMore() })
@@ -366,6 +396,7 @@ class MediaViewerActivity : AppCompatActivity() {
         currentIndex = position
         val item = items[position]
         tvTitle.text = item.sender.ifBlank { item.name }
+        btnEdit.visibility = if (item.isVideo) View.GONE else View.VISIBLE
         tvSub.text = buildString {
             if (item.timestamp.isNotBlank()) append(item.timestamp.formatTimestamp())
             if (items.size > 1) { if (isNotEmpty()) append("  ·  "); append("${position + 1} of ${items.size}") }

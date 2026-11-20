@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 4,
-  versionName: '1.0.3',
+  versionCode: 5,
+  versionName: '1.0.4',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -824,6 +824,9 @@ const MAX_PAYLOAD_CHARS = 256 * 1024;   // one message (text or file reference),
 function areMutualFriends(a, b) {
   return (friends[a] || []).includes(b) && (friends[b] || []).includes(a);
 }
+/** 1:1 chats: friends, or yourself (the Notes chat: messages to yourself, end-to-end encrypted
+ *  to your own key and synced between your devices). */
+function canChat(a, b) { return !!a && (a === b || areMutualFriends(a, b)); }
 
 /** True when [username] is a member of the group identified by [groupId]. */
 /** Public keys of a group's members, so clients can encrypt group messages for every member. */
@@ -2422,7 +2425,7 @@ wss.on('connection', (ws, req) => {
         const to        = msg.to;
         const payload   = msg.payload;
         const messageId = String(msg.messageId || crypto.randomUUID()).slice(0, 64);
-        if (!to || !payload || !areMutualFriends(username, to)) return;
+        if (!to || !payload || !canChat(username, to)) return;
         if (typeof payload !== 'string' || payload.length > MAX_PAYLOAD_CHARS) {
           send(ws, { type: 'error', message: 'Message too large' }); return;
         }
@@ -2441,9 +2444,10 @@ wss.on('connection', (ws, req) => {
         const message = { messageId, from: username, to, payload, timestamp };
         history.push(message);
         saveHistory(username, to, history);
+        const self = to === username;              // Notes: only this account's other devices get it
         // Sending a message implies the sender has read the peer's earlier messages.
-        noteImpliedRead(username, to, timestamp);
-        sendToUser(to, { type: 'private_message', ...message });
+        if (!self) noteImpliedRead(username, to, timestamp);
+        if (!self) sendToUser(to, { type: 'private_message', ...message });
         send(ws, { type: 'message_sent', messageId, timestamp });
         // Echo to the sender's OTHER devices (e.g. phone sees what was sent from the
         // web client). Uses a distinct type so existing clients safely ignore it.
@@ -2454,7 +2458,7 @@ wss.on('connection', (ws, req) => {
       case 'history_request': {
         if (!username) return;
         const to = msg.to;
-        if (!to || !areMutualFriends(username, to)) return;
+        if (!to || !canChat(username, to)) return;
         // Optional "since" (ISO time): only newer messages. Clients that already have the chat
         // ask for just what they missed instead of all 200 messages on every reconnect.
         const sinceMs = msg.since ? Date.parse(msg.since) : NaN;
@@ -2630,8 +2634,8 @@ wss.on('connection', (ws, req) => {
           for (const m of groups[to].members) sendToUser(m, { type: 'message_deleted', messageId, groupId: to, by: username, forEveryone: true });
           break;
         }
-        if (!areMutualFriends(username, to)) return;
-        if (msg.deleteForEveryone) {
+        if (!canChat(username, to)) return;
+        if (msg.deleteForEveryone || to === username) {      // Notes: a delete is always for good
           // Remove from server history and notify both sides. Only your OWN messages: anyone
           // could delete the other person's messages before.
           const history  = loadHistory(username, to);

@@ -317,20 +317,18 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         } else {
             com.silvershireinn.app.utils.PreferenceManager.displayNameFor(contactName)
         }
-        supportActionBar?.title = displayName
+        supportActionBar?.setDisplayShowTitleEnabled(false)      // our own name + status (never cut off)
+        setChatTitle(displayName)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        // Style subtitle smaller than title
-        binding.toolbar.findViewById<android.widget.TextView>(
-            androidx.appcompat.R.id.action_bar_subtitle
-        )?.textSize = 11f
+        binding.toolbarTitleBox.setOnClickListener { if (viewModel.groupId == null && !isNotesChat()) showContactProfile() }
         if (groupId == null) {
             loadToolbarAvatar()
         } else {
             loadGroupMemberSubtitle(groupId)
         }
 
-        // Hide call/video buttons in group chats
-        if (groupId != null) {
+        // Hide call/video buttons in group chats and in Notes
+        if (groupId != null || isNotesChat()) {
             binding.btnCall?.visibility      = android.view.View.GONE
             binding.btnVideoCall?.visibility = android.view.View.GONE
         }
@@ -1540,12 +1538,11 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                             com.silvershireinn.app.network.OnlineStatusManager.statusFlow.collect {
                                 val label = com.silvershireinn.app.network.OnlineStatusManager
                                     .statusLabel(contactName)
-                                supportActionBar?.subtitle = label.ifBlank { null }
-                                binding.toolbar.findViewById<android.widget.TextView>(
-                                    androidx.appcompat.R.id.action_bar_subtitle
-                                )?.setTextColor(
-                                    com.silvershireinn.app.network.OnlineStatusManager.statusColor(contactName)
-                                )
+                                if (isNotesChat()) setChatSubtitle("Only you can see this")
+                                else {
+                                    setChatSubtitle(label)
+                                    binding.tvChatSubtitle.setTextColor(com.silvershireinn.app.network.OnlineStatusManager.statusColor(contactName))
+                                }
                             }
                         } catch (e: Exception) {
                             android.util.Log.e("ChatActivity", "online status observer crashed", e)
@@ -1664,7 +1661,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                     .map { com.silvershireinn.app.utils.PreferenceManager.displayNameFor(it) }.sortedBy { it.lowercase() }
                 val subtitle = (others + if (me in members) listOf("You") else emptyList()).joinToString(", ")
                 withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    supportActionBar?.subtitle = subtitle.ifBlank { null }
+                    setChatSubtitle(subtitle)
                 }
             }
         }
@@ -1672,8 +1669,21 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
 
     private val toolbarVideo by lazy { com.silvershireinn.app.utils.MutedLoopVideoHelper(this, binding.vvToolbarAvatar) }
 
+    /** The Notes chat: messages to yourself (only you, on your devices). */
+    private fun isNotesChat(): Boolean = com.silvershireinn.app.utils.NotesChat.isNotes(contactName)
+
+    private fun setChatTitle(name: CharSequence?) {
+        binding.tvChatTitle.text = if (isNotesChat()) com.silvershireinn.app.utils.NotesChat.TITLE else name
+    }
+
+    private fun setChatSubtitle(s: CharSequence?) {
+        binding.tvChatSubtitle.text = s
+        binding.tvChatSubtitle.visibility = if (s.isNullOrBlank()) View.GONE else View.VISIBLE
+    }
+
     private fun loadToolbarAvatar() {
-        val picFile = com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(this, contactName)
+        val picFile = if (isNotesChat()) com.silvershireinn.app.utils.ProfileMediaHelper.findOwnProfilePic(this)
+                      else com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(this, contactName)
         if (picFile != null && picFile.exists()) {
             binding.toolbarAvatarCard.visibility = View.VISIBLE
             com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(binding.toolbarAvatarCard, com.silvershireinn.app.utils.AvatarShapeHelper.forUser(contactName))
@@ -1687,16 +1697,13 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                 toolbarVideo.clear()
                 binding.ivToolbarAvatar.load(picFile)
             }
-            // Push the ActionBar title right: nav(56dp) + avatar(36dp) + gap(8dp) = 100dp total,
-            // subtract the default contentInsetStart (~72dp) -> add ~28dp extra title margin.
-            binding.toolbar.setTitleMarginStart(36.dpToPx() + frameRoom * 2)   // clear of the picture's border
+            @Suppress("UNUSED_VARIABLE") val unused = frameRoom
         } else {
             binding.toolbarAvatarCard.visibility = View.GONE
-            binding.toolbar.setTitleMarginStart(0)
         }
         // Always wire the tap - even without a pic the card might become visible later
         binding.toolbarAvatarCard.setOnClickListener {
-            showContactProfile()
+            if (!isNotesChat()) showContactProfile()
         }
     }
 
@@ -1765,6 +1772,10 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         // crashed the app whenever something was shared into Silvershire.
         if (!::adapter.isInitialized) return
         if (com.silvershireinn.app.utils.AppLock.gate(this)) return   // idle too long
+        // A photo edited in the viewer to send here: it becomes the draft (caption, then send)
+        com.silvershireinn.app.ui.media.EditedMedia.take(intent.getStringExtra("group_id") ?: contactName)?.let { f ->
+            setAttachmentDraft(FileProvider.getUriForFile(this, "${packageName}.provider", f), "image/jpeg")
+        }
         // Time format settings changed while away: redraw the times.
         val tsKey = "${com.silvershireinn.app.utils.PreferenceManager.showFullTimestamps}/${com.silvershireinn.app.utils.PreferenceManager.use24HourClock}"
         if (lastTsKey != null && lastTsKey != tsKey) adapter.notifyDataSetChanged()
@@ -1796,7 +1807,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         } else {
             com.silvershireinn.app.utils.PreferenceManager.displayNameFor(contactName)
         }
-        supportActionBar?.title = displayName
+        setChatTitle(displayName)
 
         // Force-rebind all visible items so font/bubble-color changes apply immediately
         if (::adapter.isInitialized) {

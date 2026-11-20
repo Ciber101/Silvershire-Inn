@@ -61,10 +61,11 @@ class ConversationAdapter(
         with(holder.binding) {
             val isGroup = conv.isGroupChat
             // Show group name for group chats; nickname/username for 1:1
-            val displayName = if (isGroup) {
-                conv.groupName
-            } else {
-                PreferenceManager.displayNameFor(conv.contactUsername)
+            val isNotes = com.silvershireinn.app.utils.NotesChat.isNotes(conv.contactUsername)
+            val displayName = when {
+                isGroup -> conv.groupName
+                isNotes -> com.silvershireinn.app.utils.NotesChat.TITLE
+                else -> PreferenceManager.displayNameFor(conv.contactUsername)
             }
             tvContactName.text = displayName
 
@@ -75,9 +76,11 @@ class ConversationAdapter(
                 com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(ivContactPic, shape)
             }
             com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatarCircle, if (isGroup) null else conv.contactUsername)
-            val picFile = if (!isGroup)
-                com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(
-                    holder.itemView.context, conv.contactUsername) else null
+            val picFile = when {
+                isGroup -> null
+                isNotes -> com.silvershireinn.app.utils.ProfileMediaHelper.findOwnProfilePic(holder.itemView.context)
+                else -> com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(holder.itemView.context, conv.contactUsername)
+            }
             if (!isGroup && picFile?.exists() == true) {
                 ivContactPic.visibility = View.VISIBLE
                 tvInitials.visibility   = View.GONE
@@ -130,7 +133,7 @@ class ConversationAdapter(
             tvTimestamp.text   = conv.lastMessageTimestamp.formatListTimestamp()
 
             // ── Online status — hidden for group chats ────────────────────────
-            val isOnline = if (!isGroup) OnlineStatusManager.isOnline(conv.contactUsername) else false
+            val isOnline = if (!isGroup && !isNotes) OnlineStatusManager.isOnline(conv.contactUsername) else false
             onlineDot.visibility = if (isOnline) View.VISIBLE else View.GONE
             if (isOnline) {
                 val color = OnlineStatusManager.statusColor(conv.contactUsername)

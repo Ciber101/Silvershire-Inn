@@ -84,23 +84,57 @@ class MessageAdapter(
      * always obvious who wrote it. Mode 0 = every message, 1 = only the last of a run
      * (the others keep the space so bubbles stay aligned), 2 = off.
      */
+    /**
+     * Where the picture sits: set into the bubble's top corner like a wax seal ([SEAL]), its
+     * room kept but nothing shown (the rest of a run, [ALIGNED]) or none at all ([NONE]).
+     */
+    private fun placeSeal(frame: View, bubble: SealBubble?, mine: Boolean, state: Int) {
+        val b = bubble ?: return
+        val d = frame.resources.displayMetrics.density
+        val a = (frame.layoutParams?.width?.takeIf { it > 0 } ?: (30 * d).toInt())
+        val half = a / 2
+        val roomTop = (6 * d).toInt()                       // above the picture, for its border
+        (frame.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { flp ->
+            if (flp.topMargin != roomTop) { flp.topMargin = roomTop; frame.layoutParams = flp }
+        }
+        val lp = b.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return
+        val side = if (state == NONE) 0 else half
+        val top = if (state == SEAL) roomTop + half else 0
+        val changed = (if (mine) lp.marginEnd else lp.marginStart) != side || lp.topMargin != top
+        if (mine) lp.marginEnd = side else lp.marginStart = side
+        lp.topMargin = top
+        if (changed) b.layoutParams = lp
+        // the content steps a little away from the cut corner
+        val orig = (b.getTag(R.id.seal_padding) as? IntArray)
+            ?: intArrayOf(b.paddingLeft, b.paddingTop, b.paddingRight, b.paddingBottom).also { b.setTag(R.id.seal_padding, it) }
+        val extra = if (state == SEAL) (5 * d).toInt() else 0
+        b.setPadding(orig[0] + if (!mine) extra else 0, orig[1] + extra, orig[2] + if (mine) extra else 0, orig[3])
+        if (state == SEAL) {
+            val ornate = com.silvershireinn.app.utils.OrnateTheme.isOn(frame.context)
+            val rim = if (!ornate) 0xFF3C3C42.toInt() else if (mine) 0xFF8C6A2A.toInt() else 0xFF6E7078.toInt()
+            b.setSeal(if (mine) SealBubble.RIGHT else SealBubble.LEFT, half + 2.5f * d, rim, 1.5f * d)
+        } else b.setSeal(0, 0f, 0, 0f)
+    }
+
     private fun bindSenderAvatar(frame: View, iv: ImageView, tv: android.widget.TextView,
-                                 msg: Message, position: Int, mine: Boolean = false) {
+                                 msg: Message, position: Int, mine: Boolean = false, bubble: SealBubble? = null) {
         val mode = PreferenceManager.chatAvatarMode
-        if (mine && !PreferenceManager.showMyAvatar) { frame.visibility = View.GONE; return }
-        if (!mine && mode == 2) { frame.visibility = View.GONE; return }
+        if (mine && !PreferenceManager.showMyAvatar) { frame.visibility = View.GONE; placeSeal(frame, bubble, mine, NONE); return }
+        if (!mine && mode == 2) { frame.visibility = View.GONE; placeSeal(frame, bubble, mine, NONE); return }
         val user = if (mine) PreferenceManager.username else msg.fromUser.ifBlank { contactUsername }
         if (mode == 1) {
-            val next = if (position + 1 < itemCount) getItem(position + 1) else null
-            val sameRun = next != null && !isSystemMessage(next) &&
-                (if (mine) next.isSent else (!next.isSent && next.fromUser == msg.fromUser))
-            if (sameRun) { frame.visibility = View.INVISIBLE; return }
+            // The seal goes on the FIRST message of a run (it sits on the top corner)
+            val prev = if (position > 0) getItem(position - 1) else null
+            val sameRun = prev != null && !isSystemMessage(prev) &&
+                (if (mine) prev.isSent else (!prev.isSent && prev.fromUser == msg.fromUser))
+            if (sameRun) { frame.visibility = View.INVISIBLE; placeSeal(frame, bubble, mine, ALIGNED); return }
         }
         frame.visibility = View.VISIBLE
+        placeSeal(frame, bubble, mine, SEAL)
         iv.tag = null
         val shape = com.silvershireinn.app.utils.AvatarShapeHelper.forUser(user)
         com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(frame, shape)
-        com.silvershireinn.app.utils.ProfileFrames.applyFloating(frame, user)
+        com.silvershireinn.app.utils.ProfileFrames.applyFloating(frame, user, reserve = bubble == null)
         tv.background = com.silvershireinn.app.utils.AvatarShapeHelper.backgroundDrawable(
             user.toAvatarColor(), shape)
         tv.text = user.toInitials()
@@ -565,6 +599,9 @@ class MessageAdapter(
 
 
     companion object {
+        private const val NONE = 0          // picture places (placeSeal)
+        private const val ALIGNED = 1
+        private const val SEAL = 2
         private const val VIEW_SENT                = 1
         private const val VIEW_RECEIVED            = 2
         private const val VIEW_ATTACHMENT_SENT     = 3
@@ -760,12 +797,12 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
         val msg = getItem(position)
         when (holder) {
             is SystemVH             -> holder.bind(msg)
-            is SentVH               -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true) }
-            is ReceivedVH           -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position) }
-            is AttachmentSentVH     -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true) }
-            is AttachmentReceivedVH -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position) }
-            is AudioSentVH          -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true) }
-            is AudioReceivedVH      -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position) }
+            is SentVH               -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleSent) }
+            is ReceivedVH           -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleReceived) }
+            is AttachmentSentVH     -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleAttachmentSent) }
+            is AttachmentReceivedVH -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleAttachmentReceived) }
+            is AudioSentVH          -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleAudioSent) }
+            is AudioReceivedVH      -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleAudioReceived) }
             is CallSentVH           -> holder.bind(msg)
             is CallReceivedVH       -> holder.bind(msg)
         }
@@ -1063,7 +1100,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                 binding.progressUpload.visibility    = View.VISIBLE
                 binding.tvAttachmentName.text        = msg.attachmentName ?: "Uploading…"
                 binding.tvAttachmentSize.text        = uploadingLabel(msg.messageId)
-                binding.btnDownloadAttachment.text   = "Hold to cancel"
+                binding.btnDownloadAttachment.text   = "Hold to cancel"; binding.btnDownloadAttachment.visibility = View.VISIBLE
                 binding.btnDownloadAttachment.setOnClickListener(null)   // single tap does nothing
                 binding.tvTimestamp.text             = msg.timestamp.formatTimestamp()
                 bindOutgoingTicks(binding.tvDeliveryStatus, msg)
@@ -1088,10 +1125,10 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                     }
                 }
                 binding.frameMediaPreview.setOnClickListener { onTapMedia(msg) }
-                binding.btnDownloadAttachment.text = if (isImage) "Open" else "Play"
+                binding.btnDownloadAttachment.visibility = View.GONE   // tapping the picture / video opens it
             } else {
                 binding.frameMediaPreview.visibility = View.GONE; binding.rowFileInfo.visibility = View.VISIBLE
-                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, com.silvershireinn.app.utils.ThemeIcons.forMime(mime)); binding.btnDownloadAttachment.text = "Download"
+                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, com.silvershireinn.app.utils.ThemeIcons.forMime(mime)); binding.btnDownloadAttachment.text = "Download"; binding.btnDownloadAttachment.visibility = View.VISIBLE
             }
             binding.tvAttachmentName.text = msg.attachmentName ?: "File"
             binding.tvAttachmentSize.text = if (msg.attachmentSize > 0) FileRepository.formatSize(msg.attachmentSize) else ""
@@ -1141,10 +1178,10 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                     }
                 }
                 binding.frameMediaPreview.setOnClickListener { onTapMedia(msg) }
-                binding.btnDownloadAttachment.text = if (isImage) "Open" else "Play"
+                binding.btnDownloadAttachment.visibility = View.GONE   // tapping the picture / video opens it
             } else {
                 binding.frameMediaPreview.visibility = View.GONE; binding.rowFileInfo.visibility = View.VISIBLE
-                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, com.silvershireinn.app.utils.ThemeIcons.forMime(mime)); binding.btnDownloadAttachment.text = "Download"
+                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, com.silvershireinn.app.utils.ThemeIcons.forMime(mime)); binding.btnDownloadAttachment.text = "Download"; binding.btnDownloadAttachment.visibility = View.VISIBLE
             }
             binding.tvAttachmentName.text = msg.attachmentName ?: "File"
             binding.tvAttachmentSize.text = if (msg.attachmentSize > 0) FileRepository.formatSize(msg.attachmentSize) else ""

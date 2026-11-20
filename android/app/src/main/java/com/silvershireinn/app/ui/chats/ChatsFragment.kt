@@ -149,6 +149,7 @@ class ChatsFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
+        viewModel.refreshNotes()          // the Notes chat setting may have changed
         // Apply before the first draw so there is no gold→accent flash.
         AccentColorHelper.apply(binding.root, PreferenceManager.accentColorInt())
         com.silvershireinn.app.utils.FontHelper.apply(binding.root, PreferenceManager.fontFamily)

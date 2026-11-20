@@ -75,7 +75,7 @@
             <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
             <!-- Which physical camera (ultra wide / main / tele...) -->
             <TextView android:id="@+id/btnLens"
-                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="32dp"
                 android:minWidth="44dp" android:gravity="center" android:paddingHorizontal="8dp"
                 android:layout_marginEnd="2dp"
                 android:background="@drawable/bg_speed_chip" android:backgroundTint="#FFFFFFFF"

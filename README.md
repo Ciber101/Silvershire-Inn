@@ -18,7 +18,12 @@ and the features you would expect from a modern messenger.
   media viewer, voice notes, link previews, reactions, replies, read receipts, presence
 - **Web app** served by the same server (works in any modern browser)
 - **Profile borders**: a border generator draws a unique border from a seed; friends see it
-  around your picture everywhere
+  around your picture everywhere (chat lists, chat heads, calls, and set into the corner of
+  each message bubble like a seal)
+- **Notes**: a private chat with yourself, pinned at the top, encrypted to your own key and
+  synced between your phone and the web app (can be turned off)
+- **Photo editor** in the media viewer (app and web): crop, rotate, flip, filters, brightness,
+  contrast, saturation, drawing and text, then send it in the chat or save it
 - **Silvershire theme** (forged iron, dark stone) or the original **Classic** look
 - **Panic phrase**: a typed or spoken phrase locks the account (and optionally the whole
   server) on every device until the unlock phrase is said
