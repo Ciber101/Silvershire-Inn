@@ -388,6 +388,8 @@ function storedAvatarShape(u) {
 function broadcastAvatarShape(username) {
   const shape = storedAvatarShape(username);
   if (!shape) return;
+  // The person's other devices (phone <-> web) take the new shape too
+  sendToUser(username, { type: 'profile_updated', name: username, avatarShape: shape });
   for (const friend of (friends[username] || [])) {
     if (areMutualFriends(username, friend)) {
       sendToUser(friend, { type: 'profile_updated', name: username, avatarShape: shape });

@@ -847,14 +847,38 @@
     const spStyle = Math.floor(rnd() * 5), spN = 10 + Math.floor(rnd() * 12), spK = 0.35 + rnd() * 0.5;
     const bellyStyle = Math.floor(rnd() * 3), tailStyle = Math.floor(rnd() * 6);
     const rrk = shape === 'rounded' ? CORNER.rounded * 2 : shape === 'squircle' ? CORNER.squircle * 2 : 0;
-    const pol = (a, rad) => {
-      if (shape === 'circle') return { x: cx + Math.cos(a) * rad, y: cy + Math.sin(a) * rad };
-      if (shape === 'diamond') { const [x, y] = onShape(shape, cx, cy, rad, a); return { x, y }; }
+    // Distance from the centre along angle a to the path that keeps "rad" (circle units) away from
+    // the frame: the frame shape itself for things ON the band (feet, claws)...
+    const shapeDist = (a, rad) => {
+      if (shape === 'diamond') {
+        // A rounded diamond (corner radius c), so even close to the band the body takes a wide,
+        // gentle curve around each corner rather than a tight bend.
+        const V = r + w, c = V * 0.32, hs = V / Math.SQRT2 - c, t = rad - V, ux = Math.cos(a), uy = Math.sin(a);
+        const sd = (s) => {
+          const x = ux * s, y = uy * s, xr = Math.abs((x + y) / Math.SQRT2) - hs, yr = Math.abs((y - x) / Math.SQRT2) - hs;
+          return Math.hypot(Math.max(xr, 0), Math.max(yr, 0)) + Math.min(Math.max(xr, yr), 0) - c;
+        };
+        let lo = 0, hi = Math.max(V, rad) * 2 + Math.abs(t) * 2 + 1;
+        for (let i = 0; i < 32; i++) { const mid = (lo + hi) / 2; if (sd(mid) < t) lo = mid; else hi = mid; }
+        return lo;
+      }
       // ray from the centre to a rounded square of half-size rad (same corner proportion as the frame)
       const H = rad, C = Math.min(H, (r + w) * rrk + (rad - r - w) * 0.6), ux = Math.abs(Math.cos(a)), uy = Math.abs(Math.sin(a));
       let t = Math.min(ux > 1e-9 ? H / ux : 1e9, uy > 1e-9 ? H / uy : 1e9);
       if (ux * t > H - C && uy * t > H - C) { const o = H - C, b = (ux + uy) * o, q = b * b - 2 * o * o + C * C; t = b + Math.sqrt(Math.max(0, q)); }
-      return { x: cx + Math.cos(a) * t, y: cy + Math.sin(a) * t };
+      return t;
+    };
+    // ...and, further out (body, wings), bowed toward a circle through the corners: no straight,
+    // flat runs along the dragon's back on square or diamond frames, only curves.
+    const pol = (a, rad) => {
+      if (shape === 'circle') return { x: cx + Math.cos(a) * rad, y: cy + Math.sin(a) * rad };
+      let d = shapeDist(a, rad);
+      const t = rad - (r + w);
+      if (t > 0) {
+        const corner = Math.max(shapeDist(0, rad), shapeDist(Math.PI / 4, rad));
+        d += (corner - d) * 0.55 * Math.min(1, t / (w * 1.2 + 1e-6));
+      }
+      return { x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d };
     };
     // inward normal of the frame outline at a point (toward the picture), angle in radians
     const inN = (x, y) => {

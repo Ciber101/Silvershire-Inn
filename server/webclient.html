@@ -2835,10 +2835,9 @@ async function handleServerMessage(msg) {
         setTimeout(() => { try { refreshFrames(); renderAvatar(document.getElementById('meAvatar'), state.me); } catch (_) {} }, 0);
         if (msg.avatarShape) {
           state.contactAvatarShapes[state.me] = normalizeAvatarShape(msg.avatarShape) || 'circle';
-          if (state.prefs.avatarShape == null || state.prefs.avatarShape === '') {
-            const sh = normalizeAvatarShape(msg.avatarShape);
-            if (sh) { state.prefs.avatarShape = sh; LS.set('prefs', state.prefs); }
-          }
+          // The account's shape wins (it may have been changed on the phone while this page was closed)
+          const sh = normalizeAvatarShape(msg.avatarShape);
+          if (sh && state.prefs.avatarShape !== sh) { state.prefs.avatarShape = sh; LS.set('prefs', state.prefs); setTimeout(() => { try { applyPrefs(); refreshAvatarShapes(); } catch (_) {} }, 0); }
         }
         applyOwnPresenceFromSettings(msg.settings);
         if (msg.displayName) state.displayNames[state.me] = msg.displayName;   // set on any device
