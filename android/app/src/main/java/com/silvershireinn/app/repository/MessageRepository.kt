@@ -316,7 +316,25 @@ class MessageRepository(private val db: AppDatabase) {
     suspend fun markUploadComplete(messageId: String, fileId: String) =
         db.messageDao().markUploadComplete(messageId, fileId)
     /** Removes a single message row — used to discard a cancelled upload placeholder. */
-    suspend fun deleteMessage(messageId: String) = db.messageDao().deleteMessage(messageId)
+    suspend fun deleteMessage(messageId: String) {
+        val msg = db.messageDao().getMessageById(messageId)
+        db.messageDao().deleteMessage(messageId)
+        // A failed / cancelled send was the newest: the chat list kept saying "Photo" for nothing.
+        if (msg != null) {
+            val conv = db.conversationDao().getConversation(msg.conversationId) ?: return
+            if (conv.lastMessageTimestamp != msg.timestamp) return
+            val latest = db.messageDao().latestIn(msg.conversationId)
+            if (latest == null) db.conversationDao().insertConversation(conv.copy(lastMessagePreview = "", lastMessageTimestamp = ""))
+            else db.conversationDao().insertConversation(conv.copy(
+                lastMessagePreview = when {
+                    latest.isDeleted -> "Message deleted"
+                    latest.plaintextPreview.isNotBlank() -> latest.plaintextPreview
+                    latest.isAttachment -> "📎 ${latest.attachmentName}"
+                    else -> ""
+                },
+                lastMessageTimestamp = latest.timestamp))
+        }
+    }
 
     suspend fun deleteConversation(username: String) {
         db.messageDao().deleteConversation(username)

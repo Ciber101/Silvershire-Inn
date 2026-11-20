@@ -81,16 +81,69 @@ object PanicVoice {
         } catch (e: Throwable) { android.util.Log.w("PanicVoice", "can't listen: ${e.message}"); running = false }
     }
 
+    // ── High-quality microphone (same as voice messages): on Android 13+ the recognizer is fed
+    //    from our own recording of the phone's main microphone instead of its default input.
+    //    Recognizers that can't take it fall back to their own microphone once, automatically.
+    @Volatile private var pipeUnsupported = false
+    private var feed: android.media.AudioRecord? = null
+    private var feedThread: Thread? = null
+    @Volatile private var feedOn = false
+    private var usingFeed = false
+    private const val FEED_RATE = 16_000
+
+    private fun openFeed(): android.os.ParcelFileDescriptor? {
+        if (Build.VERSION.SDK_INT < 33 || pipeUnsupported) return null
+        closeFeed()
+        return try {
+            val cfg = android.media.AudioFormat.CHANNEL_IN_MONO
+            val enc = android.media.AudioFormat.ENCODING_PCM_16BIT
+            val min = android.media.AudioRecord.getMinBufferSize(FEED_RATE, cfg, enc).coerceAtLeast(4096)
+            @Suppress("MissingPermission")
+            val ar = android.media.AudioRecord(android.media.MediaRecorder.AudioSource.MIC, FEED_RATE, cfg, enc, min * 4)
+            if (ar.state != android.media.AudioRecord.STATE_INITIALIZED) { ar.release(); return null }
+            val pipe = android.os.ParcelFileDescriptor.createPipe()
+            ar.startRecording()
+            feed = ar; feedOn = true
+            val out = android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])
+            feedThread = Thread({
+                val buf = ByteArray(min)
+                try {
+                    while (feedOn) {
+                        val n = ar.read(buf, 0, buf.size)
+                        if (n > 0) out.write(buf, 0, n) else if (n < 0) break
+                    }
+                } catch (_: Throwable) {
+                } finally { try { out.close() } catch (_: Throwable) {} }
+            }, "panic-mic").apply { isDaemon = true; start() }
+            pipe[0]
+        } catch (e: Throwable) { android.util.Log.w("PanicVoice", "mic feed: ${e.message}"); closeFeed(); null }
+    }
+
+    private fun closeFeed() {
+        feedOn = false
+        try { feed?.stop() } catch (_: Throwable) {}
+        try { feed?.release() } catch (_: Throwable) {}
+        feed = null; feedThread = null
+    }
+
     private fun listen() {
         val r = rec ?: return
+        val src = openFeed()
+        usingFeed = src != null
         val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, "com.silvershireinn.app")
+            if (src != null && Build.VERSION.SDK_INT >= 33) {
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, src)
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1)
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, android.media.AudioFormat.ENCODING_PCM_16BIT)
+                putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, FEED_RATE)
+            }
         }
-        try { r.startListening(i) } catch (_: Throwable) { scheduleRestart(1500) }
+        try { r.startListening(i) } catch (_: Throwable) { closeFeed(); scheduleRestart(1500) }
     }
 
     private fun scheduleRestart(ms: Long) {
@@ -106,6 +159,7 @@ object PanicVoice {
 
     fun stop() {
         running = false
+        closeFeed()
         try { rec?.cancel() } catch (_: Throwable) {}
         try { rec?.destroy() } catch (_: Throwable) {}
         rec = null
@@ -139,9 +193,16 @@ object PanicVoice {
         }
         override fun onResults(results: Bundle?) {
             handle(ctx, results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty(), true)
+            closeFeed()
             scheduleRestart(250)
         }
         override fun onError(error: Int) {
+            closeFeed()
+            // This recognizer can't use our microphone feed: use its own from now on.
+            if (usingFeed && error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT &&
+                error != SpeechRecognizer.ERROR_RECOGNIZER_BUSY && error != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                pipeUnsupported = true
+            }
             when (error) {
                 SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> stop()
                 SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> scheduleRestart(2000)

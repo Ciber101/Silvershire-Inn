@@ -752,19 +752,33 @@
   .msg-row.mine { align-self:flex-end; }
   /* The picture is set into the bubble's top corner like a wax seal: the bubble is cut away
      around it and its edge follows the cut. Room for the picture's border is kept around it. */
-  .msg-row > .msg-av { position:relative; z-index:3; margin:var(--fm-v, 0px) -15px 0 9px !important; }
-  .msg-row.mine > .msg-av { margin:var(--fm-v, 0px) 9px 0 -15px !important; }
-  .msg-row > .msg.seal-l, .msg-row > .msg.seal-r { margin-top:calc(var(--fm-v, 0px) + 15px); }
-  .msg.seal-l { -webkit-mask:radial-gradient(circle at 0 0, transparent 17.5px, #000 18px); mask:radial-gradient(circle at 0 0, transparent 17.5px, #000 18px); }
-  .msg.seal-r { -webkit-mask:radial-gradient(circle at 100% 0, transparent 17.5px, #000 18px); mask:radial-gradient(circle at 100% 0, transparent 17.5px, #000 18px); }
+  /* Seal geometry from the picture size (Settings > Picture sizes): half size, how far big
+     pictures sit out of the corner, the cut's radius, and the padding that keeps text clear. */
+  .msg-row { --mh:calc(var(--av-msg, 48px) / 2); --mo:max(0px, calc((var(--mh) - 15px) * .55));
+             --mr:calc(var(--mh) + 2.5px); --mneed:calc(var(--mr) * .7071 + 1px - var(--mo)); }
+  .msg-row > .msg-av { position:relative; z-index:3; margin:var(--fm-v, 0px) calc(var(--mo) - var(--mh)) 0 calc(var(--av-msg, 48px) * .3) !important; }
+  .msg-row.mine > .msg-av { margin:var(--fm-v, 0px) calc(var(--av-msg, 48px) * .3) 0 calc(var(--mo) - var(--mh)) !important; }
+  .msg-row > .msg.seal-l, .msg-row > .msg.seal-r { margin-top:calc(var(--fm-v, 0px) + var(--mh) + var(--mo)); }
+  .msg.seal-l { -webkit-mask:radial-gradient(circle at calc(-1 * var(--mo)) calc(-1 * var(--mo)), transparent var(--mr), #000 calc(var(--mr) + .5px));
+                mask:radial-gradient(circle at calc(-1 * var(--mo)) calc(-1 * var(--mo)), transparent var(--mr), #000 calc(var(--mr) + .5px)); }
+  .msg.seal-r { -webkit-mask:radial-gradient(circle at calc(100% + var(--mo)) calc(-1 * var(--mo)), transparent var(--mr), #000 calc(var(--mr) + .5px));
+                mask:radial-gradient(circle at calc(100% + var(--mo)) calc(-1 * var(--mo)), transparent var(--mr), #000 calc(var(--mr) + .5px)); }
   .msg.seal-l::before, .msg.seal-r::before {
-    content:''; position:absolute; top:-19px; width:38px; height:38px; border-radius:50%; pointer-events:none;
-    border:1.5px solid color-mix(in srgb, var(--gold-dim) 70%, transparent);
+    content:''; position:absolute; top:calc(-1 * (var(--mo) + var(--mr) + 1.5px));
+    width:calc(2 * (var(--mr) + 1.5px)); height:calc(2 * (var(--mr) + 1.5px)); border-radius:50%; pointer-events:none;
+    border:1.5px solid color-mix(in srgb, var(--gold-dim) 70%, transparent); box-sizing:border-box;
   }
-  .msg.seal-l::before { left:-19px; }
-  .msg.seal-r::before { right:-19px; }
-  .msg.seal-l, .msg.seal-r { padding-top:13px; }      /* the first line stays clear of the cut */
-  .msg-av { width:30px; height:30px; flex:0 0 30px; font-size:12px; cursor:pointer; }
+  .msg.seal-l::before { left:calc(-1 * (var(--mo) + var(--mr) + 1.5px)); }
+  .msg.seal-r::before { right:calc(-1 * (var(--mo) + var(--mr) + 1.5px)); }
+  .msg.seal-l, .msg.seal-r { padding-top:max(10px, var(--mneed)); }      /* the first line stays clear of the cut */
+  .msg.seal-l { padding-left:max(14px, var(--mneed)); }
+  .msg.seal-r { padding-right:max(14px, var(--mneed)); }
+  .msg-av { width:var(--av-msg, 48px); height:var(--av-msg, 48px); flex:0 0 var(--av-msg, 48px); font-size:calc(var(--av-msg, 48px) * .38); cursor:pointer; }
+  /* Picture sizes (Settings > Picture sizes) */
+  #meBar #meAvatar { width:var(--av-me, 44px); height:var(--av-me, 44px); font-size:calc(var(--av-me, 44px) * .38); }
+  #chatHeader #chAvatar { width:var(--av-head, 44px); height:var(--av-head, 44px); font-size:calc(var(--av-head, 44px) * .38); }
+  #contactList .contact .avatar { width:var(--av-list, 42px); height:var(--av-list, 42px); font-size:calc(var(--av-list, 42px) * .38); }
+  .size-prev { display:inline-flex; align-items:center; justify-content:center; min-width:100px; min-height:60px; }
   .msg-av.hidden-av { visibility:hidden; }
   .msg.recv {
     align-self:flex-start; background:var(--recv);
@@ -2017,7 +2031,7 @@ function openPanicSettings() {
   const set = Panic.isSet();
   showModal(`
     <div class="ss-header"><h2>Panic phrase</h2>
-      <button class="close-x" type="button" onclick="openProfileModal()">×</button></div>
+      <button class="close-x" type="button" onclick="openProfileModal()" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button></div>
     <div class="ss-body panic-setup">
       <div class="ss-hint" style="margin:0 0 12px">Set once for your account: your phone and every browser use the same phrases.
         Type the lock phrase in any text box (on its own or as the last words), or say it out loud, and your account locks on every device at once.
@@ -2169,9 +2183,12 @@ function applyBrandedName() {
   if (typeof updateTitle === 'function') updateTitle();
   else document.title = name;
 }
+const AV_SIZES = { avMe: ['--av-me', 44, 32, 96, 'My picture (top left)'], avHead: ['--av-head', 44, 32, 96, "Friend's picture (top of the chat)"],
+  avList: ['--av-list', 42, 32, 96, 'Pictures in the chats list'], avMsg: ['--av-msg', 48, 24, 110, 'Pictures on message bubbles'] };
 function applyPrefs() {
   const p = state.prefs || {};
   const r = document.documentElement.style;
+  for (const k in AV_SIZES) { const [v, def] = AV_SIZES[k]; r.setProperty(v, (p[k] != null ? p[k] : def) + 'px'); }
   // Only set when a stored value exists - never write defaults into LS / prefs.
   if (p.accent != null && p.accent !== '') {
     r.setProperty('--gold', p.accent); r.setProperty('--gold-dim', p.accent);
@@ -2933,6 +2950,7 @@ async function handleServerMessage(msg) {
           if (sh && state.prefs.avatarShape !== sh) { state.prefs.avatarShape = sh; LS.set('prefs', state.prefs); setTimeout(() => { try { applyPrefs(); refreshAvatarShapes(); } catch (_) {} }, 0); }
         }
         applyOwnPresenceFromSettings(msg.settings);
+        NotesLockW.apply(msg.settings && msg.settings.notesLock);
         if (msg.displayName) state.displayNames[state.me] = msg.displayName;   // set on any device
         if (msg.settings && typeof msg.settings.bannerHiddenFromContacts === 'boolean') {
           state.prefs.bannerVisibleToContacts = !msg.settings.bannerHiddenFromContacts;
@@ -2949,6 +2967,11 @@ async function handleServerMessage(msg) {
         renderAvatar(document.getElementById('meAvatar'), state.me, msg.hasPic);
       } catch (e) { console.warn('login_ok meBar', e); }
       try { establishSession(); } catch (e) { console.warn('login_ok session', e); }
+      break;
+    }
+
+    case 'settings_updated': {
+      if (msg.settings && 'notesLock' in msg.settings) NotesLockW.apply(msg.settings.notesLock);
       break;
     }
 
@@ -4371,10 +4394,13 @@ function renderContacts() {
   // Coalesce rapid presence/list updates so video avatars are not remounted every tick.
   renderContactsSoon();
 }
+/* Rows are kept and only changed when their content changes: rebuilding the whole list on
+   every click re-created every picture, so switching chats made them blink. */
+const _contactRows = new Map();      // id -> { row, avEl, sig }
 function renderContactsNow() {
   const list = document.getElementById('contactList');
   if (!list) return;
-  list.innerHTML = '';
+  const desired = [];
   if (!Array.isArray(state.contacts)) state.contacts = [];
   if (!state.groups || typeof state.groups !== 'object') state.groups = {};
   const ids = [...state.contacts.filter(c => !isNotes(c)), ...Object.keys(state.groups)];
@@ -4386,12 +4412,12 @@ function renderContactsNow() {
   if (notesOn() && state.me) sorted.unshift(state.me);     // Notes pinned first
   for (const c of sorted) {
     const grp = isGroup(c);
-    const row = document.createElement('div');
-    row.className = 'contact' + (state.current === c ? ' active' : '');
+    const cls = 'contact' + (state.current === c ? ' active' : '');
     const last = state.msgs[c]?.length ? state.msgs[c][state.msgs[c].length - 1] : null;
     const notes = isNotes(c);
     let preview = last ? (last.deleted ? 'Message deleted' : last.att ? '[file] ' + last.att.name : last.locked ? '🔒 message' : (last.text || ''))
                          : (grp ? (((state.groups[c] && Array.isArray(state.groups[c].members)) ? state.groups[c].members.length : 0) + ' members') : notes ? 'Your private notes' : lastSeenText(c));
+    if (notes && NotesLockW.cfg) preview = '🔒 Locked';
     if (last && grp && !last.sys && !last.deleted) preview = (last.sent ? 'You' : displayName(last.from)) + ': ' + preview;
     if (!grp && state.lockedPeers.has(c)) preview = '🔒 Locked';
     else if (grp && last && state.lockedPeers.has(last.from)) preview = '🔒 Locked';
@@ -4399,21 +4425,42 @@ function renderContactsNow() {
     preview = String(preview).replace(/\s+/g, ' ');
     const unread = state.unread[c] || 0;
     const muted = state.mutes[c] ? ic('belloff', 'inl after') : '';
-    row.innerHTML = `
-      <div class="avatar" data-u="${esc(c)}"></div>
+    const dot = grp || notes ? '' : presenceDotClass(c);
+    const sig = [cls, chatTitle(c), preview.slice(0, 80), unread, !!state.mutes[c], dot, grp, notes].join('\u0001');
+    let ent = _contactRows.get(c);
+    if (!ent) {
+      const avEl = document.createElement('div');
+      avEl.className = 'avatar'; avEl.dataset.u = c;
+      ent = { row: document.createElement('div'), avEl, sig: null };
+      _contactRows.set(c, ent);
+    }
+    const row = ent.row, avEl = ent.avEl;
+    if (ent.sig !== sig) {
+      ent.sig = sig;
+      row.className = cls;
+      row.innerHTML = `
       <div class="col">
-        <div class="cname">${grp ? ic('group', 'inl') : notes ? '' : `<span class="dot ${presenceDotClass(c)}"></span>`}${esc(chatTitle(c))}${muted}</div>
+        <div class="cname">${grp ? ic('group', 'inl') : notes ? '' : `<span class="dot ${dot}"></span>`}${esc(chatTitle(c))}${muted}</div>
         <div class="sub">${iconize(preview.slice(0, 80))}</div>
       </div>
       ${unread ? `<div class="badge">${unread > 99 ? '99+' : unread}</div>` : ''}`;
-    const avEl = row.querySelector('.avatar');
-    if (grp) avEl.innerHTML = ic('group', 'av-ic');
+      row.insertBefore(avEl, row.firstChild);      // the same picture element: nothing reloads
+      row.onclick = () => openChat(c);
+    }
+    if (grp) { if (!avEl.dataset.grp) { avEl.dataset.grp = '1'; avEl.innerHTML = ic('group', 'av-ic'); } }
     else {
       renderAvatar(avEl, c);
-      if (!notes) avEl.onclick = (e) => { e.stopPropagation(); openFriendProfile(c); };
+      avEl.onclick = notes ? null : (e) => { e.stopPropagation(); openFriendProfile(c); };
     }
-    row.onclick = () => openChat(c);
-    list.appendChild(row);
+    desired.push(row);
+  }
+  const keep = new Set(desired);
+  for (const [id, ent] of _contactRows) if (!keep.has(ent.row)) _contactRows.delete(id);
+  for (const n of Array.from(list.childNodes)) if (!keep.has(n)) list.removeChild(n);
+  let cur = list.firstChild;
+  for (const n of desired) {
+    if (n === cur) { cur = cur.nextSibling; continue; }
+    list.insertBefore(n, cur);
   }
 }
 
@@ -4449,7 +4496,63 @@ function showEmpty() {
   document.getElementById('emptyState').style.display = '';
 }
 
+/* Notes lock, set on the phone (PIN, password, or fingerprint with a backup PIN): this browser
+   asks for the PIN / password before showing Notes. Only a salted PBKDF2 hash is known here. */
+const NotesLockW = {
+  cfg: null, unlocked: false, hiddenAt: 0,
+  apply(c) {
+    const ok = c && c.type && c.type !== 'none' && c.hash && c.salt;
+    this.cfg = ok ? c : null;
+    if (!ok) this.unlocked = false;
+    renderContacts();
+    if (ok && isNotes(state.current) && !this.unlocked) this.relock();
+  },
+  async check(secret) {
+    try {
+      const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: b64.dec(this.cfg.salt), iterations: 120000 }, key, 256);
+      return b64.enc(bits) === this.cfg.hash;
+    } catch (_) { return false; }
+  },
+  relock() {
+    this.unlocked = false;
+    if (isNotes(state.current)) {
+      state.current = null;
+      document.getElementById('chatView').classList.remove('visible');
+      document.getElementById('emptyState').style.display = '';
+      renderContacts();
+    }
+  },
+  open(then) {
+    const pin = this.cfg.type !== 'password';
+    showModal(`<button class="close-x" onclick="closeModal()" aria-label="Close">${ic('close')}</button>
+      <h2>${ic('lock', 'inl')}Open Notes</h2>
+      <p style="color:var(--text-dim);margin:6px 0 12px">${pin ? 'Enter your Notes PIN' : 'Enter your Notes password'} (set on your phone).</p>
+      <input type="password" id="nlIn" ${pin ? 'inputmode="numeric" autocomplete="off"' : 'autocomplete="off"'} style="width:100%">
+      <div id="nlErr" style="color:var(--danger);min-height:18px;margin-top:6px"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="nlGo">Open</button>
+      </div>`);
+    const inp = document.getElementById('nlIn'), go = document.getElementById('nlGo');
+    const tryIt = async () => {
+      go.disabled = true;
+      const ok = await this.check(inp.value);
+      go.disabled = false;
+      if (!ok) { document.getElementById('nlErr').textContent = pin ? 'Wrong PIN' : 'Wrong password'; inp.value = ''; inp.focus(); return; }
+      this.unlocked = true; closeModal(); then();
+    };
+    go.onclick = tryIt;
+    inp.onkeydown = (e) => { if (e.key === 'Enter') tryIt(); };
+    setTimeout(() => inp.focus(), 50);
+  },
+};
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) NotesLockW.hiddenAt = Date.now();
+  else if (NotesLockW.cfg && NotesLockW.hiddenAt && Date.now() - NotesLockW.hiddenAt > 60000) NotesLockW.relock();
+});
+
 function openChat(c) {
+  if (isNotes(c) && NotesLockW.cfg && !NotesLockW.unlocked) { NotesLockW.open(() => openChat(c)); return; }
   state.current = c;
   state.unread[c] = 0;
   state.scrolledOnce[c] = false;   // entering a chat always scrolls to bottom once
@@ -6510,7 +6613,7 @@ function openProfileModal() {
   showModal(`
     <div class="ss-header">
       <h2>Profile and settings</h2>
-      <button class="close-x" onclick="closeModal()" aria-label="Close">×</button>
+      <button class="close-x" onclick="closeModal()" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
     </div>
     <div class="ss-body">
 
@@ -6654,6 +6757,13 @@ function openProfileModal() {
             <input type="range" min="0.7" max="1" step="0.01" value="${p.uiOpacity != null ? p.uiOpacity : 1}" oninput="setPref('uiOpacity', +this.value)">
             <div id="opVal">${Math.round((p.uiOpacity != null ? p.uiOpacity : 1) * 100)}%</div>
           </div>
+          ${Object.entries(AV_SIZES).map(([k, [, def, mn, mx, label]]) => `
+          <div class="ss-row"><div class="grow">${label}</div>
+            <input type="range" min="${mn}" max="${mx}" value="${p[k] != null ? p[k] : def}" oninput="setPref('${k}', +this.value)">
+            <div id="val_${k}">${p[k] != null ? p[k] : def}px</div>
+          </div>
+          <div class="ss-row size-row"><div class="size-prev"><div class="avatar" id="prev_${k}" data-prev-av="1"
+            style="width:${p[k] != null ? p[k] : def}px;height:${p[k] != null ? p[k] : def}px"></div></div></div>`).join('')}
           <div class="ss-row"><div class="grow">Bubble roundness</div>
             <input type="range" min="4" max="28" value="${p.bubbleRadius != null ? p.bubbleRadius : 16}" oninput="setPref('bubbleRadius', +this.value)">
             <div id="brVal">${p.bubbleRadius != null ? p.bubbleRadius : 16}px</div>
@@ -6725,6 +6835,8 @@ function openProfileModal() {
     </div>
   `, { sheet: true });
   applyBrandedName();
+  // live previews for the picture size sliders: your own picture and border
+  document.querySelectorAll('[data-prev-av]').forEach(el => { try { renderAvatar(el, state.me); } catch (_) {} });
 }
 
 /* Settings search: show only matching settings, open their sections; clearing restores. */
@@ -6791,6 +6903,12 @@ function setPref(k, v) {
   // rebuild the whole chat on every step).
   if (state.current && (k === 'chatAvatarMode' || k === 'showMyAvatar' || k === 'clock24' || k === 'fullTimestamps')) queueRender();
   if (k === 'notesChat') renderContacts();
+  if (k in AV_SIZES) {
+    const pv = document.getElementById('prev_' + k);
+    if (pv) { pv.style.width = pv.style.height = v + 'px'; }
+    const lab = document.getElementById('val_' + k); if (lab) lab.textContent = v + 'px';
+    refitFrames();
+  }
   if (k === 'clock24') renderContacts();
 }
 
@@ -7234,7 +7352,7 @@ function confirmCall(kind, who, fn) {
   showModal(`
     <div class="ss-header">
       <h2>${esc(title)}</h2>
-      <button class="close-x" type="button" onclick="dismissCallConfirm()">×</button>
+      <button class="close-x" type="button" onclick="dismissCallConfirm()" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
     </div>
     <div class="ss-body">
       <div class="ss-section">

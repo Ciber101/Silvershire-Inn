@@ -31,6 +31,17 @@ class ConversationAdapter(
             override fun areItemsTheSame(a: Conversation, b: Conversation) = a.contactUsername == b.contactUsername
             override fun areContentsTheSame(a: Conversation, b: Conversation) = a == b
         }
+        /** Chats list picture size (Profile > Picture sizes): the picture and the box holding it. */
+        fun applyListSize(avatar: View, initials: android.widget.TextView?) {
+            val d = avatar.resources.displayMetrics.density
+            val px = (PreferenceManager.listAvatarSize * d).toInt()
+            val lp = avatar.layoutParams ?: return
+            if (lp.width == px && lp.height == px) return
+            lp.width = px; lp.height = px; avatar.layoutParams = lp
+            (avatar.parent as? View)?.let { box -> box.layoutParams?.let { bl -> bl.width = px; bl.height = px; box.layoutParams = bl } }
+            (avatar as? androidx.cardview.widget.CardView)?.radius = px / 2f
+            initials?.textSize = PreferenceManager.listAvatarSize * 0.36f
+        }
     }
 
     inner class VH(val binding: ItemConversationBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -68,6 +79,7 @@ class ConversationAdapter(
                 else -> PreferenceManager.displayNameFor(conv.contactUsername)
             }
             tvContactName.text = displayName
+            applyListSize(avatarCircle, tvInitials)
 
             // ── Avatar: profile pic if cached, else initials / group icon ─────
             if (!isGroup) {
@@ -75,7 +87,7 @@ class ConversationAdapter(
                 com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(avatarCircle, shape)
                 com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(ivContactPic, shape)
             }
-            com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatarCircle, if (isGroup) null else conv.contactUsername)
+            com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatarCircle, if (isGroup) null else conv.contactUsername, dot = onlineDot)
             val picFile = when {
                 isGroup -> null
                 isNotes -> com.silvershireinn.app.utils.ProfileMediaHelper.findOwnProfilePic(holder.itemView.context)
@@ -124,7 +136,9 @@ class ConversationAdapter(
                 )
             }
             tvLastMessage.text = com.silvershireinn.app.utils.ThemeIcons.iconize(tvLastMessage.context,
-                if (!isGroup && com.silvershireinn.app.utils.PeerLocks.isLocked(conv.contactUsername)) "🔒 Locked" else conv.lastMessagePreview,
+                if (!isGroup && com.silvershireinn.app.utils.PeerLocks.isLocked(conv.contactUsername)) "🔒 Locked"
+                else if (isNotes && com.silvershireinn.app.utils.NotesLock.enabled) "🔒 Locked"
+                else conv.lastMessagePreview,
                 (tvLastMessage.textSize * 1.2f).toInt())
             // Unread chats stand out: brighter, bold preview.
             val unread = conv.unreadCount > 0
@@ -142,6 +156,7 @@ class ConversationAdapter(
                     onlineDot.getChildAt(0).setBackgroundColor(color)
                 }
             }
+            com.silvershireinn.app.utils.ProfileFrames.refresh(avatarCircle)   // the dot is drawn over the border
 
             val label = if (!isGroup) OnlineStatusManager.statusLabel(conv.contactUsername) else ""
             if (label.isNotEmpty()) {

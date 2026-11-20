@@ -137,6 +137,15 @@ object OrnateTheme {
                 v.background = sl
                 v.setPadding(pl, pt, pr, pb)
                 v.insetTop = 0; v.insetBottom = 0
+                // Dark lettering meant for a silver button reads as hollow, smudged letters on the
+                // dark iron one: use the light gold text (and icon) of the theme instead.
+                val tc = v.currentTextColor
+                val lum = (Color.red(tc) * 299 + Color.green(tc) * 587 + Color.blue(tc) * 114) / 1000
+                if (lum < 110) {
+                    v.setTextColor(0xFFF0D78C.toInt())
+                    v.iconTint = android.content.res.ColorStateList.valueOf(0xFFF0D78C.toInt())
+                }
+                v.setShadowLayer(0f, 0f, 0f, 0)
                 return true
             }
             is android.widget.ImageView -> {

@@ -152,6 +152,27 @@ object PreferenceManager {
         get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getBoolean("show_my_avatar", false)
         set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putBoolean("show_my_avatar", v).apply() }
 
+    /** Notes lock: "none", "pin", "password" or "biometric" (biometric keeps a backup PIN). */
+    var notesLockType: String
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getString("notes_lock_type", "none") ?: "none"
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putString("notes_lock_type", v).apply() }
+    var notesLockSalt: String
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getString("notes_lock_salt", "") ?: ""
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putString("notes_lock_salt", v).apply() }
+    var notesLockHash: String
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getString("notes_lock_hash", "") ?: ""
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putString("notes_lock_hash", v).apply() }
+
+    /** Size of the pictures set into message bubbles, in dp (slider in Profile). */
+    var msgAvatarSize: Int
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("msg_avatar_size", 72)
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putInt("msg_avatar_size", v.coerceIn(24, 110)).apply() }
+
+    /** Size of the pictures in the Chats list, in dp (slider in Profile). */
+    var listAvatarSize: Int
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("list_avatar_size", 56)
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putInt("list_avatar_size", v.coerceIn(40, 120)).apply() }
+
     /** The Notes chat (messages to yourself) pinned at the top of the chats list. */
     var notesEnabled: Boolean
         get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getBoolean("notes_enabled", true)
@@ -673,7 +694,8 @@ object PreferenceManager {
         "chat_head_dismiss_on_tap",
         "chat_head_snap", "chat_head_shape", "stack_switcher_opacity",
         "app_display_name", "splash_text", "auto_login", "my_display_name",
-        "launcher_pack", "chat_avatar_mode", "button_haptics"
+        "launcher_pack", "chat_avatar_mode", "button_haptics",
+        "notes_lock_type", "notes_lock_hash", "msg_avatar_size", "list_avatar_size"
     )
 
     /** Returns true when this prefs key should trigger a settings sync to the server. */
@@ -695,6 +717,10 @@ object PreferenceManager {
         put("fullTimestamps",      showFullTimestamps)
         put("compactBubbles",      compactBubbles)
         put("chatAvatarMode",      chatAvatarMode)
+        // Notes lock (salted PBKDF2 of the PIN / password, never the secret): the web app asks for it too
+        put("notesLock", JSONObject().put("type", notesLockType).put("salt", notesLockSalt).put("hash", notesLockHash))
+        put("msgAvatarSize",       msgAvatarSize)
+        put("listAvatarSize",      listAvatarSize)
         put("jumpToBottomOnSend",  jumpToBottomOnSend)
         put("uiOpacity",           uiOpacity)
         put("navBarAtTop",         navBarAtTop)
@@ -781,6 +807,13 @@ object PreferenceManager {
                 showFullTimestamps  = json.optBoolean("fullTimestamps", false)
             if (json.has("compactBubbles"))
                 compactBubbles      = json.optBoolean("compactBubbles", false)
+            json.optJSONObject("notesLock")?.let { nl ->
+                notesLockType = nl.optString("type", "none").ifBlank { "none" }
+                notesLockSalt = nl.optString("salt", "")
+                notesLockHash = nl.optString("hash", "")
+            }
+            if (json.has("msgAvatarSize")) msgAvatarSize = json.optInt("msgAvatarSize", 72)
+            if (json.has("listAvatarSize")) listAvatarSize = json.optInt("listAvatarSize", 56)
             if (json.has("chatAvatarMode"))
                 chatAvatarMode      = json.optInt("chatAvatarMode", 0)
             if (json.has("jumpToBottomOnSend"))

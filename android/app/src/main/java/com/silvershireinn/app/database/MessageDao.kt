@@ -94,6 +94,10 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE messageId = :messageId LIMIT 1")
     suspend fun getMessageById(messageId: String): Message?
 
+    /** Newest message left in a chat (to fix the chat list's preview after a removal). */
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp DESC LIMIT 1")
+    suspend fun latestIn(conversationId: String): Message?
+
     /** Rows whose time is not in the canonical sortable form (old app versions / servers). */
     @Query("SELECT messageId AS id, timestamp AS ts FROM messages WHERE length(timestamp) != 24 OR substr(timestamp, 24, 1) != 'Z'")
     suspend fun nonCanonicalTimestamps(): List<IdTs>

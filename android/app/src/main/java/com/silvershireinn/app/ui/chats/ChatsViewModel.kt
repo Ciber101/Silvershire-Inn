@@ -35,7 +35,7 @@ class ChatsViewModel : ViewModel() {
             val notes = list.firstOrNull { it.contactUsername == me }
             val rest = list.filter { it.contactUsername != me }
             if (!on || me.isBlank()) rest
-            else listOf(notes ?: Conversation(contactUsername = me, lastMessagePreview = "Your private notes")) + rest
+            else listOf((notes ?: Conversation(contactUsername = me)).let { if (it.lastMessagePreview.isBlank()) it.copy(lastMessagePreview = "Your private notes") else it }) + rest
         }
         .stateIn(
             scope        = viewModelScope,

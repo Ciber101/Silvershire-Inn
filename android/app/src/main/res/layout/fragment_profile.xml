@@ -867,6 +867,34 @@
                         app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
                 </LinearLayout>
 
+                <!-- Notes lock -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowNotesLock" android:background="?attr/selectableItemBackground"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Notes lock" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="PIN, password or fingerprint / face to open Notes (also asked on the web)" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/tvNotesLock" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:textColor="@color/color_gold" android:textSize="14sp" android:layout_marginStart="8dp" />
+                </LinearLayout>
+
+                <!-- Picture sizes -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowPictureSizes" android:background="?attr/selectableItemBackground"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Picture sizes" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="How big pictures (and their borders) are in the chats list and on messages" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_arrow_right"
+                        android:tint="@color/color_text_secondary" android:importantForAccessibility="no" />
+                </LinearLayout>
+
                 <View android:layout_width="match_parent" android:layout_height="0.5dp"
                     android:layout_marginVertical="12dp" android:background="@color/color_divider" />
 

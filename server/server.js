@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 5,
-  versionName: '1.0.4',
+  versionCode: 6,
+  versionName: '1.0.5',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -1400,7 +1400,7 @@ a.btn{display:inline-block;margin-top:18px;padding:14px 28px;background:#A8A9AD;
     if (!uploaderUsr) {
       jsonResponse(res, 401, { error: 'Unauthorized' }); return;
     }
-    if (!convWith || (!areMutualFriends(uploaderUsr, convWith) && !isGroupMember(uploaderUsr, convWith))) {
+    if (!convWith || (!canChat(uploaderUsr, convWith) && !isGroupMember(uploaderUsr, convWith))) {   // canChat: friends, or Notes (yourself)
       jsonResponse(res, 403, { error: 'Forbidden: not mutual contacts or group member' }); return;
     }
 
@@ -1474,7 +1474,7 @@ a.btn{display:inline-block;margin-top:18px;padding:14px 28px;background:#A8A9AD;
               });
               if (clientMsgId) sendToUser(uploaderUsr, { type: 'message_echo', ...gMessage });
             }
-          } else {
+          } else if (convWith !== uploaderUsr) {
             sendToUser(convWith, {
               type: 'file_shared', fileId, fileName, mimeType, size, from: uploaderUsr
             });
@@ -2320,6 +2320,9 @@ wss.on('connection', (ws, req) => {
             notifyOnlineStatus(username, isUserActive(username));
           }
           saveJSON(USERS_FILE, users);
+          // Other devices (the web app) learn about changes that matter to them (Notes lock)
+          if (Object.prototype.hasOwnProperty.call(incoming, 'notesLock'))
+            sendToOtherDevices(username, ws, { type: 'settings_updated', settings: { notesLock: users[username].settings.notesLock } });
         }
         break;
       }

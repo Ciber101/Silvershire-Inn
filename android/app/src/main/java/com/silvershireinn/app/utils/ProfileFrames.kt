@@ -101,7 +101,7 @@ object ProfileFrames {
      * inside that room, with a little to spare. Drawn on the row's overlay.
      */
     /** Returns the room reserved on each side (0 when there is no border). */
-    fun applyFloating(avatar: View?, user: String?, reserve: Boolean = true): Int {
+    fun applyFloating(avatar: View?, user: String?, reserve: Boolean = true, dot: View? = null): Int {
         avatar ?: return 0
         val first = avatar.parent as? ViewGroup ?: return 0
         // The slot is the picture itself, or the small box holding it (picture + online dot)
@@ -115,13 +115,16 @@ object ProfileFrames {
         if (!framed) {
             if (old != null) { old.host.overlay.remove(old); avatar.setTag(R_FLOAT, null); old.host.invalidate() }
             avatar.scaleX = 1f; avatar.scaleY = 1f
+            dot?.alpha = 1f
             return 0
         }
+        dot?.alpha = 0f            // drawn by the border instead, on top of it (FloatingFrame.dot)
         val shape = shapeName(AvatarShapeHelper.forUser(user))
         val room = (slot.getTag(R_ROOM) as? Int) ?: 0
-        if (old != null && old.id == id && old.shape == shape && old.host === host) { host.invalidate(); return room }
+        if (old != null && old.id == id && old.shape == shape && old.host === host) { old.dot = dot; host.invalidate(); return room }
         if (old != null) old.host.overlay.remove(old)
         val f = FloatingFrame(avatar.context.applicationContext, id, shape, avatar, slot, host)
+        f.dot = dot
         host.overlay.add(f)
         avatar.setTag(R_FLOAT, f)
         host.invalidate()
@@ -142,6 +145,9 @@ object ProfileFrames {
         slot.setTag(R_ROOM, m)
     }
 
+    /** Redraw a picture's border (after its online dot was shown / hidden). */
+    fun refresh(avatar: View?) { (avatar?.getTag(R_FLOAT) as? FloatingFrame)?.host?.invalidate() }
+
     /** Overlay drawable that follows its picture (position, size, visibility) every time it draws. */
     class FloatingFrame(private val app: Context, val id: String, val shape: String, avatar: View, slot: View, val host: ViewGroup) : Drawable() {
         private val ref = java.lang.ref.WeakReference(avatar)
@@ -150,8 +156,11 @@ object ProfileFrames {
         private var drawn: FloatArray? = null       // drawn area of the bitmap: x0, y0, x1, y1 (0..1)
         private var asked = 0
         private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         private val dst = Rect()
         private val tmp = Rect()
+        /** Online dot: drawn on the picture's rim, ABOVE the border (it used to hide under it). */
+        var dot: View? = null
         init { setBounds(-4000, -4000, 4000, 4000) }   // invalidation area: anywhere near the host
         override fun draw(c: Canvas) {
             val v = ref.get() ?: return
@@ -192,6 +201,15 @@ object ProfileFrames {
             dst.set((cx - size / 2).toInt(), (cy - size / 2).toInt(), (cx + size / 2).toInt(), (cy + size / 2).toInt())
             paint.alpha = (v.alpha * 255).toInt()
             c.drawBitmap(b, null, dst, paint)
+            val od = dot
+            if (od != null && od.visibility == View.VISIBLE) {
+                val col = (od as? androidx.cardview.widget.CardView)?.cardBackgroundColor?.defaultColor ?: 0xFF4CAF50.toInt()
+                val dr = maxOf(od.width, od.height).coerceAtLeast(1) / 2f
+                val pr = a / 2f * k * (if (shape == "circle" || shape == "diamond") 0.7071f else 0.86f)
+                val dx = cx + pr; val dy = cy + pr
+                dotPaint.color = 0xFF16161A.toInt(); c.drawCircle(dx, dy, dr + 2f * v.resources.displayMetrics.density, dotPaint)
+                dotPaint.color = col; c.drawCircle(dx, dy, dr, dotPaint)
+            }
         }
         override fun setAlpha(a: Int) {}
         override fun setColorFilter(cf: ColorFilter?) { paint.colorFilter = cf }

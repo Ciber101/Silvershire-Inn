@@ -7,7 +7,13 @@ import android.graphics.Path
 import android.graphics.Region
 import android.os.Build
 import android.util.AttributeSet
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
+import com.silvershireinn.app.R
+import kotlin.math.max
+import kotlin.math.sqrt
 
 /**
  * A message bubble that can carry its sender's picture on a top corner like a wax seal: the
@@ -20,6 +26,7 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
     var sealCorner = 0
         private set
     private var sealRadius = 0f
+    private var sealOffset = 0f
     private var rimColor = 0
     private var rimWidth = 0f
     private val maxW: Int
@@ -34,10 +41,10 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
         setWillNotDraw(false)
     }
 
-    /** Cut a circle of [radius] around the bubble's top [corner]; [corner] 0 removes it. */
-    fun setSeal(corner: Int, radius: Float, rim: Int, rimW: Float) {
-        if (corner == sealCorner && radius == sealRadius && rim == rimColor && rimW == rimWidth) return
-        sealCorner = corner; sealRadius = radius; rimColor = rim; rimWidth = rimW
+    /** Cut a circle of [radius], centred [offset] outside the bubble's top [corner]; [corner] 0 removes it. */
+    fun setSeal(corner: Int, radius: Float, rim: Int, rimW: Float, offset: Float = 0f) {
+        if (corner == sealCorner && radius == sealRadius && rim == rimColor && rimW == rimWidth && offset == sealOffset) return
+        sealCorner = corner; sealRadius = radius; rimColor = rim; rimWidth = rimW; sealOffset = offset
         invalidate()
     }
 
@@ -53,8 +60,9 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
 
     override fun draw(c: Canvas) {
         if (sealCorner == 0 || sealRadius <= 0f || width == 0) { super.draw(c); return }
-        val cx = if (sealCorner == LEFT) 0f else width.toFloat()
-        cut.reset(); cut.addCircle(cx, 0f, sealRadius, Path.Direction.CW)
+        val cx = if (sealCorner == LEFT) -sealOffset else width + sealOffset
+        val cy = -sealOffset
+        cut.reset(); cut.addCircle(cx, cy, sealRadius, Path.Direction.CW)
         c.save()
         if (Build.VERSION.SDK_INT >= 26) c.clipOutPath(cut)
         else @Suppress("DEPRECATION") c.clipPath(cut, Region.Op.DIFFERENCE)
@@ -67,10 +75,60 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
             c.save()
             c.clipPath(shape)
             ring.color = rimColor; ring.strokeWidth = rimWidth
-            c.drawCircle(cx, 0f, sealRadius + rimWidth / 2f, ring)
+            c.drawCircle(cx, cy, sealRadius + rimWidth / 2f, ring)
             c.restore()
         }
     }
 
-    companion object { const val LEFT = 1; const val RIGHT = 2 }
+    companion object {
+        const val LEFT = 1; const val RIGHT = 2
+        const val NONE = 0; const val ALIGNED = 1; const val SEAL = 2
+
+        /**
+         * Places a message's picture [frame] (in a FrameLayout row) and its [bubble]: set into the
+         * bubble's top corner ([SEAL]), its room kept but nothing shown ([ALIGNED], the rest of a
+         * run) or none at all ([NONE]). [sizeDp] is the picture size. Big pictures sit a little
+         * further out of the corner, and the bubble's content always stays clear of the cut.
+         */
+        fun place(frame: View, bubble: SealBubble?, mine: Boolean, state: Int, sizeDp: Int, ornate: Boolean) {
+            val b = bubble ?: return
+            val d = frame.resources.displayMetrics.density
+            val a = (sizeDp * d).toInt()
+            val half = a / 2f
+            val o = max(0f, half - 15 * d) * 0.55f
+            val roomTop = max(6 * d, a * 0.15f + 2 * d).toInt()       // above the picture, for its border
+            (frame.layoutParams as? FrameLayout.LayoutParams)?.let { flp ->
+                if (flp.width != a || flp.height != a || flp.topMargin != roomTop) {
+                    flp.width = a; flp.height = a; flp.topMargin = roomTop; frame.layoutParams = flp
+                }
+            }
+            // room beside the picture for its border
+            (frame.parent as? ViewGroup)?.let { row ->
+                val side = if (state == NONE) (10 * d).toInt() else max((10 * d).toInt(), (a * 0.25f).toInt())
+                if (mine && row.paddingEnd != side) row.setPaddingRelative(row.paddingStart, row.paddingTop, side, row.paddingBottom)
+                if (!mine && row.paddingStart != side) row.setPaddingRelative(side, row.paddingTop, row.paddingEnd, row.paddingBottom)
+            }
+            val lp = b.layoutParams as? FrameLayout.LayoutParams ?: return
+            val sideM = if (state == NONE) 0 else (half - o).toInt()
+            val top = if (state == SEAL) (roomTop + half + o).toInt() else 0      // centre sits o above and o outside the corner
+            val changed = (if (mine) lp.marginEnd else lp.marginStart) != sideM || lp.topMargin != top
+            if (mine) lp.marginEnd = sideM else lp.marginStart = sideM
+            lp.topMargin = top
+            if (changed) b.layoutParams = lp
+            val orig = (b.getTag(R.id.seal_padding) as? IntArray)
+                ?: intArrayOf(b.paddingLeft, b.paddingTop, b.paddingRight, b.paddingBottom).also { b.setTag(R.id.seal_padding, it) }
+            val radius = half + 2.5f * d
+            if (state == SEAL) {
+                val need = (radius / sqrt(2f) + 1 * d - o).toInt()
+                val padTop = max(orig[1], need)
+                val padSide = max(if (mine) orig[2] else orig[0], need)
+                b.setPadding(if (!mine) padSide else orig[0], padTop, if (mine) padSide else orig[2], orig[3])
+                val rim = if (!ornate) 0xFF3C3C42.toInt() else if (mine) 0xFF8C6A2A.toInt() else 0xFF6E7078.toInt()
+                b.setSeal(if (mine) RIGHT else LEFT, radius, rim, 1.5f * d, o)
+            } else {
+                b.setPadding(orig[0], orig[1], orig[2], orig[3])
+                b.setSeal(0, 0f, 0, 0f)
+            }
+        }
+    }
 }

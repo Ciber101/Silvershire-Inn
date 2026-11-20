@@ -22,6 +22,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -1286,13 +1287,50 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         replyToMessage = msg
         binding.tvReplyLabel.text = "Replying to ${replySender(msg)}"
         binding.tvReplyPreview.text = quotePreview(msg)
-        binding.replyBar.show()
+        slideBar(binding.replyBar, true)
         binding.etMessage.requestFocus()
     }
 
     private fun clearReply() {
         replyToMessage = null
-        binding.replyBar.hide()
+        slideBar(binding.replyBar, false)
+    }
+
+    private var barAnim: android.animation.ValueAnimator? = null
+
+    /**
+     * Opens / closes a bar above the input by growing its height a little each frame, so the
+     * messages above glide up instead of jumping (the first swipe-to-reply used to bounce the
+     * list when the reply bar popped in).
+     */
+    private fun slideBar(bar: View, show: Boolean) {
+        barAnim?.cancel()
+        val lp = bar.layoutParams
+        val from = if (bar.visibility == View.VISIBLE) bar.height else 0
+        val to = if (show) {
+            val w = (bar.parent as? View)?.width?.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+            bar.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            bar.measuredHeight
+        } else 0
+        if (show && bar.visibility == View.VISIBLE && lp.height == ViewGroup.LayoutParams.WRAP_CONTENT) return
+        if (!show && bar.visibility != View.VISIBLE) return
+        lp.height = from; bar.layoutParams = lp
+        bar.visibility = View.VISIBLE
+        barAnim = android.animation.ValueAnimator.ofInt(from, to).apply {
+            duration = 170
+            interpolator = android.view.animation.DecelerateInterpolator()
+            addUpdateListener { a -> lp.height = a.animatedValue as Int; bar.layoutParams = lp }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                private var cancelled = false
+                override fun onAnimationCancel(animation: android.animation.Animator) { cancelled = true }
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    if (cancelled) return
+                    lp.height = ViewGroup.LayoutParams.WRAP_CONTENT; bar.layoutParams = lp
+                    if (!show) bar.visibility = View.GONE
+                }
+            })
+            start()
+        }
     }
 
     // ── Message context menu ────────────────────────────────────────────────────────────
@@ -1672,6 +1710,27 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
     /** The Notes chat: messages to yourself (only you, on your devices). */
     private fun isNotesChat(): Boolean = com.silvershireinn.app.utils.NotesChat.isNotes(contactName)
 
+    private var notesPrompting = false
+
+    /** Notes lock (PIN / password / fingerprint): nothing shows until it is opened. */
+    private fun gateNotes() {
+        if (!isNotesChat()) return
+        if (!com.silvershireinn.app.utils.NotesLock.needsUnlock()) { showNotesContent(true); return }
+        showNotesContent(false)
+        if (notesPrompting) return
+        notesPrompting = true
+        com.silvershireinn.app.utils.NotesLock.prompt(this) { ok ->
+            notesPrompting = false
+            if (ok) showNotesContent(true) else finish()
+        }
+    }
+
+    private fun showNotesContent(show: Boolean) {
+        val v = if (show) View.VISIBLE else View.INVISIBLE
+        binding.rvMessages.visibility = v
+        binding.inputBar.visibility = v
+    }
+
     private fun setChatTitle(name: CharSequence?) {
         binding.tvChatTitle.text = if (isNotesChat()) com.silvershireinn.app.utils.NotesChat.TITLE else name
     }
@@ -1751,6 +1810,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
 
     override fun onStop() {
         super.onStop()
+        if (isNotesChat() && !notesPrompting) com.silvershireinn.app.utils.NotesLock.noteLeft()
         try { unregisterReceiver(profileUpdatedReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(chatFontChangedReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(contactRemovedReceiver) } catch (_: Exception) {}
@@ -1772,6 +1832,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         // crashed the app whenever something was shared into Silvershire.
         if (!::adapter.isInitialized) return
         if (com.silvershireinn.app.utils.AppLock.gate(this)) return   // idle too long
+        gateNotes()
         // A photo edited in the viewer to send here: it becomes the draft (caption, then send)
         com.silvershireinn.app.ui.media.EditedMedia.take(intent.getStringExtra("group_id") ?: contactName)?.let { f ->
             setAttachmentDraft(FileProvider.getUriForFile(this, "${packageName}.provider", f), "image/jpeg")

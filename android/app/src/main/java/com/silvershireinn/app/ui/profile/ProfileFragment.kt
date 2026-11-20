@@ -459,6 +459,18 @@ class ProfileFragment : Fragment() {
             HapticUtil.vibrate(requireContext())
             PreferenceManager.notesEnabled = checked
         }
+        fun notesLockLabel() = when (PreferenceManager.notesLockType) {
+            "pin" -> "PIN"; "password" -> "Password"; "biometric" -> "Fingerprint / face"; else -> "None"
+        }
+        binding.tvNotesLock.text = notesLockLabel()
+        binding.rowNotesLock.setOnClickListener {
+            HapticUtil.vibrate(requireContext())
+            com.silvershireinn.app.utils.NotesLock.configure(requireActivity()) { binding.tvNotesLock.text = notesLockLabel() }
+        }
+        binding.rowPictureSizes.setOnClickListener {
+            HapticUtil.vibrate(requireContext())
+            com.silvershireinn.app.ui.profile.PictureSizeDialog.show(requireActivity())
+        }
 
         binding.switchCompactBubbles.isChecked = PreferenceManager.compactBubbles
         binding.switchCompactBubbles.setOnCheckedChangeListener { _, checked ->

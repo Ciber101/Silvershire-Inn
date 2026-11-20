@@ -84,37 +84,9 @@ class MessageAdapter(
      * always obvious who wrote it. Mode 0 = every message, 1 = only the last of a run
      * (the others keep the space so bubbles stay aligned), 2 = off.
      */
-    /**
-     * Where the picture sits: set into the bubble's top corner like a wax seal ([SEAL]), its
-     * room kept but nothing shown (the rest of a run, [ALIGNED]) or none at all ([NONE]).
-     */
-    private fun placeSeal(frame: View, bubble: SealBubble?, mine: Boolean, state: Int) {
-        val b = bubble ?: return
-        val d = frame.resources.displayMetrics.density
-        val a = (frame.layoutParams?.width?.takeIf { it > 0 } ?: (30 * d).toInt())
-        val half = a / 2
-        val roomTop = (6 * d).toInt()                       // above the picture, for its border
-        (frame.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { flp ->
-            if (flp.topMargin != roomTop) { flp.topMargin = roomTop; frame.layoutParams = flp }
-        }
-        val lp = b.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return
-        val side = if (state == NONE) 0 else half
-        val top = if (state == SEAL) roomTop + half else 0
-        val changed = (if (mine) lp.marginEnd else lp.marginStart) != side || lp.topMargin != top
-        if (mine) lp.marginEnd = side else lp.marginStart = side
-        lp.topMargin = top
-        if (changed) b.layoutParams = lp
-        // the content steps a little away from the cut corner
-        val orig = (b.getTag(R.id.seal_padding) as? IntArray)
-            ?: intArrayOf(b.paddingLeft, b.paddingTop, b.paddingRight, b.paddingBottom).also { b.setTag(R.id.seal_padding, it) }
-        val extra = if (state == SEAL) (5 * d).toInt() else 0
-        b.setPadding(orig[0] + if (!mine) extra else 0, orig[1] + extra, orig[2] + if (mine) extra else 0, orig[3])
-        if (state == SEAL) {
-            val ornate = com.silvershireinn.app.utils.OrnateTheme.isOn(frame.context)
-            val rim = if (!ornate) 0xFF3C3C42.toInt() else if (mine) 0xFF8C6A2A.toInt() else 0xFF6E7078.toInt()
-            b.setSeal(if (mine) SealBubble.RIGHT else SealBubble.LEFT, half + 2.5f * d, rim, 1.5f * d)
-        } else b.setSeal(0, 0f, 0, 0f)
-    }
+    /** Where the picture sits (see [SealBubble.place]). */
+    private fun placeSeal(frame: View, bubble: SealBubble?, mine: Boolean, state: Int) =
+        SealBubble.place(frame, bubble, mine, state, PreferenceManager.msgAvatarSize, com.silvershireinn.app.utils.OrnateTheme.isOn(frame.context))
 
     private fun bindSenderAvatar(frame: View, iv: ImageView, tv: android.widget.TextView,
                                  msg: Message, position: Int, mine: Boolean = false, bubble: SealBubble? = null) {
