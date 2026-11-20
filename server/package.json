@@ -1,0 +1,16 @@
+{
+  "name": "silvershire-inn-server",
+  "version": "1.0.0",
+  "description": "Self-hosted server for the Silvershire Inn messenger (Android app + web app)",
+  "main": "server.js",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "node-turn": "^0.0.6",
+    "ws": "^8.18.0"
+  }
+}

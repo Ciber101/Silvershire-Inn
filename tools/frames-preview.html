@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Silvershire Inn - border gallery</title>
+<style>
+  body { background:#131416; color:#cfc6b0; font-family:Georgia, serif; margin:20px; }
+  h1 { font-weight:normal; color:#d4af37; }
+  .grid { display:flex; flex-wrap:wrap; gap:12px; }
+  .cell { background:#1a1b1e; border:1px solid #2a2b30; padding:6px; text-align:center; font-size:12px; }
+  select, button { font-size:14px; }
+</style>
+<h1>Border gallery</h1>
+<p>Style <select id="kind"></select> Shape <select id="shape"><option>circle</option><option>rounded</option><option>squircle</option><option>diamond</option></select>
+<button onclick="draw()">Generate 12</button></p>
+<div class="grid" id="grid"></div>
+<script src="../server/frames.js"></script>
+<script>
+  const F = SilvershireFrames;
+  const kind = document.getElementById('kind');
+  for (const [k, v] of Object.entries(F.KINDS)) if (k !== 'none') kind.add(new Option(v, k));
+  kind.value = 'dragon';
+  function draw() {
+    const grid = document.getElementById('grid'); grid.innerHTML = '';
+    for (let i = 0; i < 12; i++) {
+      const id = 'gen:' + kind.value + ':' + F.newSeed(), S = 260, c = document.createElement('canvas');
+      c.width = c.height = S; const x = c.getContext('2d'), r = S * 0.22, shape = document.getElementById('shape').value;
+      x.save(); F.shapePath(x, shape, S / 2, S / 2, r); x.clip(); x.fillStyle = '#3d4a63'; x.fillRect(0, 0, S, S); x.restore();
+      F.drawFrame(x, id, shape, S / 2, S / 2, r);
+      const d = document.createElement('div'); d.className = 'cell'; d.append(c, document.createElement('br'), id); grid.appendChild(d);
+    }
+  }
+  draw();
+</script>

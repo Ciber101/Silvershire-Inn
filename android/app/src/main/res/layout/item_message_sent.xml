@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="end"
+    android:paddingVertical="5dp"
+    android:paddingStart="56dp"
+    android:paddingEnd="10dp">
+
+    <LinearLayout
+        android:id="@+id/bubbleSent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="@dimen/message_bubble_max_width"
+        android:orientation="vertical"
+        android:background="@drawable/bg_message_sent"
+        android:padding="14dp">
+
+        <!-- Reply quote chip — shown for reply messages; tap to jump to the original. -->
+        <TextView
+            android:id="@+id/tvReplyQuote"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:textColor="@color/color_gold"
+            android:textSize="12sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:padding="6dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/bg_reply_quote"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tvMessageText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/color_text_primary"
+            android:textSize="15sp"
+            android:lineSpacingExtra="2dp"
+            android:autoLink="none" />
+
+        <!-- Link preview card (shown when message contains a URL) -->
+        <LinearLayout
+            android:id="@+id/layoutLinkPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_reply_quote"
+            android:padding="8dp">
+
+            <ImageView
+                android:id="@+id/ivLinkPreviewImage"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:id="@+id/tvLinkDomain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_gold"
+                android:textSize="10sp"
+                android:letterSpacing="0.05" />
+
+            <TextView
+                android:id="@+id/tvLinkTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_text_primary"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="2dp" />
+
+            <TextView
+                android:id="@+id/tvLinkDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="11sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="2dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvTimestamp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/tvDeliveryStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:textColor="@color/color_gold"
+                android:textSize="11sp"
+                android:letterSpacing="-0.12" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

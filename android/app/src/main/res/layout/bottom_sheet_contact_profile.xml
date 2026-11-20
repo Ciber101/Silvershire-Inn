@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/color_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- ── Banner (hard-clipped to 200dp) ──────────────────────────── -->
+        <!-- clipChildren=true here ensures the banner image never bleeds into
+             the rows below. Only the profile-pic circle (a sibling with a
+             negative marginTop) is allowed to overlap. -->
+        <FrameLayout
+            android:id="@+id/layoutBannerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:background="@color/color_surface"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <ImageView
+                android:id="@+id/ivContactBanner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <TextureView
+                android:id="@+id/vvContactBanner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="190dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/bg_banner_bottom_fade" />
+
+            <!-- Close button top-right — stays inside the banner -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/btnClose"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="10dp"
+                app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="#AA1A1A1E"
+                app:cardElevation="4dp">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_close"
+                    android:scaleType="center"
+                    android:tint="@color/color_text_primary" />
+            </androidx.cardview.widget.CardView>
+
+        </FrameLayout>
+
+        <!-- Profile pic: sibling of the banner, pulled up by 44dp to overlap
+             the banner bottom edge. The outer LinearLayout's clipChildren=false
+             allows this view to draw over the banner without being clipped. -->
+        <FrameLayout
+            android:id="@+id/layoutContactAvatar"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="-44dp"
+            android:layout_marginBottom="0dp">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cvContactPic"
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                app:cardCornerRadius="44dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="@color/color_surface">
+
+                <ImageView
+                    android:id="@+id/ivContactPic"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <TextureView
+                    android:id="@+id/vvContactPic"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvContactInitials"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="@color/color_background"
+                    android:textSize="30sp"
+                    android:fontFamily="sans-serif-medium" />
+
+            </androidx.cardview.widget.CardView>
+
+        </FrameLayout>
+
+        <!-- ── Username + online status ─────────────────────────────────── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="12dp"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/tvContactUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_text_primary"
+                android:textSize="22sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/tvCanonicalUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/onlineIndicator"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    app:cardCornerRadius="4dp"
+                    app:cardElevation="0dp"
+                    android:layout_marginEnd="6dp"
+                    app:cardBackgroundColor="#FF757575" />
+
+                <TextView
+                    android:id="@+id/tvOnlineStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Offline"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="13sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ── Action buttons (Message, Audio call, Video call): the banner reaches down behind them ── -->
+        <LinearLayout
+            android:id="@+id/layoutContactActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="16dp"
+            android:paddingTop="8dp">
+
+            <!-- Message -->
+            <LinearLayout
+                android:id="@+id/btnMessage"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:layout_marginHorizontal="12dp">
+                <androidx.cardview.widget.CardView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="@color/color_surface"
+                    app:cardElevation="2dp">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_chat"
+                        android:scaleType="center"
+                        android:tint="@color/color_gold"
+                        android:padding="10dp" />
+                </androidx.cardview.widget.CardView>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Message"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+
+            <!-- Audio call -->
+            <LinearLayout
+                android:id="@+id/btnAudioCall"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:layout_marginHorizontal="12dp">
+                <androidx.cardview.widget.CardView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="@color/color_surface"
+                    app:cardElevation="2dp">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_call"
+                        android:scaleType="center"
+                        android:tint="@color/color_gold"
+                        android:padding="10dp" />
+                </androidx.cardview.widget.CardView>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Call"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+
+            <!-- Video call -->
+            <LinearLayout
+                android:id="@+id/btnVideoCall"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:layout_marginHorizontal="12dp">
+                <androidx.cardview.widget.CardView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="@color/color_surface"
+                    app:cardElevation="2dp">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_video_call"
+                        android:scaleType="center"
+                        android:tint="@color/color_gold"
+                        android:padding="10dp" />
+                </androidx.cardview.widget.CardView>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Video"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ── Divider ───────────────────────────────────────────────────── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/color_divider"
+            android:layout_marginHorizontal="16dp" />
+
+        <!-- ── Chat settings for this contact ───────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CHAT SETTINGS"
+            android:textColor="@color/color_gold"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp"
+            android:fontFamily="sans-serif-medium" />
+
+        <!-- Nickname row -->
+        <LinearLayout
+            android:id="@+id/rowNickname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Nickname"
+                android:textColor="@color/color_text_primary"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/tvNickname"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="None"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="14sp"
+                android:layout_marginEnd="8dp" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_edit"
+                android:tint="@color/color_text_secondary"
+                android:alpha="0.6" />
+
+        </LinearLayout>
+
+        <!-- Chat settings button (opens ChatSettingsActivity) -->
+        <LinearLayout
+            android:id="@+id/rowChatSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Bubble color, font &amp; more"
+                android:textColor="@color/color_text_primary"
+                android:textSize="15sp" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_arrow_right"
+                android:tint="@color/color_text_secondary"
+                android:alpha="0.6" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/color_divider"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp" />
+
+        <!-- ── Danger zone ───────────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/rowBlock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Block Contact"
+                android:textColor="#E05555"
+                android:textSize="15sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/rowDelete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:background="?attr/selectableItemBackground"
+            android:layout_marginBottom="16dp" android:paddingVertical="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Delete Contact"
+                android:textColor="#E05555"
+                android:textSize="15sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

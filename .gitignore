@@ -1,0 +1,32 @@
+# Server data: accounts, messages, keys, the published APK. Never commit.
+server/data/*
+!server/data/README.md
+!server/data/config.example.json
+server/node_modules/
+server/restart.request
+server/Caddyfile
+server/caddy
+server/caddy.exe
+server/update-duckdns.bat
+
+# Android build output and machine-specific files
+android/.gradle/
+android/.idea/
+android/.kotlin/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+*.iml
+
+# Keys and builds
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Generated
+tools/theme-out/
+__pycache__/
+.DS_Store
+Thumbs.db

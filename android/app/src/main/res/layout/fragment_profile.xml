@@ -1,0 +1,1694 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="16dp">
+
+        <!-- Banner + avatar hero (web-parity: banner fills behind profile pic) -->
+        <FrameLayout
+            android:id="@+id/layoutBanner"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginHorizontal="-16dp"
+            android:background="@color/color_surface"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <ImageView
+                android:id="@+id/ivBanner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:adjustViewBounds="true"
+                android:visibility="gone" />
+
+            <TextureView
+                android:id="@+id/vvBanner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="170dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/bg_banner_bottom_fade" />
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/btnEditBanner"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="10dp"
+                app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="#AA1A1A1E"
+                app:cardElevation="4dp">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_camera_small"
+                    android:scaleType="center"
+                    android:tint="@color/color_text_primary" />
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                android:id="@+id/tvBannerPlaceholder"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Tap camera to set a banner image or video"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="13sp" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutIdentity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginTop="-110dp"
+            android:paddingBottom="16dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:elevation="8dp">
+
+            <FrameLayout
+                android:layout_width="88dp"
+                android:layout_height="88dp">
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/avatarCircle"
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    app:cardCornerRadius="44dp"
+                    app:cardElevation="6dp"
+                    app:cardBackgroundColor="@color/color_surface">
+                    <ImageView
+                        android:id="@+id/ivProfilePic"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+                    <TextureView
+                        android:id="@+id/vvProfilePic"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+                    <TextView
+                        android:id="@+id/tvInitials"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:textColor="@color/color_background"
+                        android:textSize="28sp"
+                        android:fontFamily="sans-serif-medium" />
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/btnEditPhoto"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="bottom|end"
+                    app:cardCornerRadius="14dp"
+                    app:cardBackgroundColor="@color/color_gold"
+                    app:cardElevation="4dp">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_camera_small"
+                        android:scaleType="center"
+                        android:tint="@color/color_background" />
+                </androidx.cardview.widget.CardView>
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/color_text_primary"
+                android:textSize="20sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/tvUserSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Silvershire Inn Member"
+                android:textColor="@color/color_gold"
+                android:textSize="12sp"
+                android:letterSpacing="0.05" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChangeUsername"
+                style="@style/Widget.Silvershire.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Change Username"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+<!-- Settings search: type to show only matching settings (sections open while searching). -->
+        <LinearLayout android:id="@+id/layoutSettingsSearch" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:minHeight="44dp" android:layout_marginBottom="12dp"
+            android:paddingHorizontal="12dp" android:paddingVertical="4dp"
+            android:background="@drawable/bg_input_field">
+            <ImageView android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_search" android:tint="@color/color_text_secondary"
+                android:importantForAccessibility="no" />
+            <EditText android:id="@+id/etSettingsSearch"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:layout_marginStart="8dp" android:background="@null"
+                android:hint="Search settings" android:inputType="text" android:imeOptions="actionSearch"
+                android:maxLines="1" android:textSize="15sp"
+                android:textColor="@color/color_text_primary" android:textColorHint="@color/color_text_secondary" />
+            <ImageView android:id="@+id/btnClearSettingsSearch"
+                android:layout_width="28dp" android:layout_height="28dp" android:padding="5dp"
+                android:src="@drawable/ic_close" android:tint="@color/color_text_secondary"
+                android:contentDescription="Clear search" android:visibility="gone"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+        </LinearLayout>
+        <TextView android:id="@+id/tvSettingsNoMatch"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp" android:gravity="center"
+            android:text="No settings match" android:textColor="@color/color_text_secondary"
+            android:textSize="13sp" android:visibility="gone" />
+<LinearLayout android:id="@+id/headerPrivacy"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="CHAT AND PRIVACY" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronPrivacy" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardPrivacy"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="4dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowPresence"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true" android:focusable="true" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Presence" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvPresenceValue"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Online" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <View android:id="@+id/presenceDot"
+                        android:layout_width="10dp" android:layout_height="10dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_presence_dot" />
+                    <ImageView
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_chevron_down"
+                        android:tint="@color/color_text_secondary" android:alpha="0.7" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowDiscoverable"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/discoverable" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Allow others to find you by username" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetDiscoverable"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchDiscoverable"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowReadReceipts"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/read_receipts" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Let others know when you have read their messages" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetReadReceipts"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchReadReceipts"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowTypingIndicators"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/typing_indicators" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Show when you are composing a message" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetTypingIndicators"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchTypingIndicators"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Full date and time on every message -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowFullTimestamps"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Full date and time on messages" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Show the day, date and time on every message" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchFullTimestamps"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Show banner on your own profile -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowBannerEnabled"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Show Banner" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Display the banner image on your profile" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetBannerEnabled"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchBannerEnabled"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Share banner with contacts -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowBannerVisible"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Share Banner with Contacts" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Let your contacts see your banner image" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetBannerVisible"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchBannerVisibleToContacts"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ── NOTIFICATIONS ─────────────────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerNotifications"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="NOTIFICATIONS" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronNotifications" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardNotifications"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="4dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowNotifMaster"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Notifications" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Master switch for message &amp; friend-request alerts" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetNotifMaster"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchNotificationsEnabled"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowNotifSounds"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Notification Sounds" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Play a sound for incoming messages" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetNotifSounds"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchNotificationSounds"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowNotifPreview"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Message Preview" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Show message content in notifications" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetNotifPreview"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchNotificationPreview"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowBatteryOptimization"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Background reliability" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvBatteryOptStatus"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Allow the app to run in the background for reliable notifications" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ── SECURITY ───────────────────────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerSecurity"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="SECURITY" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronSecurity" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardSecurity"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="4dp">
+
+                <!-- Panic word: lock word typed in a message box locks the app; unlock word opens it -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowPanicWords"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp"
+                    android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Panic word" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvPanicStatus"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Off. Type a word or phrase in any chat to lock the app instantly" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_chevron_down" android:rotation="-90"
+                        android:tint="@color/color_text_secondary" android:alpha="0.7"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Require Password master toggle -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowRequirePassword"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Require Password on Open" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Lock the app when it goes to background" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetRequirePassword"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchRequirePassword"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <!-- Sub-toggles: shown only when Require Password is on -->
+                <LinearLayout android:id="@+id/layoutSecuritySubs"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:background="#0DFFD700"
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginBottom="4dp">
+
+                    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                        android:layout_marginHorizontal="8dp" android:background="@color/color_divider" />
+
+                    <!-- Use PIN -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                        android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Use PIN" android:textColor="@color/color_text_primary" android:textSize="14sp" />
+                            <TextView android:id="@+id/tvPinStatus"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="PIN not set" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchUsePIN"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                    </LinearLayout>
+
+                    <!-- Set / Change PIN button (shown when PIN enabled) -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSetupPIN"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="36dp"
+                        android:layout_marginStart="16dp" android:layout_marginBottom="4dp"
+                        android:text="Set / Change PIN"
+                        android:textColor="@color/color_gold" android:textSize="12sp"
+                        android:visibility="gone" />
+
+                    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                        android:layout_marginHorizontal="8dp" android:background="@color/color_divider" />
+
+                    <!-- Use Password -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                        android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Also ask for password" android:textColor="@color/color_text_primary" android:textSize="14sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Fingerprint or PIN plus your password. Off: fingerprint or PIN alone, password as backup" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchUsePassword"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                        android:layout_marginHorizontal="8dp" android:background="@color/color_divider" />
+
+                    <!-- Use Biometric -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                        android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Use Biometric" android:textColor="@color/color_text_primary" android:textSize="14sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="Fingerprint or face unlock" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                        </LinearLayout>
+                        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchUseBiometric"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Edit Server Address -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Server Address" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnServerAddress"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Edit" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Share App / Invite" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Send the Android APK download link" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnShareApp"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Share" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- Auto-logout -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowAutoLogout"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Auto-Logout" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvAutoLogoutSub"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Log out after 5 min of inactivity" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetAutoLogout"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchAutoLogout"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAutoLogoutTime"
+                    style="@style/Widget.Silvershire.Button.Text"
+                    android:layout_width="wrap_content" android:layout_height="36dp"
+                    android:layout_marginStart="16dp" android:layout_marginBottom="4dp"
+                    android:text="Set timeout duration"
+                    android:textColor="@color/color_gold" android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Export Identity Key (for the web client) -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Export Identity Key" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Log in on the web client with this account" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnExportIdentity"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Export" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Clear Message History -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Clear Message History" android:textColor="@color/color_error" android:textSize="15sp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClearHistory"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Clear" android:textColor="@color/color_error" android:textSize="13sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Panic Wipe -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Panic Wipe" android:textColor="@color/color_error" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Delete all data from this device" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPanicWipe"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Wipe" android:textColor="@color/color_error" android:textSize="13sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ── APPEARANCE ─────────────────────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerAppearance"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="APPEARANCE" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronAppearance" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardAppearance"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+
+                <!-- Chat Message Font Size -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Chat Message Font" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Size of text inside chat bubbles" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetFontSize"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+                    <SeekBar android:id="@+id/seekbarFontSize"
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:max="2" android:progress="1"
+                        android:progressTint="@color/color_gold" android:thumbTint="@color/color_gold" />
+                    <TextView android:id="@+id/tvFontSizeLabel"
+                        android:layout_width="wrap_content" android:minWidth="60dp" android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp" android:text="Medium"
+                        android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- UI Font Size (buttons, labels, settings text) -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="UI Text Size" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Buttons, labels &amp; settings" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetUiFontSize"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+                    <SeekBar android:id="@+id/seekbarUiFontSize"
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:max="2" android:progress="1"
+                        android:progressTint="@color/color_gold" android:thumbTint="@color/color_gold" />
+                    <TextView android:id="@+id/tvUiFontSizeLabel"
+                        android:layout_width="wrap_content" android:minWidth="60dp" android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp" android:text="Medium"
+                        android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Friend's picture beside messages -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowChatAvatarMode"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Friend's picture in chats" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Shown beside their messages" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/tvChatAvatarMode"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:textColor="@color/color_gold" android:textSize="14sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Compact Bubbles -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowCompactBubbles"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Compact Bubbles" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Reduce message bubble padding" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetCompactBubbles"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchCompactBubbles"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp" android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                <!-- Jump to bottom on send -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:id="@+id/rowJumpToBottom"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Jump to bottom on send" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Scroll to newest when you send (off = stay where you are)" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetJumpToBottom"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchJumpToBottom"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Chat Heads -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowChatHeads"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Chat Heads" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Show floating bubbles when a message arrives" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetChatHeads"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchChatHeads"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <!-- Chat Head Opacity -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Opacity" android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:layout_marginEnd="12dp" />
+                    <SeekBar android:id="@+id/seekbarChatHeadAlpha"
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:max="100" android:progress="100"
+                        android:progressTint="@color/color_gold" android:thumbTint="@color/color_gold" />
+                    <ImageView android:id="@+id/btnResetChatHeadAlpha"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginStart="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <TextView android:id="@+id/tvChatHeadAlphaLabel"
+                        android:layout_width="wrap_content" android:minWidth="44dp" android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp" android:text="100%"
+                        android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+                <!-- Chat Head – Dismiss on Tap -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowChatHeadDismiss"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Dismiss Bubble on Tap" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Bubble disappears when you open the chat; off = stays and minimizes on second tap"
+                            android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchChatHeadDismissOnTap"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+
+                <!-- Chat head edge snap -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowChatHeadSnap"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Snap heads to screen edge" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Magnet to edges when you release nearby" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchChatHeadSnap"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowChatHeadShape"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Chat head shape" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvChatHeadShape" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Circle" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowProfileFrame"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Profile border" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvProfileFrame" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="None" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowUiTheme"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="4dp"
+                    android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Theme" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvUiTheme" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Silvershire" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Stack opacity" android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:layout_marginEnd="12dp" />
+                    <SeekBar android:id="@+id/seekbarStackOpacity"
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:max="100" android:progress="0"
+                        android:progressTint="@color/color_gold" android:thumbTint="@color/color_gold" />
+                    <TextView android:id="@+id/tvStackOpacityLabel"
+                        android:layout_width="44dp" android:layout_height="wrap_content"
+                        android:text="0%" android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Button Haptics -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowButtonHaptics"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Button Vibration" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Vibrate 50ms on every button press" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetButtonHaptics"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchButtonHaptics"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- My Bubble Color -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowMyBubbleColor"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="My Bubble Color" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Color of your outgoing messages" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetMyBubble"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="4dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <View android:id="@+id/viewMyBubbleColor"
+                        android:layout_width="32dp" android:layout_height="32dp"
+                        android:background="@drawable/circle_color_swatch"
+                        android:layout_marginEnd="8dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnMyBubbleColor"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                
+                <!-- Their Bubble Color (global default for received) -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowTheirBubbleColor"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginTop="8dp" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Their Bubble Color" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Default color for received messages" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetTheirBubble"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <View android:id="@+id/viewTheirBubbleColor"
+                        android:layout_width="32dp" android:layout_height="32dp"
+                        android:background="@drawable/circle_color_swatch"
+                        android:layout_marginEnd="8dp"
+                        android:visibility="invisible" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTheirBubbleColor"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Pick" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+<!-- Accent Color -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowAccentColor"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Accent Color" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="UI highlight color (default: silver)" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetAccent"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="4dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <View android:id="@+id/viewAccentColor"
+                        android:layout_width="32dp" android:layout_height="32dp"
+                        android:background="@drawable/circle_color_swatch"
+                        android:layout_marginEnd="8dp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAccentColor"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- UI Text Color -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowUiTextColor"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Text Color" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="UI text color (default: light white)" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetUiTextColor"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="4dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <View android:id="@+id/viewUiTextColor"
+                        android:layout_width="32dp" android:layout_height="32dp"
+                        android:background="@drawable/circle_color_swatch"
+                        android:layout_marginEnd="8dp"
+                        android:visibility="invisible" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPickUiTextColor"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Font Family -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowFontFamily"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="App Font" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvFontFamilyLabel"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Default (Sans-serif)" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetFont"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="4dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFontFamily"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Clock Format -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowClock"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="24-Hour Clock" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Show times as 14:30 instead of 2:30 PM" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetClock"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchUse24HourClock"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Tab Video Backgrounds -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Tab Backgrounds (Live Wallpaper)"
+                    android:textColor="@color/color_text_primary" android:textSize="15sp"
+                    android:layout_marginBottom="4dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Pick a video to loop behind each tab"
+                    android:textColor="@color/color_text_secondary" android:textSize="12sp"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Chats tab bg -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                            android:text="Chats Tab" android:textColor="@color/color_text_secondary" android:textSize="14sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnChatsTabBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Video" android:textColor="@color/color_gold" android:textSize="13sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnChatsTabImageBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Image" android:textColor="@color/color_gold" android:textSize="13sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnChatsTabBgClear"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Clear" android:textColor="@color/color_error" android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Contacts tab bg -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                            android:text="Contacts Tab" android:textColor="@color/color_text_secondary" android:textSize="14sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnContactsTabBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Video" android:textColor="@color/color_gold" android:textSize="13sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnContactsTabImageBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Image" android:textColor="@color/color_gold" android:textSize="13sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnContactsTabBgClear"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Clear" android:textColor="@color/color_error" android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Profile tab bg -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="44dp"
+                        android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                            android:text="Profile Tab" android:textColor="@color/color_text_secondary" android:textSize="14sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnProfileTabBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Video" android:textColor="@color/color_gold" android:textSize="13sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnProfileTabImageBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Image" android:textColor="@color/color_gold" android:textSize="13sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnProfileTabBgClear"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Clear" android:textColor="@color/color_error" android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- UI Transparency / Opacity -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="2dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="UI Transparency"
+                        android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                    <ImageView android:id="@+id/btnResetUiOpacity"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Make the app semi-transparent to see the background"
+                    android:textColor="@color/color_text_secondary" android:textSize="12sp"
+                    android:layout_marginBottom="8dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <SeekBar android:id="@+id/seekbarUiOpacity"
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:max="100" android:progress="100"
+                        android:progressTint="@color/color_gold" android:thumbTint="@color/color_gold" />
+                    <TextView android:id="@+id/tvUiOpacityLabel"
+                        android:layout_width="wrap_content" android:minWidth="44dp" android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp" android:text="100%"
+                        android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ── NAVIGATION ────────────────────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerNavigation"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="NAVIGATION" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronNavigation" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardNavigation"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+
+                <!-- Nav Bar Position -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowNavBarTop"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Nav Bar at Top" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Move navigation bar to the top of the screen" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetNavBar"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="8dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchNavBarTop"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
+                <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:layout_marginVertical="12dp" android:background="@color/color_divider" />
+
+                <!-- Tab Order -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowTabOrder"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Tab Order" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:id="@+id/tvTabOrderLabel"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Chats / Contacts / Profile" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <ImageView android:id="@+id/btnResetTabOrder"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:src="@drawable/ic_reset"
+                        android:tint="@color/color_text_secondary" android:alpha="0.55"
+                        android:layout_marginEnd="4dp" android:padding="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTabOrder"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change" android:textColor="@color/color_gold" android:textSize="13sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ── BLOCKED USERS ──────────────────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerBlocked"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="BLOCKED USERS" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronBlocked" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardBlocked"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="8dp">
+
+                <TextView android:id="@+id/tvNoBlockedUsers"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:padding="16dp"
+                    android:text="No blocked users"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="14sp"
+                    android:gravity="center" />
+
+                <LinearLayout android:id="@+id/containerBlockedUsers"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+
+        <!-- ── APP IDENTITY / BRANDING ─────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerBranding"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="APP IDENTITY" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronBranding" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardBranding"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Display name (in-app + notifications + web)" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etAppDisplayName"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:hint="Silvershire Inn"
+                    android:textColor="@color/color_text_primary"
+                    android:textColorHint="@color/color_text_secondary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Splash text" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etSplashText"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:hint="Private. Secure. Yours."
+                    android:textColor="@color/color_text_primary"
+                    android:textColorHint="@color/color_text_secondary" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Your display name (friends see this unless they set a nickname)" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etMyDisplayName"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:hint="Shown to friends"
+                    android:textColor="@color/color_text_primary" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveBranding"
+                    style="@style/Widget.Silvershire.Button"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:layout_marginTop="12dp"
+                    android:text="Save in-app branding"
+                    app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPickBrandLogo"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:layout_marginTop="8dp"
+                    android:text="Choose in-app logo"
+                    app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPickLauncherIcon"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:layout_marginTop="8dp"
+                    android:text="Choose launcher icon image"
+                    app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGenerateBrandedApk"
+                    style="@style/Widget.Silvershire.Button"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:layout_marginTop="8dp"
+                    android:text="Generate my branded APK"
+                    app:cornerRadius="12dp" />
+                <TextView android:id="@+id/tvBrandingStatus"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Home-screen icon/name needs a restamped sideload APK (same app id). In-app branding applies immediately."
+                    android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLauncherPack"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:layout_marginTop="8dp"
+                    android:text="Built-in launcher icon pack"
+                    app:cornerRadius="12dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+
+
+
+        <!-- ── ABOUT ──────────────────────────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerAbout"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="ABOUT" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronAbout" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardAbout"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp" android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Silvershire Inn"
+                    android:textColor="@color/color_gold"
+                    android:textSize="18sp"
+                    android:fontFamily="serif"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView android:id="@+id/tvVersionName"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Version 1.0"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Private, end-to-end encrypted messaging.\nYour conversations stay between you."
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.4" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ── SUPPORT ─────────────────────────────────────────────────────── -->
+        <LinearLayout android:id="@+id/headerSupport"
+            android:layout_width="match_parent" android:layout_height="36dp"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground" android:paddingBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="SUPPORT" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" />
+            <ImageView android:id="@+id/chevronSupport" android:layout_width="18dp" android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_down" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardSupport"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp" android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Enjoying Silvershire Inn?"
+                    android:textColor="@color/color_text_primary"
+                    android:textSize="15sp"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="If this app has been useful to you, consider supporting the developer. Every contribution helps keep it alive."
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.4"
+                    android:layout_marginBottom="16dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnKofi"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:text="Support CiberAI on Ko-fi"
+                    android:textColor="@color/color_gold"
+                    android:textSize="14sp"
+                                        app:strokeColor="@color/color_gold"
+                    app:strokeWidth="1dp"
+                    app:cornerRadius="24dp" />
+
+                <!-- Permanent hide — lets users who don't want the block dismiss it forever -->
+                <TextView
+                    android:id="@+id/btnHideSupportBlock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="Hide this section permanently"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="12sp"
+                    android:alpha="0.6"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="6dp"
+                    android:gravity="center" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ── RESET ALL SETTINGS ─────────────────────────────────────────── -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnResetAllSettings"
+            style="@style/Widget.Silvershire.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="52dp"
+            android:layout_marginBottom="12dp"
+            android:text="Reset All Settings to Defaults"
+            android:textColor="@color/color_text_secondary"
+            app:strokeColor="@color/color_text_secondary"
+            app:strokeWidth="1dp"
+            app:cornerRadius="12dp" />
+
+        <!-- ── LOGOUT ──────────────────────────────────────────────────────── -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogout"
+            style="@style/Widget.Silvershire.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="52dp"
+            android:layout_marginBottom="16dp"
+            android:text="Log Out"
+            android:textColor="@color/color_error"
+            app:strokeColor="@color/color_error"
+            app:strokeWidth="1dp" />
+
+        <!-- Build stamp at bottom of settings so it is visible after scroll -->
+        <TextView
+            android:id="@+id/tvBuildStamp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="8dp"
+            android:paddingBottom="24dp"
+            android:text="Build 5 ? 1.0.5"
+            android:textColor="@color/color_text_secondary"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>

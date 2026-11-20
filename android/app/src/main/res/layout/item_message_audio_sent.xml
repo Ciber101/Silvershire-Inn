@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="end"
+    android:paddingVertical="5dp"
+    android:paddingStart="56dp"
+    android:paddingEnd="10dp">
+
+    <LinearLayout
+        android:id="@+id/bubbleAudioSent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="200dp"
+        android:maxWidth="280dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_message_sent_delivered"
+        android:padding="10dp"
+        android:gravity="center_vertical">
+
+        <ImageButton
+            android:id="@+id/btnPlayPause"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_voice_play_circle"
+            android:src="@drawable/ic_play"
+            android:tint="@color/color_gold"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            android:contentDescription="Play voice message" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+
+            <com.silvershireinn.app.ui.chat.WaveformView
+                android:id="@+id/waveformAudio"
+                android:layout_width="match_parent"
+                android:layout_height="28dp" />
+
+            <!-- Kept for binding compatibility; hidden ? waveform is the scrubber -->
+            <SeekBar
+                android:id="@+id/seekBarAudio"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                android:max="1000"
+                android:progress="0" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvAudioDuration"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="0:00" />
+                <TextView
+                    android:id="@+id/tvAudioSpeed"
+                    android:layout_width="34dp"
+                    android:layout_height="18dp"
+                    android:layout_marginEnd="8dp"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:padding="0dp"
+                    android:background="@drawable/bg_speed_chip"
+                    android:textColor="@color/color_gold"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:text="1x" />
+
+
+                <TextView
+                    android:id="@+id/tvTimestamp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvDeliveryStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/color_gold"
+                    android:textSize="11sp"
+                    android:letterSpacing="-0.12" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

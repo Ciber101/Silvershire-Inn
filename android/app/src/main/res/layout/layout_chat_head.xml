@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Extra padding on all sides so the badge (top-right) can render fully outside
+  the 56 dp avatar bubble without being clipped.
+  Oval FrameLayouts — no CardView rectangular shadow behind the circle.
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="72dp"
+    android:layout_height="72dp"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:background="@android:color/transparent">
+
+    <FrameLayout
+        android:id="@+id/chatHeadAvatar"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_chat_head_avatar"
+        android:elevation="0dp">
+
+        <TextView
+            android:id="@+id/tvChatHeadInitials"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="@color/color_background"
+            android:textSize="18sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <ImageView
+            android:id="@+id/ivChatHeadPic"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            android:contentDescription="Avatar" />
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/chatHeadBadgeCard"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_gravity="top|end"
+        android:visibility="gone"
+        android:background="@drawable/bg_chat_head_badge"
+        android:elevation="0dp">
+
+        <TextView
+            android:id="@+id/tvChatHeadBadge"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium" />
+
+    </FrameLayout>
+
+</FrameLayout>

@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/camRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Grid, focus ring and other drawn overlays are added here in code -->
+    <FrameLayout
+        android:id="@+id/camOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Capture blink / front "screen flash" -->
+    <View
+        android:id="@+id/camFlashOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FFFFFF"
+        android:alpha="0"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvCountdown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textColor="#FFFFFF"
+        android:textSize="96sp"
+        android:textStyle="bold"
+        android:shadowColor="#AA000000"
+        android:shadowRadius="12"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvCamHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="128dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="5dp"
+        android:background="#99000000"
+        android:textColor="#FFD54F"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- ── Top bar ─────────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/camTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical"
+        android:background="#66000000"
+        android:paddingTop="6dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="6dp">
+
+            <ImageButton android:id="@+id/btnCamClose"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_close" android:tint="#FFFFFF"
+                android:contentDescription="Close" />
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+            <!-- Which physical camera (ultra wide / main / tele...) -->
+            <TextView android:id="@+id/btnLens"
+                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:minWidth="44dp" android:gravity="center" android:paddingHorizontal="8dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_speed_chip" android:backgroundTint="#FFFFFFFF"
+                android:text="1x" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="12sp"
+                android:visibility="gone" />
+            <!-- Open the phone's own camera app (all its native modes) -->
+            <ImageButton android:id="@+id/btnNativeCam"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_camera_small" android:tint="#FFFFFF"
+                android:contentDescription="Use the phone's camera app" />
+            <ImageButton android:id="@+id/btnFlash"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_flash_off" android:tint="#FFFFFF"
+                android:contentDescription="Flash" />
+            <ImageButton android:id="@+id/btnTimer"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_timer" android:tint="#FFFFFF"
+                android:contentDescription="Self timer" />
+            <TextView android:id="@+id/tvTimerBadge"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="-10dp" android:textColor="#FFD54F" android:textSize="10sp"
+                android:textStyle="bold" android:visibility="gone" />
+            <ImageButton android:id="@+id/btnGrid"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_grid" android:tint="#FFFFFF"
+                android:contentDescription="Grid" />
+            <TextView android:id="@+id/btnAspect"
+                android:layout_width="wrap_content" android:layout_height="44dp"
+                android:gravity="center" android:paddingHorizontal="10dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:text="4:3" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp" />
+            <ImageButton android:id="@+id/btnCamSettings"
+                android:layout_width="44dp" android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_settings" android:tint="#FFFFFF"
+                android:contentDescription="Camera settings" />
+        </LinearLayout>
+
+        <!-- Night / HDR / Portrait / Retouch (only modes this phone supports) -->
+        <HorizontalScrollView
+            android:id="@+id/scrollCamExt"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:scrollbars="none" android:visibility="gone">
+            <LinearLayout android:id="@+id/rowCamExt"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:paddingHorizontal="10dp" android:paddingBottom="6dp" />
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <!-- ── Settings panel ──────────────────────────────────────── -->
+    <ScrollView
+        android:id="@+id/camSettingsPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="190dp"
+        android:background="#E6111114"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView android:id="@+id/tvResLabel"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Photo quality" android:textColor="#AAFFFFFF" android:textSize="11sp" />
+            <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:scrollbars="none">
+                <LinearLayout android:id="@+id/rowCamRes" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <TextView android:id="@+id/tvFpsLabel"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                android:text="Frame rate" android:textColor="#AAFFFFFF" android:textSize="11sp" />
+            <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:scrollbars="none">
+                <LinearLayout android:id="@+id/rowCamFps" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                android:text="White balance" android:textColor="#AAFFFFFF" android:textSize="11sp" />
+            <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:scrollbars="none">
+                <LinearLayout android:id="@+id/rowCamWb" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <TextView android:id="@+id/tvCamEv"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                android:text="Brightness (EV 0.0)" android:textColor="#AAFFFFFF" android:textSize="11sp" />
+            <SeekBar android:id="@+id/seekCamEv" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+            <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:scrollbars="none" android:layout_marginTop="6dp">
+                <LinearLayout android:id="@+id/rowCamIso" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <LinearLayout android:id="@+id/rowCamToggles"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginTop="8dp" />
+
+            <TextView android:id="@+id/tvCamCapsHint"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textColor="#88FFFFFF" android:textSize="11sp" android:layout_marginTop="6dp"
+                android:text="Options this phone does not support are hidden." />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ── Bottom controls ─────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/camBottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="18dp"
+        android:background="#66000000">
+
+        <LinearLayout android:id="@+id/rowZoom"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center" android:layout_marginBottom="6dp" />
+
+        <TextView android:id="@+id/tvCamZoom"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#FFFFFF" android:textSize="12sp" android:text="1.0×" android:visibility="gone" />
+
+        <LinearLayout android:id="@+id/rowRecInfo"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginBottom="4dp" android:visibility="gone">
+            <View android:id="@+id/recDot" android:layout_width="10dp" android:layout_height="10dp"
+                android:background="@drawable/bg_chat_head_avatar" android:backgroundTint="#FF3B30" />
+            <TextView android:id="@+id/tvCamRecTimer"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp"
+                android:textColor="#FFFFFF" android:textStyle="bold" android:text="0:00" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/rowModes"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="10dp">
+            <TextView android:id="@+id/btnModePhoto"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:padding="8dp" android:text="PHOTO" android:textColor="#FFFFFF" android:textStyle="bold" />
+            <TextView android:id="@+id/btnModeVideo"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:padding="8dp" android:text="VIDEO" android:textColor="#88FFFFFF" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+
+            <FrameLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <ImageButton android:id="@+id/btnCamGallery"
+                    android:layout_width="52dp" android:layout_height="52dp" android:layout_gravity="center"
+                    android:background="@drawable/bg_voice_play_circle"
+                    android:src="@drawable/ic_gallery" android:tint="#FFFFFF" android:padding="12dp"
+                    android:contentDescription="Pick from gallery" />
+                <ImageButton android:id="@+id/btnRecPause"
+                    android:layout_width="52dp" android:layout_height="52dp" android:layout_gravity="center"
+                    android:background="@drawable/bg_voice_play_circle"
+                    android:src="@drawable/ic_pause" android:tint="#FFFFFF" android:padding="12dp"
+                    android:visibility="gone" android:contentDescription="Pause recording" />
+            </FrameLayout>
+
+            <FrameLayout android:layout_width="80dp" android:layout_height="80dp">
+                <View android:id="@+id/shutterRing"
+                    android:layout_width="80dp" android:layout_height="80dp"
+                    android:background="@drawable/bg_chat_head_avatar" android:backgroundTint="#FFFFFF" />
+                <ImageButton android:id="@+id/btnShutter"
+                    android:layout_width="66dp" android:layout_height="66dp" android:layout_gravity="center"
+                    android:background="@drawable/bg_chat_head_avatar" android:backgroundTint="#EEEEEE"
+                    android:src="@drawable/ic_camera" android:tint="#222222"
+                    android:contentDescription="Capture" />
+            </FrameLayout>
+
+            <FrameLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <ImageButton android:id="@+id/btnCamFlip"
+                    android:layout_width="52dp" android:layout_height="52dp" android:layout_gravity="center"
+                    android:background="@drawable/bg_voice_play_circle"
+                    android:src="@drawable/ic_flip_camera" android:tint="#FFFFFF" android:padding="12dp"
+                    android:contentDescription="Flip camera" />
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ── Review (after capture) ──────────────────────────────── -->
+    <FrameLayout
+        android:id="@+id/reviewLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:visibility="gone">
+
+        <ImageView android:id="@+id/ivReview"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:scaleType="fitCenter" android:visibility="gone" />
+
+        <androidx.media3.ui.PlayerView
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/reviewPlayer"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            app:use_controller="true" app:show_buffering="when_playing"
+            android:visibility="gone" />
+
+        <TextView android:id="@+id/tvReviewInfo"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal" android:layout_marginTop="18dp"
+            android:paddingHorizontal="10dp" android:paddingVertical="4dp"
+            android:background="#99000000" android:textColor="#FFFFFF" android:textSize="12sp" />
+
+        <LinearLayout
+            android:id="@+id/reviewBar"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_gravity="bottom" android:orientation="horizontal" android:gravity="center_vertical"
+            android:padding="14dp" android:background="#CC000000">
+            <TextView android:id="@+id/btnRetake"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="48dp" android:layout_weight="1"
+                android:gravity="center" android:text="Retake" android:textColor="#FFFFFF" android:textStyle="bold"
+                android:background="?attr/selectableItemBackground" />
+            <TextView android:id="@+id/btnReviewEdit"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="48dp" android:layout_weight="1"
+                android:gravity="center" android:text="Edit" android:textColor="#FFFFFF" android:textStyle="bold"
+                android:background="?attr/selectableItemBackground" />
+            <ImageButton android:id="@+id/btnReviewSend"
+                android:layout_width="60dp" android:layout_height="60dp"
+                android:background="@drawable/bg_chat_head_avatar" android:backgroundTint="#FFC107"
+                android:src="@drawable/ic_check" android:tint="#1A1A1E"
+                android:contentDescription="Use this" />
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

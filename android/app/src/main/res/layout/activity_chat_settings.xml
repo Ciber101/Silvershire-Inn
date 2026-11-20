@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/color_background"
+    android:fitsSystemWindows="true">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/color_surface"
+        app:titleTextColor="@color/color_text_primary"
+        app:elevation="4dp"
+        app:title="Chat Settings" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Nickname -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="NICKNAME" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" android:paddingBottom="6dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/color_surface"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Custom Nickname"
+                        android:textColor="@color/color_text_primary" android:textSize="15sp"/>
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etNickname"
+                        android:layout_width="140dp" android:layout_height="wrap_content"
+                        android:hint="(none)"
+                        android:textColor="@color/color_text_primary"
+                        android:textColorHint="@color/color_text_secondary"
+                        android:textSize="14sp"
+                        android:gravity="end"
+                        android:background="@null"
+                        android:imeOptions="actionDone"
+                        android:inputType="text" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="-8dp"
+                android:layout_marginBottom="16dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnClearNickname"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:layout_weight="1"
+                    android:text="Remove nickname"
+                    android:textColor="@color/color_text_secondary"
+                    app:strokeColor="@color/color_divider"
+                    app:cornerRadius="12dp"
+                    android:layout_marginEnd="8dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveNickname"
+                    style="@style/Widget.Silvershire.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:layout_weight="1"
+                    android:text="Save"
+                    app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <!-- Bubble color -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="THEIR BUBBLE COLOR" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" android:paddingBottom="6dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/color_surface"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:padding="16dp">
+
+                    <!-- Color swatches -->
+                    <LinearLayout android:id="@+id/containerBubbleColors"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Mute notifications -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="NOTIFICATIONS" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" android:paddingBottom="6dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/color_surface"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Mute Notifications"
+                            android:textColor="@color/color_text_primary" android:textSize="15sp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Silence messages from this contact"
+                            android:textColor="@color/color_text_secondary" android:textSize="12sp"/>
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchMute"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Chat font -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="CHAT FONT" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" android:paddingBottom="6dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/color_surface"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Message Font"
+                            android:textColor="@color/color_text_primary" android:textSize="15sp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Overrides the app font for this chat"
+                            android:textColor="@color/color_text_secondary" android:textSize="12sp"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvChatFontLabel"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Default"
+                        android:textColor="@color/color_text_secondary"
+                        android:textSize="13sp"
+                        android:layout_marginEnd="8dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPickChatFont"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change"
+                        android:textColor="@color/color_gold"
+                        android:minWidth="0dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Chat text color -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="CHAT TEXT COLOR" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" android:paddingBottom="6dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardBackgroundColor="@color/color_surface"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Text Color"
+                            android:textColor="@color/color_text_primary" android:textSize="15sp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Overrides global text color for this chat"
+                            android:textColor="@color/color_text_secondary" android:textSize="12sp"/>
+                    </LinearLayout>
+
+                    <View android:id="@+id/viewChatTextColor"
+                        android:layout_width="32dp" android:layout_height="32dp"
+                        android:background="@drawable/circle_color_swatch"
+                        android:layout_marginEnd="8dp"
+                        android:visibility="invisible"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPickChatTextColor"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change"
+                        android:textColor="@color/color_gold"
+                        android:minWidth="0dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnResetChatTextColor"
+                style="@style/Widget.Silvershire.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="48dp"
+                android:text="Reset Text Color to Default"
+                android:textColor="@color/color_text_secondary"
+                app:strokeColor="@color/color_divider"
+                app:cornerRadius="12dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Chat background color -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="CHAT BACKGROUND" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" android:paddingBottom="6dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardBackgroundColor="@color/color_surface"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Background Color"
+                        android:textColor="@color/color_text_primary" android:textSize="15sp"/>
+
+                    <View android:id="@+id/viewChatBgColor"
+                        android:layout_width="32dp" android:layout_height="32dp"
+                        android:background="@drawable/circle_color_swatch"
+                        android:layout_marginEnd="8dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPickChatBgColor"
+                        style="@style/Widget.Silvershire.Button.Text"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Change"
+                        android:textColor="@color/color_gold"
+                        android:minWidth="0dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnResetChatBg"
+                style="@style/Widget.Silvershire.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="48dp"
+                android:text="Reset Background to Default"
+                android:textColor="@color/color_text_secondary"
+                app:strokeColor="@color/color_divider"
+                app:cornerRadius="12dp"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Chat background (live wallpaper / image) -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="BACKGROUND MEDIA" android:textColor="@color/color_gold"
+                android:textSize="11sp" android:letterSpacing="0.12" android:paddingBottom="6dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardBackgroundColor="@color/color_surface"
+                app:cardCornerRadius="12dp" app:cardElevation="0dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- Video row -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Video Background"
+                            android:textColor="@color/color_text_primary" android:textSize="15sp"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSetChatVideoBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Set Video"
+                            android:textColor="@color/color_gold"
+                            android:minWidth="0dp" />
+
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnClearChatVideoBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Clear"
+                            android:textColor="@color/color_error"
+                            android:minWidth="0dp" />
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                        android:layout_marginHorizontal="16dp" android:background="@color/color_divider" />
+
+                    <!-- Image row -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingHorizontal="16dp" android:paddingVertical="6dp">
+
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Image Background"
+                            android:textColor="@color/color_text_primary" android:textSize="15sp"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSetChatImageBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Set Image"
+                            android:textColor="@color/color_gold"
+                            android:minWidth="0dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnClearChatImageBg"
+                            style="@style/Widget.Silvershire.Button.Text"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Clear"
+                            android:textColor="@color/color_error"
+                            android:minWidth="0dp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <View android:layout_width="match_parent" android:layout_height="8dp" />
+
+            <!-- Group chat head image (only visible for group chats) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardGroupChatHead"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="@color/color_surface"
+                android:layout_marginBottom="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Group Chat Head Image"
+                        android:textColor="@color/color_text_secondary"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="12dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:id="@+id/ivGroupChatHeadPreview"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:scaleType="centerCrop"
+                            android:layout_marginEnd="12dp"
+                            android:background="@color/color_background"
+                            android:contentDescription="Group chat head image preview" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnSetGroupChatHeadImage"
+                                style="@style/Widget.Silvershire.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Set Image"
+                                android:layout_marginBottom="4dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnClearGroupChatHeadImage"
+                                style="@style/Widget.Silvershire.Button.Text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Clear" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Save button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveChatSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="56dp"
+                android:text="Save Settings"
+                android:textColor="@color/color_background"
+                app:backgroundTint="@color/color_silver"
+                app:cornerRadius="12dp"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Color wheel -->
+    <com.silvershireinn.app.ui.common.HsvWheelView
+        android:id="@+id/hsvWheel"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Brightness slider -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Brightness"
+        android:textColor="@color/color_text_primary"
+        android:textSize="13sp"
+        android:layout_marginBottom="4dp" />
+
+    <SeekBar
+        android:id="@+id/sbBrightness"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:progress="100"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Preview + hex -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical" android:paddingVertical="6dp">
+
+        <View
+            android:id="@+id/viewColorPreview"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/circle_color_swatch"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:id="@+id/tvHexValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="#D4AF37"
+            android:textColor="@color/color_text_primary"
+            android:textSize="18sp"
+            android:fontFamily="monospace" />
+
+    </LinearLayout>
+
+</LinearLayout>
+

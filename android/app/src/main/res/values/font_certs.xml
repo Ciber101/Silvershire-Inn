@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Google Fonts provider certificates for downloadable fonts.
+    These are the standard GMS certs required by FontsContractCompat.
+-->
+<resources>
+    <array name="com_google_android_gms_fonts_certs">
+        <item>@array/com_google_android_gms_fonts_certs_dev</item>
+        <item>@array/com_google_android_gms_fonts_certs_prod</item>
+    </array>
+
+    <string-array name="com_google_android_gms_fonts_certs_dev">
+        <item>
+            MIIEqDCCA5CgAwIBAgIJANWFuGx90071MA0GCSqGSIb3DQEBBAUAMIGUMQswCQYD
+            VQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FudGEgTW9u
+            aWNhMRMwEQYDVQQKEwpHb29nbGUgSW5jMRQwEgYDVQQLEwtFbmdpbmVlcmluZzEV
+            MBMGA1UEAxMMSmFzb24gQ2h1YWgwHhcNMTMwODA5MTEyODI3WhcNMTYwODA4MTEy
+            ODI3WjCBlDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNV
+            BAcTDVNhbnRhIE1vbmljYTETMBEGA1UEChMKR29vZ2xlIEluYzEUMBIGA1UECxML
+            RW5naW5lZXJpbmcxFTATBgNVBAMTDEphc29uIENoaHVhaDCCASIwDQYJKoZIhvcN
+            AQEBBQADggEPADCCAQoCggEBANew3HTHS0E5eHSLynqOE3DEk6tYCZHxMxh4FCIX
+            h/m0pM0/x5BsONmMefRiVw0a0N7J3j+EfFmU2PLdNJZRpOsQTtMq+KN1a3sJxfM
+        </item>
+    </string-array>
+
+    <string-array name="com_google_android_gms_fonts_certs_prod">
+        <item>
+            MIIEQzCCAyugAwIBAgIJAMLgh0ZkSjCNMA0GCSqGSIb3DQEBBAUAMHMxCzAJBgNV
+            BAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFBgNVBAcTDU1vdW50YWluIFZp
+            ZXcxFDASBgNVBAoTC0dvb2dsZSBJbmMuMREwDwYDVQQLEwhTZWN1cml0eTEOMAwG
+            A1UEAxMFR29vZ2xlMB4XDTA4MDEwODIxMDAwMFoXDTM4MDEwMTIxMDAwMFowczEL
+            MAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDU1vdW50
+            YWluIFZpZXcxFDASBgNVBAoTC0dvb2dsZSBJbmMuMREwDwYDVQQLEwhTZWN1cml0
+            eTEOMAwGA1UEAxMFR29vZ2xlMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC
+            AQEAxy4DxNMrFJbkCR+HkbniNb1Eh0O3RI4BKS3aXLR7KHEcJ5RQKZZ4NjO0oJ5l
+        </item>
+    </string-array>
+</resources>

@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:fitsSystemWindows="true"
+        android:padding="32dp"
+        android:gravity="center_horizontal">
+
+        <!-- Logo -->
+        <ImageView
+            android:id="@+id/ivLogo"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_flame"
+            android:layout_marginTop="64dp" />
+
+        <TextView
+            android:id="@+id/tvAppName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Silvershire Inn"
+            android:textColor="@color/color_gold"
+            android:textSize="28sp"
+            android:layout_marginTop="12dp" />
+
+        <!-- Lockout timer -->
+        <TextView
+            android:id="@+id/tvLockoutTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/color_error"
+            android:textSize="14sp"
+            android:visibility="gone"
+            android:layout_marginTop="8dp" />
+
+        <!-- ════════════════════════════════════════ -->
+        <!--  PIN MODE (shown when pinEnabled=true)  -->
+        <!-- ════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layoutPinMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="32dp">
+
+            <!-- PIN dot indicators -->
+            <LinearLayout
+                android:id="@+id/layoutPinDots"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="24dp">
+
+                <View android:id="@+id/pinDot1" android:layout_width="16dp" android:layout_height="16dp"
+                    android:layout_margin="8dp" android:background="@drawable/pin_dot_empty" />
+                <View android:id="@+id/pinDot2" android:layout_width="16dp" android:layout_height="16dp"
+                    android:layout_margin="8dp" android:background="@drawable/pin_dot_empty" />
+                <View android:id="@+id/pinDot3" android:layout_width="16dp" android:layout_height="16dp"
+                    android:layout_margin="8dp" android:background="@drawable/pin_dot_empty" />
+                <View android:id="@+id/pinDot4" android:layout_width="16dp" android:layout_height="16dp"
+                    android:layout_margin="8dp" android:background="@drawable/pin_dot_empty" />
+                <View android:id="@+id/pinDot5" android:layout_width="16dp" android:layout_height="16dp"
+                    android:layout_margin="8dp" android:background="@drawable/pin_dot_empty" />
+                <View android:id="@+id/pinDot6" android:layout_width="16dp" android:layout_height="16dp"
+                    android:layout_margin="8dp" android:background="@drawable/pin_dot_empty" />
+            </LinearLayout>
+
+            <!-- Row 1: 1 2 3 -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="8dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin1"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="1" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin2"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="2" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin3"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="3" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <!-- Row 2: 4 5 6 -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="8dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin4"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="4" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin5"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="5" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin6"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="6" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <!-- Row 3: 7 8 9 -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="8dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin7"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="7" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin8"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="8" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin9"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="9" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <!-- Row 4: [Use Password] 0 [Delete] -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="8dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPinUsePassword"
+                    style="@style/Widget.Silvershire.Button.Text"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="Pass" android:textSize="12sp"
+                    android:textColor="@color/color_text_secondary"
+                    app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPin0"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="0" android:textSize="22sp" android:textColor="@color/color_text_primary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPinDelete"
+                    style="@style/Widget.Silvershire.Button.Outlined"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
+                    android:layout_weight="1" android:layout_margin="4dp"
+                    android:text="⌫" android:textSize="22sp"
+                    android:textColor="@color/color_text_secondary"
+                    app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <!-- Confirm button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPinConfirm"
+                style="@style/Widget.Silvershire.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="56dp"
+                android:layout_marginTop="4dp"
+                android:text="Confirm"
+                app:cornerRadius="12dp" />
+
+        </LinearLayout>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!--  PASSWORD MODE (shown when pinEnabled=false)       -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilPassword"
+            style="@style/Widget.Silvershire.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/password_hint"
+            app:passwordToggleEnabled="true"
+            android:layout_marginTop="32dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:textColor="@color/color_text_primary"
+                android:imeOptions="actionDone" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUnlock"
+            style="@style/Widget.Silvershire.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="56dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/unlock"
+            app:cornerRadius="12dp" />
+
+        <!-- Biometric button — shown in both modes when hardware + pref enabled -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBiometric"
+            style="@style/Widget.Silvershire.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="56dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/use_fingerprint"
+            android:textColor="@color/color_gold"
+            app:strokeColor="@color/color_gold"
+            app:cornerRadius="12dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</ScrollView>

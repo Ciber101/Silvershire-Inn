@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Silvershire Inn</string>
+    <string name="welcome_to_silvershire">Welcome to Silvershire Inn</string>
+    <string name="server_address_hint">192.168.1.100:8080</string>
+    <string name="connect">Connect</string>
+    <string name="create_account">Initialize Secure Account</string>
+    <string name="username_hint">Username</string>
+    <string name="password_hint">Password</string>
+    <string name="confirm_password_hint">Confirm Password</string>
+    <string name="server_password_hint">Server Handshake Password</string>
+    <string name="unlock">Unlock</string>
+    <string name="use_fingerprint">Use Fingerprint</string>
+    <string name="chats">Chats</string>
+    <string name="contacts">Contacts</string>
+    <string name="profile">Profile</string>
+    <string name="no_conversations">No conversations yet</string>
+    <string name="type_message_hint">Type a message&#8230;</string>
+    <string name="disconnected">Disconnected &#8212; messages will send when reconnected</string>
+    <string name="typing_indicator">typing&#8230;</string>
+    <string name="appearance">Appearance</string>
+    <string name="privacy">Chat and privacy</string>
+    <string name="security">Security</string>
+    <string name="notifications">Notifications</string>
+    <string name="discoverable">Discoverable</string>
+    <string name="read_receipts">Read Receipts</string>
+    <string name="typing_indicators">Typing Indicators</string>
+    <string name="require_password">Require Password on Open</string>
+    <string name="notification_sounds">Notification Sounds</string>
+    <string name="notification_preview">Show Message Preview in Notifications</string>
+    <string name="compact_bubbles">Compact Message Bubbles</string>
+    <string name="server_address">Server Address</string>
+    <string name="clear_history">Clear All Message History</string>
+    <string name="panic_wipe">Panic Wipe</string>
+    <string name="font_size">Font Size</string>
+    <string name="password_strength">Password Strength</string>
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+    <string name="accept">Accept</string>
+    <string name="decline">Decline</string>
+    <string name="chat">Chat</string>
+    <string name="add_contact">Add Contact</string>
+    <string name="about">About</string>
+    <string name="approve">Approve</string>
+    <string name="new_chat">New chat</string>
+    <string name="app_identity">App identity / Branding</string>
+</resources>

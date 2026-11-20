@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="panic_watch_tag" type="id" />
+    <item name="profile_frame_key" type="id" />
+    <item name="ornate_done" type="id" />
+    <item name="profile_frame_float" type="id" />
+</resources>

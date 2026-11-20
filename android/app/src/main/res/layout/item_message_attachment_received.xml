@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="start"
+    android:paddingVertical="5dp"
+    android:paddingStart="6dp"
+    android:paddingEnd="48dp">
+
+    <!-- Friend's portrait beside every received message (bottom aligned, like the bubble tail) -->
+    <FrameLayout
+        android:id="@+id/avatarFrame"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="bottom"
+        android:layout_marginEnd="6dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/tvSenderInitials"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <ImageView
+            android:id="@+id/ivSenderAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="@dimen/message_bubble_max_width"
+        android:orientation="vertical"
+        android:background="@drawable/bg_message_received"
+        android:padding="4dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- Inline image/video preview -->
+        <FrameLayout
+            android:id="@+id/frameMediaPreview"
+            android:layout_width="@dimen/attachment_preview_width"
+            android:layout_height="180dp"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone"
+            android:background="#1A000000">
+
+            <ImageView
+                android:id="@+id/ivMediaPreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="Image preview" />
+
+            <!-- Video play overlay -->
+            <TextView
+                android:id="@+id/tvPlayOverlay"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:background="#88000000"
+                android:gravity="center"
+                android:text="▶"
+                android:textColor="#FFFFFFFF"
+                android:textSize="22sp"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+        <!-- File icon + name row -->
+        <LinearLayout
+            android:id="@+id/rowFileInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="6dp">
+
+            <TextView
+                android:id="@+id/tvFileEmoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📎"
+                android:textSize="24sp"
+                android:layout_marginEnd="8dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvAttachmentName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/color_text_primary"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="2"
+                    android:ellipsize="middle" />
+
+                <TextView
+                    android:id="@+id/tvAttachmentSize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/color_text_secondary"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Download / Open button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDownloadAttachment"
+            style="@style/Widget.Silvershire.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="Download"
+            android:textColor="@color/color_gold"
+            android:textSize="12sp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="6dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:layout_marginEnd="4dp" />
+
+        <!-- Timestamp -->
+        <TextView
+            android:id="@+id/tvTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:paddingHorizontal="10dp"
+            android:paddingBottom="6dp"
+            android:textColor="@color/color_text_secondary"
+            android:textSize="10sp" />
+
+    </LinearLayout>
+</LinearLayout>

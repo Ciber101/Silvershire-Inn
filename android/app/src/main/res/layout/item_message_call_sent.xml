@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="64dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <LinearLayout
+        android:id="@+id/bubbleCall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:background="@drawable/bg_message_sent"
+        android:orientation="vertical"
+        android:padding="10dp"
+        android:minWidth="180dp">
+
+        <!-- Row: phone icon + label -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/ivCallIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_call"
+                android:tint="#FFC9A84C"
+                android:layout_marginEnd="8dp"/>
+
+            <TextView
+                android:id="@+id/tvCallLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Voice call"
+                android:textColor="#FFFFD700"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <!-- Duration line -->
+        <TextView
+            android:id="@+id/tvCallDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0:00"
+            android:textColor="#FFC0A060"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp"
+            android:layout_marginStart="30dp"/>
+
+        <!-- Bottom row: time + status + call back -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:id="@+id/tvTimestamp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FF888880"
+                android:textSize="10sp"/>
+
+            <TextView
+                android:id="@+id/tvDeliveryStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:layout_marginStart="4dp"/>
+
+            <android.widget.Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCallBack"
+                style="@style/Widget.Silvershire.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Call back"
+                android:textColor="#FFC9A84C"
+                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="0dp"
+                android:paddingVertical="4dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

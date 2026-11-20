@@ -1,0 +1,491 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background"
+    android:fitsSystemWindows="true">
+
+    <!-- Static image background -->
+    <ImageView
+        android:id="@+id/ivChatImageBg"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Video background surface — behind all chat content -->
+    <SurfaceView
+        android:id="@+id/svChatVideoBg"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:background="@drawable/bg_header_bar"
+        app:titleTextColor="@color/color_text_primary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:elevation="4dp">
+
+        <!-- Contact avatar — sits between the nav (back) icon and the title.
+             Shown/hidden in code; when shown, titleMarginStart is bumped to 40dp
+             so the ActionBar title doesn't overlap it. -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/toolbarAvatarCard"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="56dp"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            android:visibility="gone">
+            <ImageView
+                android:id="@+id/ivToolbarAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop" />
+            <TextureView
+                android:id="@+id/vvToolbarAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </androidx.cardview.widget.CardView>
+
+        <!-- Call + video buttons inside toolbar, aligned end -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingEnd="8dp">
+
+            <ImageButton
+                android:id="@+id/btnCall"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_call"
+                android:tint="@color/color_gold"
+                android:contentDescription="Voice call" />
+
+            <ImageButton
+                android:id="@+id/btnVideoCall"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_video_call"
+                android:tint="@color/color_gold"
+                android:contentDescription="Video call"
+                android:layout_marginStart="4dp" />
+
+            <ImageButton
+                android:id="@+id/btnSearch"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_search"
+                android:tint="@color/color_gold"
+                android:contentDescription="Search chat"
+                android:layout_marginStart="4dp" />
+
+            <ImageButton
+                android:id="@+id/btnChatSettings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_settings"
+                android:tint="@color/color_gold"
+                android:contentDescription="Chat settings"
+                android:layout_marginStart="4dp" />
+
+        </LinearLayout>
+    </androidx.appcompat.widget.Toolbar>
+
+    <!-- ── Search bar (shown when search is active) ──────────────────────── -->
+    <LinearLayout
+        android:id="@+id/searchBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content" android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_header_bar"
+        android:paddingHorizontal="12dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" android:paddingVertical="6dp">
+
+        <EditText
+            android:id="@+id/etSearchQuery"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Search messages…"
+            android:textColor="@color/color_text_primary"
+            android:textColorHint="@color/color_text_secondary"
+            android:textSize="14sp"
+            android:background="@null"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
+            android:maxLines="1"
+            android:singleLine="true" />
+
+        <ImageButton
+            android:id="@+id/btnSearchClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:tint="@color/color_text_secondary"
+            android:contentDescription="Close search" />
+
+    </LinearLayout>
+
+    <!-- ── Disconnected banner ──────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/bannerDisconnected"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/color_error"
+        android:text="@string/disconnected"
+        android:textColor="@color/color_text_primary"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:padding="6dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/searchBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ── Message list ────────────────────────────────────────────────────── -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMessages"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="10dp"
+        app:layout_constraintTop_toBottomOf="@id/bannerDisconnected"
+        app:layout_constraintBottom_toTopOf="@id/replyBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ── Typing indicator ────────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/tvTypingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="2dp"
+        android:text="@string/typing_indicator"
+        android:textColor="@color/color_text_secondary"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/recordingBar"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- ── Reply bar (shown when user starts a reply) ────────────────────── -->
+    <LinearLayout
+        android:id="@+id/replyBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/color_surface"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/recordingBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="40dp"
+            android:background="@color/color_gold"
+            android:layout_marginEnd="10dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvReplyLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Replying to"
+                android:textColor="@color/color_gold"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvReplyPreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="13sp"
+                android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnCancelReply"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:tint="@color/color_text_secondary"
+            android:contentDescription="Cancel reply" />
+
+    </LinearLayout>
+
+    <!-- Recording hint + lock trash -->
+    <LinearLayout
+        android:id="@+id/recordingBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/draftBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvRecordingHint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="6dp"
+            android:text="Recording… hold 3s to lock"
+            android:textColor="@color/color_error"
+            android:textSize="12sp" />
+
+        <com.silvershireinn.app.ui.chat.WaveformView
+            android:id="@+id/waveformPendingRecording"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="6dp"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btnPlayPendingRecording"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_voice_play_circle"
+            android:src="@drawable/ic_play"
+            android:tint="@color/color_gold"
+            android:padding="8dp"
+            android:contentDescription="Play recording"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btnCancelRecording"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_delete"
+            android:tint="@color/color_error"
+            android:contentDescription="Discard recording"
+            android:visibility="gone" />
+    </LinearLayout>
+
+
+    <!-- Attachment draft preview (confirm with Send) -->
+    <HorizontalScrollView
+        android:id="@+id/draftBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:background="@color/color_surface"
+        android:scrollbars="none"
+        app:layout_constraintBottom_toTopOf="@id/inputBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="8dp">
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <ImageView
+                    android:id="@+id/ivDraftThumb"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:scaleType="centerCrop"
+                    android:padding="0dp"
+                    android:background="@color/color_background"
+                    android:contentDescription="Attachment draft" />
+
+                <ImageButton
+                    android:id="@+id/btnClearDraft"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="top|end"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_close"
+                    android:tint="@color/color_error"
+                    android:contentDescription="Clear draft" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvDraftFileName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:maxWidth="180dp"
+                android:maxLines="2"
+                android:ellipsize="middle"
+                android:textColor="@color/color_text_primary"
+                android:textSize="13sp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- ── Input bar ───────────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/inputBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_composer_bar"
+        android:padding="10dp"
+        android:gravity="center_vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Attach file button -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnAttach" android:contentDescription="Files"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/ic_attach"
+            app:backgroundTint="@color/color_surface"
+            app:tint="@color/color_gold"
+            app:fabSize="mini"
+            app:elevation="1dp"
+            app:strokeColor="@color/color_divider"
+            app:strokeWidth="1dp" />
+
+        <!-- Camera button -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnCamera" android:contentDescription="Camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/ic_camera"
+            app:backgroundTint="@color/color_surface"
+            app:tint="@color/color_gold"
+            app:fabSize="mini"
+            app:elevation="1dp"
+            app:strokeColor="@color/color_divider"
+            app:strokeWidth="1dp" />
+
+        <!-- Emoji picker button — to the right of the camera -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnEmoji" android:contentDescription="Emoji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_emoji"
+            app:backgroundTint="@color/color_surface"
+            app:tint="@color/color_gold"
+            app:fabSize="mini"
+            app:elevation="1dp"
+            app:strokeColor="@color/color_divider"
+            app:strokeWidth="1dp" />
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etMessage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_input_field"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp"
+            android:textColor="@color/color_text_primary"
+            android:hint="@string/type_message_hint"
+            android:textColorHint="@color/color_text_secondary"
+            android:maxLines="4"
+            android:inputType="textMultiLine|textCapSentences" />
+
+        <!-- Dynamic button: mic (when empty) or send (when text present) -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnVoiceOrSend" android:contentDescription="Send, or hold to record a voice message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_mic"
+            app:backgroundTint="@color/color_gold"
+            app:fabSize="mini"
+            app:elevation="2dp" />
+
+    </LinearLayout>
+
+    <!-- ── Scroll-to-bottom FAB ──────────────────────────────────────────── -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabScrollBottom" android:contentDescription="Jump to latest message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="80dp"
+        android:src="@drawable/ic_send"
+        app:backgroundTint="@color/color_surface"
+        app:tint="@color/color_gold"
+        app:fabSize="mini"
+        android:rotation="90"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- Red unread counter attached to the scroll-to-bottom FAB.
+         Shown when a new message arrives while the user is scrolled up. -->
+    <TextView
+        android:id="@+id/tvFabUnreadBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="20dp"
+        android:minWidth="20dp"
+        android:paddingHorizontal="5dp"
+        android:gravity="center"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/bg_unread_badge"
+        android:visibility="gone"
+        android:translationX="6dp"
+        android:translationY="-6dp"
+        android:elevation="10dp"
+        app:layout_constraintEnd_toEndOf="@id/fabScrollBottom"
+        app:layout_constraintTop_toTopOf="@id/fabScrollBottom" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

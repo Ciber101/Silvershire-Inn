@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/color_surface">
+
+    <!-- Header row: category tabs + close (✕) button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical" android:paddingVertical="6dp">
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabsEmojiCategories"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/color_surface"
+            app:tabMode="scrollable"
+            app:tabGravity="center"
+            app:tabIndicatorColor="@color/color_gold"
+            app:tabSelectedTextColor="@color/color_gold"
+            app:tabTextColor="@color/color_text_secondary"
+            app:tabTextAppearance="@style/TextAppearance.AppCompat.Small" />
+
+        <!-- Tap to close the picker without inserting an emoji -->
+        <ImageButton
+            android:id="@+id/btnCloseEmojiPicker"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/color_text_secondary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close emoji picker"
+            android:layout_marginEnd="4dp" />
+
+    </LinearLayout>
+
+    <!-- Emoji grid — 8 columns, scrollable -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvEmojiGrid"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:paddingHorizontal="4dp"
+        android:clipToPadding="false" />
+
+</LinearLayout>

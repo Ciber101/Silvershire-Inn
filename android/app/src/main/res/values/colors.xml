@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Core Palette — Silvershire Inn: cool silver steel surfaces + cozy gold accents -->
+    <color name="color_background">#1A1A1E</color>
+    <color name="color_surface">#27272C</color>
+    <color name="color_surface_variant">#3C3C42</color>
+    <color name="color_silver">#C5C8D0</color>
+    <color name="color_silver_dark">#9EA2AB</color>
+    <color name="color_gold">#D4AF37</color>
+    <color name="color_gold_dim">#55D4AF37</color>
+    <color name="color_gold_dark">#A68929</color>
+    <color name="color_text_primary">#F0F0F5</color>
+    <color name="color_text_secondary">#A8A8BA</color>
+    <color name="color_divider">#454550</color>
+    <color name="color_online">#4CAF50</color>
+    <color name="color_offline">#757575</color>
+    <color name="color_error">#CF6679</color>
+    <color name="color_msg_sent">#4E4027</color>
+    <color name="color_msg_received">#2A2B31</color>
+    <!-- Material theme required (mapped to cozy gold accents) -->
+    <color name="purple_200">#D4AF37</color>
+    <color name="purple_500">#D4AF37</color>
+    <color name="purple_700">#A68929</color>
+    <color name="teal_200">#D4AF37</color>
+    <color name="teal_700">#A68929</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

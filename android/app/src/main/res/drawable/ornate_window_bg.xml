@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Silvershire theme window background: tiled dark stone with a soft vignette (tools/gen_theme_assets.py) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <bitmap android:src="@drawable/ornate_stone_tile" android:tileMode="repeat" android:dither="true" />
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="#70000000" android:centerColor="#00000000" android:endColor="#90000000" />
+        </shape>
+    </item>
+</layer-list>

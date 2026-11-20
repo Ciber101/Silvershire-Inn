@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Remote video (full screen) -->
+    <ImageView
+        android:id="@+id/ivRemoteVideo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter"
+        android:background="#111111"/>
+
+    <!-- "Waiting for video…" placeholder -->
+    <TextView
+        android:id="@+id/tvNoVideoPlaceholder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Waiting for video…"
+        android:textColor="#FFC0A060"
+        android:textSize="16sp"
+        android:visibility="visible"/>
+
+    <!-- Local camera preview — draggable, starts top-right -->
+    <FrameLayout
+        android:id="@+id/localPreviewContainer"
+        android:layout_width="100dp"
+        android:layout_height="140dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="12dp">
+
+        <SurfaceView
+            android:id="@+id/svLocalPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/localPreviewBorder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:cardCornerRadius="8dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardElevation="0dp"
+            app:strokeColor="#FFC9A84C"
+            app:strokeWidth="1dp"
+            android:clickable="false"/>
+
+    </FrameLayout>
+
+    <!-- Top bar: caller name + status -->
+    <LinearLayout
+        android:id="@+id/layoutTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
+        android:background="#88000000">
+
+        <TextView
+            android:id="@+id/tvCallName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="..."
+            android:textColor="#FFFFD700"
+            android:textSize="20sp"
+            android:fontFamily="serif"/>
+
+        <TextView
+            android:id="@+id/tvCallStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Connecting…"
+            android:textColor="#FFC0A060"
+            android:textSize="13sp"
+            android:layout_marginTop="2dp"/>
+
+    </LinearLayout>
+
+    <!-- Accept / Reject for incoming calls -->
+    <LinearLayout
+        android:id="@+id/layoutIncomingButtons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone"
+        android:layout_marginBottom="160dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginEnd="48dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnRejectCall"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                app:cardCornerRadius="36dp"
+                app:cardBackgroundColor="#FFCC2222"
+                app:cardElevation="4dp">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_call_end"
+                    android:scaleType="center"
+                    android:padding="16dp"
+                    android:tint="#FFFFFFFF"/>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Decline"
+                android:textColor="#FFFFFFFF"
+                android:textSize="11sp"
+                android:layout_marginTop="6dp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnAcceptCall"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                app:cardCornerRadius="36dp"
+                app:cardBackgroundColor="#FF22AA44"
+                app:cardElevation="4dp">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_video_call"
+                    android:scaleType="center"
+                    android:padding="16dp"
+                    android:tint="#FFFFFFFF"/>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Accept"
+                android:textColor="#FFFFFFFF"
+                android:textSize="11sp"
+                android:layout_marginTop="6dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Bottom controls: flip · mute · end · speaker -->
+    <LinearLayout
+        android:id="@+id/layoutCallControls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#88000000"
+        android:paddingVertical="16dp"
+        android:paddingHorizontal="24dp">
+
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="vertical" android:gravity="center" android:layout_marginEnd="24dp">
+            <com.google.android.material.card.MaterialCardView android:id="@+id/btnFlipCamera"
+                android:layout_width="56dp" android:layout_height="56dp"
+                app:cardCornerRadius="28dp" app:cardBackgroundColor="#44FFFFFF" app:cardElevation="0dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:src="@drawable/ic_flip_camera" android:scaleType="center"
+                    android:padding="12dp" android:tint="#FFFFFFFF"/>
+            </com.google.android.material.card.MaterialCardView>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Flip" android:textColor="#FFFFFFFF" android:textSize="10sp" android:layout_marginTop="6dp"/>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="vertical" android:gravity="center" android:layout_marginEnd="24dp">
+            <com.google.android.material.card.MaterialCardView android:id="@+id/btnMute"
+                android:layout_width="56dp" android:layout_height="56dp"
+                app:cardCornerRadius="28dp" app:cardBackgroundColor="#44FFFFFF" app:cardElevation="0dp">
+                <ImageView android:id="@+id/ivMuteIcon" android:layout_width="match_parent"
+                    android:layout_height="match_parent" android:src="@drawable/ic_mic"
+                    android:scaleType="center" android:padding="12dp" android:tint="#FFFFFFFF"/>
+            </com.google.android.material.card.MaterialCardView>
+            <TextView android:id="@+id/tvMuteLabel" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Mute" android:textColor="#FFFFFFFF"
+                android:textSize="10sp" android:layout_marginTop="6dp"/>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="vertical" android:gravity="center" android:layout_marginEnd="24dp">
+            <com.google.android.material.card.MaterialCardView android:id="@+id/btnEndCall"
+                android:layout_width="64dp" android:layout_height="64dp"
+                app:cardCornerRadius="32dp" app:cardBackgroundColor="#FFCC2222" app:cardElevation="4dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:src="@drawable/ic_call_end" android:scaleType="center"
+                    android:padding="14dp" android:tint="#FFFFFFFF"/>
+            </com.google.android.material.card.MaterialCardView>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="End" android:textColor="#FFFFFFFF" android:textSize="10sp" android:layout_marginTop="6dp"/>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="vertical" android:gravity="center">
+            <com.google.android.material.card.MaterialCardView android:id="@+id/btnSpeaker"
+                android:layout_width="56dp" android:layout_height="56dp"
+                app:cardCornerRadius="28dp" app:cardBackgroundColor="#44FFFFFF" app:cardElevation="0dp">
+                <ImageView android:id="@+id/ivSpeakerIcon" android:layout_width="match_parent"
+                    android:layout_height="match_parent" android:src="@drawable/ic_speaker"
+                    android:scaleType="center" android:padding="12dp" android:tint="#FFFFFFFF"/>
+            </com.google.android.material.card.MaterialCardView>
+            <TextView android:id="@+id/tvSpeakerLabel" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Speaker" android:textColor="#FFFFFFFF"
+                android:textSize="10sp" android:layout_marginTop="6dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

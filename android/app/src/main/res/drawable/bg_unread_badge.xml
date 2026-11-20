@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Red pill background for the "new messages below" badge on the scroll-to-bottom FAB -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#D63B3B" />
+    <corners android:radius="10dp" />
+</shape>

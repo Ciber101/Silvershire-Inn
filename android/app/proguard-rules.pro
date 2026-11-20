@@ -1,0 +1,4 @@
+-keep class com.silvershireinn.app.** { *; }
+-keep class net.sqlcipher.** { *; }
+-keep class org.bouncycastle.** { *; }
+-dontwarn org.bouncycastle.**

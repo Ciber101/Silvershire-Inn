@@ -1,0 +1,568 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.silvershireinn.app.ui.chathead.OverlayRootLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/color_background">
+
+
+    <HorizontalScrollView
+        android:id="@+id/overlayStackSwitcherScroll"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:scrollbars="none"
+        android:fillViewport="false"
+        android:overScrollMode="ifContentScrolls"
+        android:visibility="gone">
+        <LinearLayout
+            android:id="@+id/overlayStackSwitcher"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+    </HorizontalScrollView>
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/overlayHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="8dp"
+        android:background="@drawable/bg_header_bar"
+        android:elevation="4dp" android:paddingVertical="6dp">
+
+        <ImageButton
+            android:id="@+id/btnOverlayClose"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_back"
+            android:tint="@color/color_text_primary"
+            android:background="@android:color/transparent"
+            android:contentDescription="Close overlay"
+            android:padding="10dp"/>
+
+        <FrameLayout
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:clipChildren="true">
+            <ImageView
+                android:id="@+id/ivOverlayAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="gone"/>
+            <TextureView
+                android:id="@+id/vvOverlayAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"/>
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvOverlayName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/color_text_primary"
+            android:textSize="17sp"
+            android:fontFamily="sans-serif-medium"
+            android:singleLine="true"
+            android:ellipsize="end"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlayCall"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_call"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Voice call"
+            android:padding="10dp"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlayVideoCall"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_video_call"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Video call"
+            android:padding="10dp"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlaySearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_search"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Search messages"
+            android:padding="10dp"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlaySettings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Chat settings"
+            android:padding="10dp"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlayExpand"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_chat"
+            android:tint="@color/color_text_secondary"
+            android:background="@android:color/transparent"
+            android:contentDescription="Open full chat"
+            android:padding="10dp"/>
+
+    </LinearLayout>
+
+    <!-- Search bar (hidden by default) -->
+    <LinearLayout
+        android:id="@+id/overlaySearchBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_header_bar"
+        android:paddingStart="12dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone" android:paddingVertical="6dp">
+
+        <EditText
+            android:id="@+id/etOverlaySearch"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Search messages..."
+            android:textColor="@color/color_text_primary"
+            android:textColorHint="@color/color_text_secondary"
+            android:textSize="14sp"
+            android:background="@null"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
+            android:maxLines="1"
+            android:singleLine="true"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlaySearchClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/color_text_secondary"
+            android:background="@android:color/transparent"
+            android:contentDescription="Close search"
+            android:padding="10dp"/>
+
+    </LinearLayout>
+
+    <!-- Emoji grid (hidden by default)  -  rows populated in code -->
+    <LinearLayout
+        android:id="@+id/overlayEmojiGrid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/color_surface"
+        android:padding="4dp"
+        android:visibility="gone"/>
+
+    <!-- Recording hint + lock trash -->
+    <LinearLayout
+        android:id="@+id/overlayRecordingBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvOverlayRecordingHint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="6dp"
+            android:text="Recording... hold 3s to lock"
+            android:textColor="@color/color_error"
+            android:textSize="12sp" />
+
+        <com.silvershireinn.app.ui.chat.WaveformView
+            android:id="@+id/waveformOverlayPending"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="6dp"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btnOverlayPlayPendingRecording"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_voice_play_circle"
+            android:src="@drawable/ic_play"
+            android:tint="@color/color_gold"
+            android:padding="8dp"
+            android:contentDescription="Play recording"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btnOverlayCancelRecording"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_delete"
+            android:tint="@color/color_error"
+            android:contentDescription="Discard recording"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Message area  -  FrameLayout lets bg views sit behind the RecyclerView -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ImageView
+            android:id="@+id/ivOverlayChatImageBg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:visibility="gone"/>
+
+        <SurfaceView
+            android:id="@+id/svOverlayChatVideoBg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/overlayRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="10dp"/>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabOverlayScrollBottom" android:contentDescription="Jump to latest message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="10dp"
+            android:src="@drawable/ic_send"
+            android:rotation="90"
+            android:visibility="gone"
+            app:backgroundTint="@color/color_surface"
+            app:tint="@color/color_gold"
+            app:fabSize="mini"
+            app:elevation="4dp"/>
+
+        <TextView
+            android:id="@+id/tvOverlayFabBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp"
+            android:minWidth="20dp"
+            android:paddingHorizontal="5dp"
+            android:gravity="center"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_unread_badge"
+            android:visibility="gone"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="44dp"
+            android:elevation="6dp"/>
+
+    </FrameLayout>
+
+    <!-- Reply bar -->
+    <LinearLayout
+        android:id="@+id/overlayReplyBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/color_surface"
+        android:paddingStart="12dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="36dp"
+            android:background="@color/color_gold"
+            android:layout_marginEnd="10dp"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvOverlayReplyLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Replying to"
+                android:textColor="@color/color_gold"
+                android:textSize="11sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/tvOverlayReplyPreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/color_text_secondary"
+                android:textSize="12sp"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnOverlayCancelReply"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/color_text_secondary"
+            android:background="@android:color/transparent"
+            android:contentDescription="Cancel reply"
+            android:padding="8dp"/>
+
+    </LinearLayout>
+
+    <!-- File drawer -->
+    <LinearLayout
+        android:id="@+id/overlayFileDrawer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/color_surface"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Shared Files"
+                android:textColor="@color/color_text_primary"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-medium"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOverlayPickFile"
+                style="@style/Widget.Silvershire.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Send File"
+                android:textColor="@color/color_gold"
+                android:textSize="13sp"/>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/color_divider"/>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/overlayFileTabs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/color_surface"
+            app:tabTextColor="@color/color_text_secondary"
+            app:tabSelectedTextColor="@color/color_gold"
+            app:tabIndicatorColor="@color/color_gold"
+            app:tabMode="fixed"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/overlayFilesRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="280dp"
+            android:clipToPadding="false"
+            android:paddingVertical="8dp"
+            android:paddingHorizontal="8dp"/>
+
+        <TextView
+            android:id="@+id/tvOverlayNoFiles"
+            android:layout_width="match_parent"
+            android:layout_height="280dp"
+            android:gravity="center"
+            android:text="No files shared yet"
+            android:textColor="@color/color_text_secondary"
+            android:textSize="14sp"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+
+    <!-- Attachment draft preview -->
+    <LinearLayout
+        android:id="@+id/overlayDraftBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/color_surface"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/ivOverlayDraftThumb"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:scaleType="centerCrop"
+                android:background="@color/color_background"
+                android:contentDescription="Attachment draft" />
+
+            <ImageButton
+                android:id="@+id/btnOverlayClearDraft"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="top|end"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_close"
+                android:tint="@color/color_error"
+                android:contentDescription="Clear draft" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvOverlayDraftFileName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:maxLines="2"
+            android:ellipsize="middle"
+            android:textColor="@color/color_text_primary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Composer dock matching main chat polish -->
+    <LinearLayout
+        android:id="@+id/overlayInputBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_composer_bar"
+        android:padding="10dp">
+
+        <ImageButton
+            android:id="@+id/btnOverlayAttach"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_attach"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Attach file"
+            android:padding="8dp"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlayCamera"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_camera"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Camera"
+            android:padding="8dp"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlayEmoji"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_emoji"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Emoji"
+            android:padding="8dp"/>
+
+        <EditText
+            android:id="@+id/etOverlayInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="6dp"
+            android:hint="@string/type_message_hint"
+            android:textColorHint="@color/color_text_secondary"
+            android:textColor="@color/color_text_primary"
+            android:textSize="15sp"
+            android:background="@drawable/bg_input_field"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="4"
+            android:minLines="1"
+            android:imeOptions="actionSend"/>
+
+        <ImageButton
+            android:id="@+id/btnOverlaySend"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_mic"
+            android:tint="@color/color_gold"
+            android:background="@android:color/transparent"
+            android:contentDescription="Mic / Send"
+            android:padding="8dp"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvOverlaySnackbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="12dp"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:background="#CC1A1A1E"
+        android:visibility="gone"/>
+
+</com.silvershireinn.app.ui.chathead.OverlayRootLayout>
+

@@ -1,0 +1,14 @@
+# Silvershire Inn HTTPS front door (Caddy gets and renews the certificate by itself).
+# Copy this file to "Caddyfile" and replace chat.example.org with your own domain.
+# Your router must forward ports 80 and 443 to this computer. See docs/INTERNET.md.
+
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
+chat.example.org {
+	# 127.0.0.1 rather than localhost: Windows may resolve localhost to IPv6.
+	reverse_proxy 127.0.0.1:8080
+}
