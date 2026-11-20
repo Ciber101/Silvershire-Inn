@@ -95,7 +95,7 @@ class ConversationAdapter(
                             else {
                                 ivContactPic.visibility = View.GONE
                                 tvInitials.visibility = View.VISIBLE
-                                tvInitials.text = displayName.toInitials()
+                                tvInitials.text = if (isGroup) tvInitials.text else displayName.toInitials()
                                 avatarCircle.setCardBackgroundColor(conv.contactUsername.toAvatarColor())
                             }
                         }
@@ -114,13 +114,15 @@ class ConversationAdapter(
                 holder.video.clear()
                 ivContactPic.visibility = View.GONE
                 tvInitials.visibility   = View.VISIBLE
-                tvInitials.text         = if (isGroup) "👥" else displayName.toInitials()
+                if (isGroup) com.silvershireinn.app.utils.ThemeIcons.setIcon(tvInitials, com.silvershireinn.app.R.drawable.ic_group, 24)
+                else { com.silvershireinn.app.utils.ThemeIcons.clearIcon(tvInitials); tvInitials.text = displayName.toInitials() }
                 avatarCircle.setCardBackgroundColor(
                     if (isGroup) 0xFF4A3728.toInt() else conv.contactUsername.toAvatarColor()
                 )
             }
-            tvLastMessage.text = if (!isGroup && com.silvershireinn.app.utils.PeerLocks.isLocked(conv.contactUsername)) "🔒 Locked"
-                                 else conv.lastMessagePreview
+            tvLastMessage.text = com.silvershireinn.app.utils.ThemeIcons.iconize(tvLastMessage.context,
+                if (!isGroup && com.silvershireinn.app.utils.PeerLocks.isLocked(conv.contactUsername)) "🔒 Locked" else conv.lastMessagePreview,
+                (tvLastMessage.textSize * 1.2f).toInt())
             // Unread chats stand out: brighter, bold preview.
             val unread = conv.unreadCount > 0
             tvLastMessage.setTypeface(null, if (unread) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)

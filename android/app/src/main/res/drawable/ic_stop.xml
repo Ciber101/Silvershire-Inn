@@ -1,6 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Silvershire line icon (one set across app and web). Light-to-shade so a gold MULTIPLY tint reads as engraved gold. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24"
-    android:tint="#FFFFFF">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M6,6h12v12H6z"/>
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="#FFFFFF"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:pathData="M8.20,6.40h7.60a1.80,1.80 0 0,1 1.80,1.80v7.60a1.80,1.80 0 0,1 -1.80,1.80h-7.60a1.80,1.80 0 0,1 -1.80,-1.80v-7.60a1.80,1.80 0 0,1 1.80,-1.80Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="12" android:startY="2" android:endX="12" android:endY="22">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="1" android:color="#FFBDBDBD"/>
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

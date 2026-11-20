@@ -838,6 +838,20 @@
                         android:textColor="@color/color_gold" android:textSize="14sp" />
                 </LinearLayout>
 
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:id="@+id/rowMyAvatarInChats"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:paddingVertical="6dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="My picture in chats" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Shown (with your border) beside your own messages" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchMyAvatarInChats"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
+                </LinearLayout>
+
                 <View android:layout_width="match_parent" android:layout_height="0.5dp"
                     android:layout_marginVertical="12dp" android:background="@color/color_divider" />
 

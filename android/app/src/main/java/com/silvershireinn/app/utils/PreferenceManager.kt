@@ -147,6 +147,11 @@ object PreferenceManager {
         get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getBoolean("compact_bubbles", false)
         set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putBoolean("compact_bubbles", v).apply() }
 
+    /** Own picture (with border) beside your own messages. Off by default. */
+    var showMyAvatar: Boolean
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getBoolean("show_my_avatar", false)
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putBoolean("show_my_avatar", v).apply() }
+
     /** Friend's picture beside received messages: 0 = every message (default), 1 = last of a run, 2 = off. */
     var chatAvatarMode: Int
         get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("chat_avatar_mode", 0)

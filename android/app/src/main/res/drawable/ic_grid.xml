@@ -1,6 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Silvershire line icon (one set across app and web). Light-to-shade so a gold MULTIPLY tint reads as engraved gold. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24"
-    android:tint="#FFFFFF">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M20,2H4c-1.1,0 -2,0.9 -2,2v16c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V4c0,-1.1 -0.9,-2 -2,-2zM8,20H4v-4h4v4zM8,14H4v-4h4v4zM8,8H4V4h4v4zM14,20h-4v-4h4v4zM14,14h-4v-4h4v4zM14,8h-4V4h4v4zM20,20h-4v-4h4v4zM20,14h-4v-4h4v4zM20,8h-4V4h4v4z"/>
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="#FFFFFF"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:pathData="M5.60,3.60h12.80a2.00,2.00 0 0,1 2.00,2.00v12.80a2.00,2.00 0 0,1 -2.00,2.00h-12.80a2.00,2.00 0 0,1 -2.00,-2.00v-12.80a2.00,2.00 0 0,1 2.00,-2.00Z" android:fillColor="#00000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="12" android:startY="2" android:endX="12" android:endY="22">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="1" android:color="#FFBDBDBD"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M9.2 3.6v16.8M14.8 3.6v16.8M3.6 9.2h16.8M3.6 14.8h16.8" android:fillColor="#00000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="12" android:startY="2" android:endX="12" android:endY="22">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="1" android:color="#FFBDBDBD"/>
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

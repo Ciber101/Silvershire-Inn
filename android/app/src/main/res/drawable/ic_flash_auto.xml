@@ -1,6 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Silvershire line icon (one set across app and web). Light-to-shade so a gold MULTIPLY tint reads as engraved gold. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24"
-    android:tint="#FFFFFF">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M3,2v12h3v9l7,-12H9l4,-9H3zM19,2h-2l-3.2,9h1.9l0.7,-2h3.2l0.7,2h1.9L19,2zM16.85,7.65L18,4l1.15,3.65h-2.3z"/>
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="#FFFFFF"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:pathData="M11.6 2.8L4.2 13.2h5.6l-1.2 8 7.6-10.6h-5.6z" android:fillColor="#00000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="12" android:startY="2" android:endX="12" android:endY="22">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="1" android:color="#FFBDBDBD"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M15.6 21l2.3-6.2 2.3 6.2M16.3 19.2h3.2" android:fillColor="#00000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="12" android:startY="2" android:endX="12" android:endY="22">
+                <item android:offset="0" android:color="#FFFFFFFF"/>
+                <item android:offset="1" android:color="#FFBDBDBD"/>
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

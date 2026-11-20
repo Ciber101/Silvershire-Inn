@@ -1677,7 +1677,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         if (picFile != null && picFile.exists()) {
             binding.toolbarAvatarCard.visibility = View.VISIBLE
             com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(binding.toolbarAvatarCard, com.silvershireinn.app.utils.AvatarShapeHelper.forUser(contactName))
-            com.silvershireinn.app.utils.ProfileFrames.applyFloating(binding.toolbarAvatarCard, contactName)
+            val frameRoom = com.silvershireinn.app.utils.ProfileFrames.applyFloating(binding.toolbarAvatarCard, contactName)
             if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(picFile.absolutePath)) {
                 val frame = com.silvershireinn.app.utils.ProfileMediaHelper.videoFrameBitmap(picFile.absolutePath)
                 if (frame != null) binding.ivToolbarAvatar.setImageBitmap(frame)
@@ -1689,7 +1689,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
             }
             // Push the ActionBar title right: nav(56dp) + avatar(36dp) + gap(8dp) = 100dp total,
             // subtract the default contentInsetStart (~72dp) -> add ~28dp extra title margin.
-            binding.toolbar.setTitleMarginStart(36.dpToPx())
+            binding.toolbar.setTitleMarginStart(36.dpToPx() + frameRoom * 2)   // clear of the picture's border
         } else {
             binding.toolbarAvatarCard.visibility = View.GONE
             binding.toolbar.setTitleMarginStart(0)

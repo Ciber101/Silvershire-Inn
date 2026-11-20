@@ -128,7 +128,7 @@ class SharedFilesAdapter(
                     )
                 }
             } else {
-                binding.tvFileIcon.text            = emojiForMime(info.mimeType)
+                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileIcon, com.silvershireinn.app.utils.ThemeIcons.forMime(info.mimeType), 28)
                 binding.tvFileIcon.visibility      = View.VISIBLE
                 binding.ivFileThumbnail.visibility = View.GONE
             }

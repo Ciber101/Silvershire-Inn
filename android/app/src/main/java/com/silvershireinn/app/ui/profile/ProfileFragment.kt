@@ -448,6 +448,12 @@ class ProfileFragment : Fragment() {
                 }.show()
         }
 
+        binding.switchMyAvatarInChats.isChecked = PreferenceManager.showMyAvatar
+        binding.switchMyAvatarInChats.setOnCheckedChangeListener { _, checked ->
+            HapticUtil.vibrate(requireContext())
+            PreferenceManager.showMyAvatar = checked
+        }
+
         binding.switchCompactBubbles.isChecked = PreferenceManager.compactBubbles
         binding.switchCompactBubbles.setOnCheckedChangeListener { _, checked ->
             PreferenceManager.compactBubbles = checked

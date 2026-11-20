@@ -1011,6 +1011,7 @@
     };
     if (twoWings) wingArc(true);
 
+    const overToes = [];
     // ── hands and feet, bird-like: long jointed toes fanning from one point, a back toe, hooked talons ──
     const hand = (W, foot, d) => {
       const z = T * (1.15 + rnd() * 0.3), inA = inN(W.x, W.y), fw = inA - s * Math.PI / 2;     // fw: the way the dragon faces
@@ -1092,6 +1093,12 @@
       // the ball of the foot over the toe roots
       const bp = () => { ctx.beginPath(); ctx.ellipse(B.x, B.y, z * 0.16, z * 0.13, inA, 0, TAU); };
       metal(ctx, bp, m, [B.x - z * 0.16, B.y - z * 0.16, B.x + z * 0.16, B.y + z * 0.16], 441, d + 0.02);
+      // A foot gripping the BACK of the border: its opposing toe comes over the top of the band and
+      // hooks the front, so it shows (drawn later, in front of the band).
+      if (d < -0.1) {
+        const reachIn = Math.max(z * 0.6, (dB - (r + w * 0.1)) * 1.15);
+        overToes.push(() => toe(inA - s * lean * 0.5, reachIn, z * 0.14, 451, false));
+      }
     };
     const limb = (pts2, d, rows, seed) => { tube(ctx, pts2, m, seed, { bright: d + 0.1, fine: true }); scaleSkin(ctx, pts2, m, rnd, { rows, size: scaleSize * 1.1 }); };
     let bodyPath = null;
@@ -1132,6 +1139,13 @@
     const nearF = s * (rnd() - 0.5) * 0.12, nearH = s * (rnd() - 0.5) * 0.14;
     // far-side limbs grip the back of the border: hidden behind the band and the picture
     ctx.save(); behind(); foreleg(aFore + farF, true); hindleg(aHind + farH, true); ctx.restore();
+    // ...their single opposing toes, over the band (only the part on the band and its inner lip shows)
+    if (overToes.length) {
+      ctx.save(); ctx.beginPath(); shapePath(ctx, shape, cx, cy, r + w, true);
+      ctx.moveTo(cx + r - w * 0.45, cy); shapePath(ctx, shape, cx, cy, r - w * 0.45, true); ctx.clip('evenodd');
+      overToes.forEach(f => f());
+      ctx.restore();
+    }
 
     // ── the body ──
     const body = tube(ctx, pts, m, 151, { bright: -0.2, fine: true }); bodyPath = body.path;

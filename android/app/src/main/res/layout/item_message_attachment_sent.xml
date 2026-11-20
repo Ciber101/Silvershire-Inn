@@ -38,16 +38,15 @@
                 android:contentDescription="Image preview" />
 
             <!-- Video play overlay (shown for video/* types) -->
-            <TextView
+            <ImageView
                 android:id="@+id/tvPlayOverlay"
                 android:layout_width="56dp"
                 android:layout_height="56dp"
                 android:layout_gravity="center"
-                android:background="#88000000"
-                android:gravity="center"
-                android:text="▶"
-                android:textColor="#FFFFFFFF"
-                android:textSize="22sp"
+                android:background="@drawable/bg_play_overlay"
+                android:padding="15dp"
+                android:src="@drawable/ic_play"
+                android:importantForAccessibility="no"
                 android:visibility="gone" />
 
         </FrameLayout>
@@ -66,7 +65,10 @@
                 android:id="@+id/tvFileEmoji"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📎"
+                android:text=""
+                android:drawableStart="@drawable/ic_attach"
+                android:drawableTint="#E6C25A"
+                android:drawableTintMode="multiply"
                 android:textSize="24sp"
                 android:layout_marginEnd="8dp" />
 
@@ -152,4 +154,33 @@
         </LinearLayout>
 
     </LinearLayout>
+    <!-- Your own picture beside your messages (setting "My picture in chats", off by default) -->
+    <FrameLayout
+        android:id="@+id/avatarFrameMine"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="6dp"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/tvMyInitials"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <ImageView
+            android:id="@+id/ivMyAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
+    </FrameLayout>
+
 </LinearLayout>

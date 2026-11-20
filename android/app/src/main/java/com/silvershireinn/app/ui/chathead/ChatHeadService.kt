@@ -495,6 +495,7 @@ class ChatHeadService : Service() {
         else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 
         val (savedX, savedY) = PreferenceManager.loadChatHeadPos(BUBBLE_POS_KEY, 300)
+        bubblePad = -1          // the saved spot includes the border room the bubble had then
 
         bubbleParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -594,6 +595,7 @@ class ChatHeadService : Service() {
             midUser?.let   { applyAvatar(view, it, AvatarSlot.MID)   }
             backUser?.let  { applyAvatar(view, it, AvatarSlot.BACK)  }
         }
+        (view as? FrameLayout)?.let { layoutBubbleFrames(it, listOf(cvBack to backUser, cvMid to midUser, cvFront to frontUser)) }
 
         // Total unread badge (top-end)
         val totalUnread = activeSenders.values.sum()
@@ -640,7 +642,7 @@ class ChatHeadService : Service() {
             val color = username.toAvatarColor()
             cv.background = com.silvershireinn.app.utils.AvatarShapeHelper.backgroundDrawable(color, shape)
             com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(cv, shape)
-            com.silvershireinn.app.utils.ProfileFrames.applyCompact(cv, username)
+            if (cv.foreground is com.silvershireinn.app.utils.ProfileFrames.FrameDrawable) cv.foreground = null   // full border instead (layoutBubbleFrames)
             com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(iv, shape)
             if (vv != null) com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(vv, shape)
         }
@@ -753,6 +755,101 @@ class ChatHeadService : Service() {
                     else { iv.visibility = View.GONE; tv.visibility = View.VISIBLE }
                 }
             }
+        }
+    }
+
+    /** Drawn area of each border picture used on the bubble (key: frame|shape|size). */
+    private val bubbleDrawn = HashMap<String, FloatArray>()
+    private var bubblePad = -1
+
+    /**
+     * Each head in the bubble gets its whole border (dragons and all), drawn right above its own
+     * picture so the head in front still covers the ones behind it. The bubble window grows by
+     * just enough room for the borders (and keeps the pictures where they were); a border that
+     * would still not fit shrinks together with its picture.
+     */
+    private fun layoutBubbleFrames(root: FrameLayout, slots: List<Pair<View, String?>>) {
+        val PF = com.silvershireinn.app.utils.ProfileFrames
+        val tol = 2 * dp
+        val contentH = 56 * dp
+        data class S(val cv: View, val iv: ImageView, val a: Float, val full: Float, val d: FloatArray?)
+        val live = ArrayList<S>()
+        for ((cv, user) in slots) {
+            val tagName = "bubble_frame_${cv.id}"
+            var iv = root.findViewWithTag<ImageView>(tagName)
+            val id = PF.frameFor(user)
+            val framed = user != null && cv.visibility == View.VISIBLE && !(id == "none" || id.startsWith("gen:none"))
+            if (!framed) { iv?.visibility = View.GONE; cv.scaleX = 1f; cv.scaleY = 1f; continue }
+            if (iv == null) {
+                iv = ImageView(this).apply {
+                    tag = tagName
+                    scaleType = ImageView.ScaleType.FIT_XY
+                    isClickable = false; isFocusable = false
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                }
+                root.addView(iv, root.indexOfChild(cv) + 1, FrameLayout.LayoutParams(1, 1, Gravity.START or Gravity.CENTER_VERTICAL))
+            }
+            iv.visibility = View.VISIBLE
+            val a = (cv.layoutParams?.width ?: (56 * dp).toInt()).toFloat()
+            val full = a / PF.PIC
+            val shape = PF.shapeName(com.silvershireinn.app.utils.AvatarShapeHelper.forUser(user))
+            val px = PF.bucket(full.toInt()).coerceAtLeast(128)
+            val key = "$id|$shape|$px"
+            if (iv.getTag(R.id.profile_frame_key) != key) { iv.setImageDrawable(null); iv.setTag(R.id.profile_frame_key, key) }
+            if (iv.drawable == null) {
+                val target = iv
+                com.silvershireinn.app.utils.FrameRenderer.get(applicationContext, id, shape, px, "full") { b ->
+                    if (b == null || target.getTag(R.id.profile_frame_key) != key) return@get
+                    target.setImageBitmap(b)
+                    if (bubbleDrawn[key] == null) { bubbleDrawn[key] = PF.drawnArea(b); root.post { updateBubble(refreshAvatars = false) } }
+                }
+            }
+            live.add(S(cv, iv, a, full, bubbleDrawn[key]))
+        }
+        // Room the borders need past the edge of their pictures (same on every side)
+        var need = 0f
+        for (s in live) {
+            val d = s.d ?: continue
+            val reach = maxOf((0.5f - d[0]), (d[2] - 0.5f), (0.5f - d[1]), (d[3] - 0.5f)) * s.full - s.a / 2f
+            need = maxOf(need, reach + tol)
+        }
+        val pad = need.coerceIn(0f, 30 * dp).toInt()
+        val contentW = slots.filter { it.first.visibility == View.VISIBLE }
+            .maxOfOrNull { it.first.translationX + (it.first.layoutParams?.width ?: 0) } ?: (56 * dp)
+        val w = (contentW + 2 * pad).toInt(); val h = (contentH + 2 * pad).toInt()
+        for (s in live) {
+            val d = s.d
+            var k = 1f
+            if (d != null) {
+                val cx = pad + s.cv.translationX + s.a / 2f; val cy = h / 2f
+                val nl = (0.5f - d[0]) * s.full; val nr = (d[2] - 0.5f) * s.full
+                val nt = (0.5f - d[1]) * s.full; val nb = (d[3] - 0.5f) * s.full
+                if (nl > 0) k = minOf(k, (cx - tol) / nl)
+                if (nr > 0) k = minOf(k, (w - cx - tol) / nr)
+                if (nt > 0) k = minOf(k, (cy - tol) / nt)
+                if (nb > 0) k = minOf(k, (h - cy - tol) / nb)
+                k = k.coerceIn(0.3f, 1f)
+            } else s.iv.visibility = View.INVISIBLE                 // until its reach is known
+            val size = (s.full * k).toInt()
+            val lp = s.iv.layoutParams as FrameLayout.LayoutParams
+            if (lp.width != size || lp.height != size) { lp.width = size; lp.height = size; s.iv.layoutParams = lp }
+            s.iv.translationX = s.cv.translationX + (s.a - size) / 2f
+            s.cv.scaleX = k; s.cv.scaleY = k
+        }
+        // Grow / shrink the bubble window around the same spot
+        if (root.paddingLeft != pad) root.setPadding(pad, pad, pad, pad)
+        val p = bubbleParams ?: return
+        val padPrefs = getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE)
+        val old = if (bubblePad < 0) padPrefs.getInt("pad", 0) else bubblePad
+        if (p.width != w || p.height != h || old != pad || bubblePad < 0) {
+            p.width = w; p.height = h
+            if (old != pad) {
+                p.x = (p.x - (pad - old)).coerceIn(0, (screenWidth - w).coerceAtLeast(0))
+                p.y = (p.y - (pad - old)).coerceIn(0, (screenHeight - h).coerceAtLeast(0))
+            }
+            bubblePad = pad
+            padPrefs.edit().putInt("pad", pad).apply()
+            try { if (root.isAttachedToWindow) wm.updateViewLayout(root, p) } catch (_: Exception) {}
         }
     }
 
@@ -1108,6 +1205,14 @@ class ChatHeadService : Service() {
             overlayAvatarVideoHelper?.clear(avatarIv)
             avatarVv?.visibility = View.GONE
             avatarIv.visibility = View.GONE
+        }
+        // Shaped backing + initials (shown when there is no picture), and their border
+        view.findViewById<FrameLayout?>(R.id.overlayAvatarBox)?.let { box ->
+            val shape = com.silvershireinn.app.utils.AvatarShapeHelper.forUser(contactId)
+            box.background = com.silvershireinn.app.utils.AvatarShapeHelper.backgroundDrawable(contactId.toAvatarColor(), shape)
+            com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(box, shape)
+            view.findViewById<TextView?>(R.id.tvOverlayInitials)?.text = (group?.second ?: PreferenceManager.displayNameFor(contactId)).toInitials()
+            com.silvershireinn.app.utils.ProfileFrames.applyFloating(box, contactId)
         }
 
 
@@ -1782,6 +1887,7 @@ class ChatHeadService : Service() {
             wm.addView(view, params)
             overlayView   = view
             overlayParams = params
+            view.post { try { com.silvershireinn.app.utils.OrnateTheme.attachRoot(view) } catch (_: Throwable) {} }   // same theme as the app
             com.silvershireinn.app.SilvershireApp.overlayOpen = true   // chatting in the floating window = online
             // Re-add bubble on top so it stays visible and tappable over the overlay.
             // Keep still-frame ImageViews visible across the remove+re-add so video
@@ -2127,7 +2233,7 @@ class ChatHeadService : Service() {
         // appears above the overlay window rather than failing with a null token.
         val dialog = android.app.AlertDialog.Builder(ctx)
             .setTitle(null)
-            .setItems(options.toTypedArray()) { _, which ->
+            .setItems(options.map { com.silvershireinn.app.utils.ThemeIcons.iconize(ctx, it) }.toTypedArray()) { _, which ->
                 when (options[which]) {
                     "✕  Cancel upload" -> {
                         // Cancels right here now (it used to open the full chat to do it).
@@ -2737,6 +2843,7 @@ class ChatHeadService : Service() {
             })
             attachSwitcherHeadDrag(avatar, user)
             row.addView(avatar)
+            com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatar, user)   // their border, in room of its own
         }
     }
 
@@ -2774,6 +2881,7 @@ class ChatHeadService : Service() {
             chip.foreground = if (isCurrent) selectionRing(avatarShape) else null
             if (isCurrent) chip.findViewWithTag<View>("badge")?.visibility = View.GONE
         }
+        row.invalidate()      // borders follow the new fade
     }
 
     /** Ring around the open conversation's head, matching its shape (circle included). */

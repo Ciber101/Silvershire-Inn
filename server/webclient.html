@@ -467,7 +467,7 @@
   .avatar.has-frame, .friend-profile .fp-avatar.framed { scale:var(--fit, 1); }
   .friend-profile .fp-identity, .friend-profile .fp-hero, .friend-profile .fp-avatar-wrap { overflow:visible; }
   /* room for the border around framed pictures, and names always drawn above it */
-  #meBar .avatar.has-frame, #chatHeader .avatar.has-frame, .contact .avatar.has-frame { margin-left:12px; margin-right:16px; }
+  .avatar.has-frame:not(#fpAvatar) { margin:var(--fm-v, 0px) var(--fm-h, 0px); }
   #meBar .me-ident, #meBar .name, #meBar .conn, #chatHeader .cname, #chatHeader .status, .contact .col, .contact .cname, .contact .sub,
   .friend-profile .fp-name, .friend-profile .fp-handle, .friend-profile .fp-status {
     position:relative; z-index:4;
@@ -670,6 +670,45 @@
   }
   .iconbtn:hover { background:var(--panel2); color:var(--gold); }
 
+  /* ── Icons: one line-drawn set, centered in every button; engraved gold in the Silvershire theme ── */
+  .ic { width:20px; height:20px; display:block; flex:none; fill:none; stroke:var(--ic-stroke, currentColor);
+        stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; overflow:visible; pointer-events:none; }
+  .ic.inl { display:inline-block; width:1.1em; height:1.1em; vertical-align:-0.2em; margin-right:.42em; }
+  .ic.inl.after { margin:0 0 0 .4em; opacity:.85; }
+  .ic.av-ic { width:54%; height:54%; }
+  .avatar > .ic.av-ic { margin:auto; }
+  .iconbtn, #btnLogout, #btnNewGroup, #btnSend, .modal .close-x, .fg-del, .up-chip .up-cancel, #draftStrip .draft-item button,
+  .gs-vrow button, .filechip a, #filesDrawer .fd-item a, #lbDownload {
+    display:inline-flex; align-items:center; justify-content:center; line-height:1;
+  }
+  .iconbtn { width:38px; height:38px; padding:0; flex-shrink:0; }
+  .iconbtn .ic, #btnSend .ic { width:21px; height:21px; }
+  #btnSend .ic { transform:translate(-1px, 1px); }          /* the paper plane's weight sits low-left */
+  #btnLogout { width:34px; height:34px; padding:0 !important; }
+  #btnLogout .ic { width:19px; height:19px; }
+  #btnNewGroup { min-width:40px; padding:0 10px; }
+  #scrollFab.visible { display:flex; align-items:center; justify-content:center; }
+  #scrollFab .ic { width:20px; height:20px; }
+  .modal .close-x { width:32px; height:32px; padding:0; border-radius:8px; }
+  .modal .close-x .ic { width:18px; height:18px; }
+  .fg-del .ic, #draftStrip .draft-item button .ic { width:12px; height:12px; stroke-width:2.4; }
+  .up-chip .up-cancel .ic { width:14px; height:14px; }
+  .voice-msg .vp-btn .ic, #recBar .rec-play .ic { width:15px; height:15px; }
+  .gs-vrow button .ic, .gs-spk .ic { width:18px; height:18px; }
+  .gs-spk { display:inline-flex; align-items:center; color:#fff; }
+  .filechip .fi { display:flex; align-items:center; justify-content:center; width:34px; height:34px; color:var(--gold); }
+  .filechip .fi .ic { width:26px; height:26px; }
+  .filechip a .ic, #filesDrawer .fd-item a .ic { width:20px; height:20px; }
+  #filesDrawer .fd-ic { display:flex; align-items:center; justify-content:center; width:28px; color:var(--gold); }
+  .fp-edit-chip .ic { width:16px; height:16px; }
+  #lbDownload .ic.inl { margin-right:.4em; }
+  body.theme-ornate { --ic-stroke:url(#ic-gold); --ic-fill:url(#ic-gold); }
+  body.theme-ornate .ic { filter:drop-shadow(0 1px 0 rgba(0,0,0,.85)); }
+  /* on gold or red, icons take the text color */
+  body.theme-ornate #btnSend, body.theme-ornate #ctxMenu button.danger, body.theme-ornate #draftStrip .draft-item button,
+  body.theme-ornate #fabBadge { --ic-stroke:currentColor; --ic-fill:currentColor; }
+  body.theme-ornate #btnSend .ic, body.theme-ornate #draftStrip .draft-item button .ic { filter:none; }
+
   #searchBar {
     display:none; padding:10px 14px; gap:8px; align-items:center;
     background:var(--panel); border-bottom:1px solid var(--border);
@@ -710,6 +749,7 @@
   /* Friend's portrait beside their messages */
   .msg-row { display:flex; align-items:flex-end; gap:8px; align-self:flex-start; max-width:72%; }
   .msg-row > .msg { max-width:100%; }
+  .msg-row.mine { align-self:flex-end; }
   .msg-av { width:30px; height:30px; flex:0 0 30px; font-size:12px; cursor:pointer; }
   .msg-av.hidden-av { visibility:hidden; }
   .msg.recv {
@@ -1318,6 +1358,7 @@
 
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false"><defs><linearGradient id="ic-gold" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="22"><stop offset="0" stop-color="#fff1b8"/><stop offset=".45" stop-color="#e2bd55"/><stop offset="1" stop-color="#9c7322"/></linearGradient><linearGradient id="ic-silver" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="22"><stop offset="0" stop-color="#f4f5f7"/><stop offset=".5" stop-color="#b9bcc3"/><stop offset="1" stop-color="#7c8089"/></linearGradient></defs><symbol id="i-gear" viewBox="0 0 24 24"><path d="M10.08 4.85 L10.50 2.52 L13.50 2.52 L13.92 4.85 L15.70 5.59 L17.64 4.23 L19.77 6.36 L18.41 8.30 L19.15 10.08 L21.48 10.50 L21.48 13.50 L19.15 13.92 L18.41 15.70 L19.77 17.64 L17.64 19.77 L15.70 18.41 L13.92 19.15 L13.50 21.48 L10.50 21.48 L10.08 19.15 L8.30 18.41 L6.36 19.77 L4.23 17.64 L5.59 15.70 L4.85 13.92 L2.52 13.50 L2.52 10.50 L4.85 10.08 L5.59 8.30 L4.23 6.36 L6.36 4.23 L8.30 5.59Z"/><circle cx="12" cy="12" r="3.2"/></symbol><symbol id="i-group" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.4"/><path d="M2.8 19.5a6.2 6.2 0 0 1 12.4 0"/><path d="M15.2 5.4a3.3 3.3 0 0 1 0 6.3"/><path d="M17.6 13.8a6 6 0 0 1 3.6 5.7"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><path d="M5.2 3.8h3.1l1.6 4.1-2.1 1.3a11.6 11.6 0 0 0 7 7l1.3-2.1 4.1 1.6v3.1a1.8 1.8 0 0 1-1.9 1.8A16.4 16.4 0 0 1 3.4 5.7a1.8 1.8 0 0 1 1.8-1.9z"/></symbol><symbol id="i-video" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="12.5" height="11" rx="2"/><path d="M15 10.4l6.2-3.4v10l-6.2-3.4z"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.3"/><path d="M15.2 15.2l5.3 5.3"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7.2a2 2 0 0 1 2-2h4.2l2 2.2h7.8a2 2 0 0 1 2 2v8.4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5.2" r="1.75" style="fill:var(--ic-fill,currentColor);stroke:none"/><circle cx="12" cy="12" r="1.75" style="fill:var(--ic-fill,currentColor);stroke:none"/><circle cx="12" cy="18.8" r="1.75" style="fill:var(--ic-fill,currentColor);stroke:none"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><path d="M8.2 5.4v13.2l10.6-6.6z" style="fill:var(--ic-fill,currentColor);stroke:none"/></symbol><symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.6" y="5.2" width="3.8" height="13.6" rx="1" style="fill:var(--ic-fill,currentColor);stroke:none"/><rect x="13.6" y="5.2" width="3.8" height="13.6" rx="1" style="fill:var(--ic-fill,currentColor);stroke:none"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="1.6" style="fill:var(--ic-fill,currentColor);stroke:none"/></symbol><symbol id="i-record" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" style="fill:var(--ic-fill,currentColor);stroke:none"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="M3.6 11.6L20.4 4l-6.6 16.6-2.6-6.6z"/><path d="M11.2 14l9.2-10"/></symbol><symbol id="i-attach" viewBox="0 0 24 24"><path d="M19.6 11.4l-8 8a5 5 0 0 1-7.1-7.1l8.4-8.4a3.3 3.3 0 0 1 4.7 4.7l-8.3 8.3a1.65 1.65 0 0 1-2.4-2.4l7.5-7.5"/></symbol><symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 7.6h3.2l1.6-2.3h6.4l1.6 2.3H20a1.2 1.2 0 0 1 1.2 1.2v9.6A1.2 1.2 0 0 1 20 19.6H4a1.2 1.2 0 0 1-1.2-1.2V8.8A1.2 1.2 0 0 1 4 7.6z"/><circle cx="12" cy="13.2" r="3.6"/></symbol><symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.3 14.3a4.6 4.6 0 0 0 7.4 0"/><circle cx="9" cy="9.8" r="1.2" style="fill:var(--ic-fill,currentColor);stroke:none"/><circle cx="15" cy="9.8" r="1.2" style="fill:var(--ic-fill,currentColor);stroke:none"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11.4" rx="3"/><path d="M5.6 11.2a6.4 6.4 0 0 0 12.8 0M12 17.6V21M8.8 21h6.4"/></symbol><symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4.8v14.4M6 13.4l6 6 6-6"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.8v11M7.2 10.4l4.8 4.8 4.8-4.8M4.8 19.6h14.4"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20.2v-11M7.2 13.6L12 8.8l4.8 4.8M4.8 4.4h14.4"/></symbol><symbol id="i-expand" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-6.6 6.6M10 20H4v-6M4 20l6.6-6.6"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="4"/><path d="M4.2 20.4a7.8 7.8 0 0 1 15.6 0"/></symbol><symbol id="i-userplus" viewBox="0 0 24 24"><circle cx="9.5" cy="8.2" r="3.8"/><path d="M2.6 20.2a6.9 6.9 0 0 1 13.8 0M19 7.6v6.4M15.8 10.8h6.4"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.4" width="14" height="10.2" rx="2"/><path d="M8.2 10.4V7.6a3.8 3.8 0 0 1 7.6 0v2.8"/><path d="M12 14.4v2.2"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.2 6.8h15.6M9.6 3.6h4.8M6.2 6.8l1 13.2h9.6l1-13.2M10.2 10.6v5.8M13.8 10.6v5.8"/></symbol><symbol id="i-reply" viewBox="0 0 24 24"><path d="M9.4 6.6L4 12l5.4 5.4"/><path d="M4.4 12h9.8a5.8 5.8 0 0 1 5.8 5.8v.6"/></symbol><symbol id="i-forward" viewBox="0 0 24 24"><path d="M14.6 6.6L20 12l-5.4 5.4"/><path d="M19.6 12H9.8A5.8 5.8 0 0 0 4 17.8v.6"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.4" y="8.4" width="11.6" height="11.6" rx="2"/><path d="M15.6 8.4V5.2a1.2 1.2 0 0 0-1.2-1.2H5.2A1.2 1.2 0 0 0 4 5.2v9.2a1.2 1.2 0 0 0 1.2 1.2h3.2"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 2H4.6z"/><path d="M10 20.6a2.1 2.1 0 0 0 4 0"/></symbol><symbol id="i-belloff" viewBox="0 0 24 24"><path d="M6.2 16.4V11a5.8 5.8 0 0 1 11.6 0v5.4l1.6 2H4.6z"/><path d="M10 20.6a2.1 2.1 0 0 0 4 0M3.6 3.6l16.8 16.8"/></symbol><symbol id="i-file" viewBox="0 0 24 24"><path d="M6.4 3.2h7.6l4.8 4.8v12.8H6.4z"/><path d="M14 3.2V8h4.8M9.4 12.6h6M9.4 16h6"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4.8" width="18" height="14.4" rx="2"/><circle cx="8.6" cy="9.8" r="1.6"/><path d="M21 15.8l-5-5-9.4 8.4"/></symbol><symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4.6" width="18" height="14.8" rx="2"/><path d="M7.4 4.6v14.8M16.6 4.6v14.8M3 9.6h4.4M3 14.4h4.4M16.6 9.6H21M16.6 14.4H21"/></symbol><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17.6V6.2l10.4-2.2v11.4"/><circle cx="6.8" cy="17.6" r="2.3"/><circle cx="17.2" cy="15.4" r="2.3"/></symbol><symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9.4h3.4L12 5.8v12.4l-4.6-3.6H4z"/><path d="M15.4 9.2a4 4 0 0 1 0 5.6M17.8 6.6a7.6 7.6 0 0 1 0 10.8"/></symbol><symbol id="i-pen" viewBox="0 0 24 24"><path d="M4.4 19.6l1-4.4L15.8 4.8a2.1 2.1 0 0 1 3 3L8.4 18.2z"/><path d="M13.8 6.8l3 3"/></symbol><symbol id="i-export" viewBox="0 0 24 24"><path d="M12 14.6V3.8M7.6 8.2L12 3.8l4.4 4.4"/><path d="M5 12.6v6.2a1.4 1.4 0 0 0 1.4 1.4h11.2a1.4 1.4 0 0 0 1.4-1.4v-6.2"/></symbol><symbol id="i-leave" viewBox="0 0 24 24"><path d="M14 4.2H6.2a1.4 1.4 0 0 0-1.4 1.4v12.8a1.4 1.4 0 0 0 1.4 1.4H14"/><path d="M10.4 12h10M16.8 8.2l3.8 3.8-3.8 3.8"/></symbol><symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.6l9.4 16.6H2.6z"/><path d="M12 9.8v4.8"/><circle cx="12" cy="17.4" r="1.1" style="fill:var(--ic-fill,currentColor);stroke:none"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.6l4.4 4.4L19.2 7.4"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.2l7.6 2.8v5.6c0 4.6-3.2 7.8-7.6 9.2-4.4-1.4-7.6-4.6-7.6-9.2V6z"/></symbol></svg>
 
 <!-- ════════ LOGIN ════════ -->
 <div id="loginScreen">
@@ -1369,7 +1410,7 @@
         <div class="conn" id="connState" role="button" tabindex="0" title="Set your status" aria-haspopup="menu" aria-expanded="false">Offline</div>
       </div>
       <div class="me-actions">
-        <button id="btnLogout" onclick="openProfileModal()" title="Profile and settings">&#9881;</button>
+        <button id="btnLogout" onclick="openProfileModal()" title="Profile and settings" aria-label="Profile and settings"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-gear"/></svg></button>
         <button id="btnLogout2" onclick="logout()" title="Log out">Log out</button>
       </div>
     </div>
@@ -1378,7 +1419,7 @@
       <input type="text" id="inSearch" placeholder="Add a friend by name..." onkeydown="if(event.key==='Enter')searchFriend()">
       <div class="addBar-actions">
         <button class="add-lbl" id="btnAddContact" onclick="searchFriend()" title="Add contact"><span class="add-full">Add contact</span><span class="add-ico" aria-hidden="true">+</span></button>
-        <button id="btnNewGroup" onclick="openGroupModal()" title="New group">&#128101;</button>
+        <button id="btnNewGroup" onclick="openGroupModal()" title="New group" aria-label="New group"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-group"/></svg></button>
       </div>
     </div>
     <div id="pendingBox"></div>
@@ -1406,21 +1447,21 @@
           <div class="status" id="chStatus"></div>
         </div>
         <div class="grow"></div>
-        <button class="iconbtn" id="btnHdrCall" onclick="startVoiceCall()" title="Call">&#128222;</button>
-        <button class="iconbtn" id="btnHdrVideo" onclick="startVideoCall()" title="Video call">&#127909;</button>
-        <button class="iconbtn" onclick="toggleSearch()" title="Search in chat">&#128269;</button>
-        <button class="iconbtn" onclick="toggleFilesDrawer()" title="Shared files">&#128193;</button>
-        <button class="iconbtn" onclick="openChatMenu(event)" title="Chat options">&#8942;</button>
+        <button class="iconbtn" id="btnHdrCall" onclick="startVoiceCall()" title="Call" aria-label="Call"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-phone"/></svg></button>
+        <button class="iconbtn" id="btnHdrVideo" onclick="startVideoCall()" title="Video call" aria-label="Video call"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-video"/></svg></button>
+        <button class="iconbtn" onclick="toggleSearch()" title="Search in chat" aria-label="Search in chat"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-search"/></svg></button>
+        <button class="iconbtn" onclick="toggleFilesDrawer()" title="Shared files" aria-label="Shared files"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg></button>
+        <button class="iconbtn" onclick="openChatMenu(event)" title="Chat options" aria-label="Chat options"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-more"/></svg></button>
       </div>
       <div id="searchBar">
         <input type="text" id="inMsgSearch" placeholder="Search messages..." oninput="renderMessages()">
-        <button class="iconbtn" onclick="toggleSearch()">&#10005;</button>
+        <button class="iconbtn" onclick="toggleSearch()"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
       </div>
       <div id="messages"></div>
       <div id="typingRow"></div>
       <div id="replyBar">
         <div class="rq" id="replyQuote"></div>
-        <button class="iconbtn" onclick="clearReply()">&#10005;</button>
+        <button class="iconbtn" onclick="clearReply()"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
       </div>
             <div id="recBar">
         <div class="dot-rec"></div>
@@ -1428,24 +1469,24 @@
         <div class="lock-hint" id="recLockHint"></div>
         <div style="flex:1"></div>
         <canvas id="recWave" width="160" height="36" style="flex:1;height:36px;border-radius:8px;background:#1A1A1E"></canvas>
-        <button type="button" class="rec-play" id="recPlay" title="Play recording" onclick="togglePendingRecPlay()">&#9654;</button>
-        <button class="iconbtn" onclick="cancelRecording()" title="Discard">&#10005;</button>
-        <button class="iconbtn" onclick="stopRecording(true)" title="Send" style="color:var(--gold)">&#10148;</button>
+        <button type="button" class="rec-play" id="recPlay" title="Play recording" onclick="togglePendingRecPlay()"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-play"/></svg></button>
+        <button class="iconbtn" onclick="cancelRecording()" title="Discard"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
+        <button class="iconbtn" onclick="stopRecording(true)" title="Send" aria-label="Send" style="color:var(--gold)"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-send"/></svg></button>
       </div>
       <div id="draftStrip" style="display:none"></div>
       <div id="inputRow">
-        <button class="iconbtn" id="btnAttach" onclick="document.getElementById('fileInput').click()" title="Attach file">+</button>
-        <button class="iconbtn" onclick="openCamera()" title="Camera">&#128247;</button>
-        <button class="iconbtn" onclick="toggleEmoji()" title="Emoji">&#128522;</button>
+        <button class="iconbtn" id="btnAttach" onclick="document.getElementById('fileInput').click()" title="Attach file" aria-label="Attach file"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-attach"/></svg></button>
+        <button class="iconbtn" onclick="openCamera()" title="Camera" aria-label="Camera"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-camera"/></svg></button>
+        <button class="iconbtn" onclick="toggleEmoji()" title="Emoji" aria-label="Emoji"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-smile"/></svg></button>
         <input type="file" id="fileInput" hidden multiple>
         <textarea id="inMsg" rows="1" placeholder="Send a message..."></textarea>
-        <button class="iconbtn" id="btnMic" title="Voice message">&#127908;</button>
-        <button id="btnSend" onclick="sendCurrentMessage()" title="Send" aria-label="Send">&#10148;</button>
+        <button class="iconbtn" id="btnMic" title="Voice message" aria-label="Voice message"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></button>
+        <button id="btnSend" onclick="sendCurrentMessage()" title="Send" aria-label="Send"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-send"/></svg></button>
       </div>
       <div id="emojiPanel"></div>
-      <button id="scrollFab" onclick="scrollToBottom(true)">&#8595;<span id="fabBadge"></span></button>
+      <button id="scrollFab" onclick="scrollToBottom(true)" aria-label="Scroll to newest"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-down"/></svg><span id="fabBadge"></span></button>
       <div id="filesDrawer">
-        <div class="fd-head">Shared files<div style="flex:1"></div><button class="iconbtn" onclick="toggleFilesDrawer()">&#10005;</button></div>
+        <div class="fd-head">Shared files<div style="flex:1"></div><button class="iconbtn" onclick="toggleFilesDrawer()"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button></div>
         <div class="fd-list" id="fdList"></div>
       </div>
     </div>
@@ -1469,7 +1510,7 @@
     <video id="lbVideo" class="lb-video" controls playsinline style="display:none"></video>
   </div>
   <div class="lb-actions">
-    <a id="lbDownload" download>&#11015; Download</a>
+    <a id="lbDownload" download><svg class="ic inl" aria-hidden="true" focusable="false"><use href="#i-download"/></svg>Download</a>
     <button onclick="closeLightbox()">Close</button>
   </div>
 </div>
@@ -2435,7 +2476,7 @@ function hydrateEncImg(img) {
   const att = MediaE2E.atts.get(img.dataset.encFid);
   if (!att) return;
   MediaE2E.getPlain(att).then(({ url }) => { img.src = url; img.dataset.lb = url; img.classList.remove('enc-pending'); })
-    .catch(() => { img.classList.remove('enc-pending'); img.alt = "🔒 Couldn't decrypt"; });
+    .catch(() => { img.classList.remove('enc-pending'); img.alt = "Couldn't decrypt"; });
 }
 function hydrateEncMedia(root) {
   (root || document).querySelectorAll('img.att[data-enc-fid]:not([data-hyd])').forEach(img => {
@@ -3853,13 +3894,17 @@ function _clipRectOf(el) {
 /** Shrink a framed picture (picture and border together) until the border's drawn area fits
  *  inside its box with a few pixels to spare. [frameEl] is the element the border is drawn on
  *  (null = the avatar's own ::after), [scaleEls] are scaled together. */
-function _fitFrame(anchor, bounds, frameSize, scaleEls) {
+function _fitFrame(anchor, bounds, frameSize, scaleEls, ownBox) {
   if (!anchor || !bounds || !anchor.isConnected) return;
   const rect = anchor.getBoundingClientRect();
   if (!rect.width) return;
   const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
   const need = { l: (0.5 - bounds.x0) * frameSize, r: (bounds.x1 - 0.5) * frameSize, t: (0.5 - bounds.y0) * frameSize, b: (bounds.y1 - 0.5) * frameSize };
-  const box = _clipRectOf(anchor), tol = 4;
+  const box = _clipRectOf(anchor), tol = ownBox ? 2 : 4;
+  if (ownBox) {   // nothing may overlap anything: the border stays in the room kept around its picture
+    box.left = Math.max(box.left, ownBox.left); box.right = Math.min(box.right, ownBox.right);
+    box.top = Math.max(box.top, ownBox.top); box.bottom = Math.min(box.bottom, ownBox.bottom);
+  }
   let k = 1;
   if (need.l > 0) k = Math.min(k, (cx - box.left - tol) / need.l);
   if (need.r > 0) k = Math.min(k, (box.right - tol - cx) / need.r);
@@ -3870,9 +3915,17 @@ function _fitFrame(anchor, bounds, frameSize, scaleEls) {
 }
 function _fitAvatar(el) {
   const b = _frameBounds.get(el.dataset.frameKey || '');
-  if (!b || !el.classList.contains('has-frame')) { el.style.removeProperty('--fit'); return; }
+  if (!b || !el.classList.contains('has-frame')) { ['--fit', '--fm-h', '--fm-v'].forEach(k => el.style.removeProperty(k)); return; }
   const A = el.offsetWidth || 40, diamond = el.classList.contains('av-shape-diamond');
-  _fitFrame(el, b, A * (diamond ? 1.414 : 1) / 0.44, [el]);
+  // Room kept around the picture (margins) for its border; the border never reaches past it,
+  // so it never covers names, bubbles or other pictures.
+  const vis = diamond ? A * 1.414 : A, ex = (vis - A) / 2;     // a diamond's corners already reach past its box
+  const mh = Math.round(ex + A * 0.3), mv = Math.round(ex + A * 0.2);
+  el.style.setProperty('--fm-h', mh + 'px'); el.style.setProperty('--fm-v', mv + 'px');
+  requestAnimationFrame(() => {
+    const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    _fitFrame(el, b, vis / 0.44, [el], { left: cx - A / 2 - mh, right: cx + A / 2 + mh, top: cy - A / 2 - mv, bottom: cy + A / 2 + mv });
+  });
 }
 let _refitTimer = 0;
 function refitFrames() {
@@ -3977,7 +4030,7 @@ function openFrameGenerator() {
   showModal(`
     <div class="ss-header">
       <h2>Profile border</h2>
-      <button class="close-x" onclick="closeModal()" type="button">✕</button>
+      <button class="close-x" onclick="closeModal()" type="button" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
     </div>
     <div class="ss-body fg-body">
       <div class="fg-preview"><canvas id="fgCanvas" width="640" height="640"></canvas></div>
@@ -4053,7 +4106,7 @@ function renderSavedFrames() {
     im.onclick = () => { _gen.id = id; framePreview(); };
     const use = document.createElement('button'); use.type = 'button'; use.className = 'btn'; use.textContent = id === state.myFrame ? 'In use' : 'Use';
     use.onclick = () => frameUse(id);
-    const del = document.createElement('button'); del.type = 'button'; del.className = 'fg-del'; del.title = 'Remove'; del.textContent = '✕';
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'fg-del'; del.title = 'Remove'; del.innerHTML = ic('close');
     del.onclick = (e) => { e.stopPropagation(); frameRemoveSaved(id); };
     cell.append(im, use, del); box.appendChild(cell);
     frameDataUrl(id, shape, 256, 'full').then(url => { if (url) im.src = url; });
@@ -4291,16 +4344,16 @@ function renderContactsNow() {
     if (last && last.failed) preview = 'Not sent: ' + preview;
     preview = String(preview).replace(/\s+/g, ' ');
     const unread = state.unread[c] || 0;
-    const muted = state.mutes[c] ? ' 🔇' : '';
+    const muted = state.mutes[c] ? ic('belloff', 'inl after') : '';
     row.innerHTML = `
       <div class="avatar" data-u="${esc(c)}"></div>
       <div class="col">
-        <div class="cname">${grp ? '👥' : `<span class="dot ${presenceDotClass(c)}"></span>`}${esc(displayName(c))}${muted}</div>
-        <div class="sub">${esc(preview.slice(0, 80))}</div>
+        <div class="cname">${grp ? ic('group', 'inl') : `<span class="dot ${presenceDotClass(c)}"></span>`}${esc(displayName(c))}${muted}</div>
+        <div class="sub">${iconize(preview.slice(0, 80))}</div>
       </div>
       ${unread ? `<div class="badge">${unread > 99 ? '99+' : unread}</div>` : ''}`;
     const avEl = row.querySelector('.avatar');
-    if (grp) avEl.textContent = '👥';
+    if (grp) avEl.innerHTML = ic('group', 'av-ic');
     else {
       renderAvatar(avEl, c);
       avEl.onclick = (e) => { e.stopPropagation(); openFriendProfile(c); };
@@ -4316,7 +4369,7 @@ function renderPending() {
   for (const from of state.pendingReqs) {
     const row = document.createElement('div');
     row.className = 'pending-item';
-    row.innerHTML = `<div class="who">🤝 <b>${esc(from)}</b> wants to connect</div>
+    row.innerHTML = `<div class="who">${ic('userplus', 'inl')}<b>${esc(from)}</b> wants to connect</div>
       <button class="acc">Accept</button><button class="dec">Decline</button>`;
     row.querySelector('.acc').onclick = () => respondFriend(from, true);
     row.querySelector('.dec').onclick = () => respondFriend(from, false);
@@ -4381,7 +4434,7 @@ function renderChatHeader() {
   if (bv) bv.style.display = showCall ? '' : 'none';
   if (isGroup(c)) {
     st.textContent = (Array.isArray(state.groups[c] && state.groups[c].members) ? state.groups[c].members : []).join(', ').slice(0, 60);
-    document.getElementById('chAvatar').textContent = '👥';
+    document.getElementById('chAvatar').innerHTML = ic('group', 'av-ic');
     st.className = 'status';
   } else {
     st.textContent = lastSeenText(c);
@@ -4447,7 +4500,7 @@ function renderMessages() {
   // new message / tick restarted every video (one you were watching stopped) and refetched
   // every picture.
   if (!isGroup(c) && state.lockedPeers.has(c)) {
-    cont.innerHTML = `<div class="msg sys">🔒 ${esc(displayName(c))} locked this chat. It opens again when they unlock it.</div>`;
+    cont.innerHTML = `<div class="msg sys">${ic('lock', 'inl')}${esc(displayName(c))} locked this chat. It opens again when they unlock it.</div>`;
     _renderedConv = null;
     return;
   }
@@ -4475,12 +4528,13 @@ function renderMessages() {
       }
       desired.push(sep);
     }
-    const withAv = !m.sent && !m.sys && avMode !== 2;
-    const who = m.from || c;
+    const mineAv = m.sent && !m.sys && !!state.prefs.showMyAvatar;          // own picture beside own messages
+    const withAv = (!m.sent && !m.sys && avMode !== 2) || mineAv;
+    const who = m.sent ? state.me : (m.from || c);
     const nx = list[i + 1];
-    const hideAv = withAv && avMode === 1 && nx && !nx.sent && !nx.sys && (nx.from || c) === who;
+    const hideAv = withAv && avMode === 1 && nx && !nx.sys && (mineAv ? nx.sent : (!nx.sent && (nx.from || c) === who));
     const sig = [m.ts, m.deleted, m.locked, m.text, m.att && m.att.fileId, m.att && m.att.name, m.pending,
-      m.serverAck, m.delivered, m.read, m.failed, withAv, hideAv, clockKey, state.lockedPeers.has(m.from),
+      m.serverAck, m.delivered, m.read, m.failed, withAv, hideAv, mineAv, clockKey, state.lockedPeers.has(m.from),
       m.group ? displayName(m.from) : ''].join('\u0001');
     const cached = _msgNodeCache.get(m);
     if (cached && cached.sig === sig && cached.conv === c) { desired.push(cached.node); continue; }
@@ -4495,7 +4549,8 @@ function renderMessages() {
       if (hideAv) av.classList.add('hidden-av');
       else renderAvatar(av, who);
       av.onclick = (e) => { e.stopPropagation(); if (who !== state.me) openFriendProfile(who); };
-      row.appendChild(av); row.appendChild(el);
+      if (mineAv) { row.classList.add('mine'); row.appendChild(el); row.appendChild(av); }
+      else { row.appendChild(av); row.appendChild(el); }
       node = row;
     }
     _msgNodeCache.set(m, { sig, node, conv: c });
@@ -4584,13 +4639,13 @@ function buildMsgEl(m) {
   el.className = 'msg ' + (m.sent ? 'sent' : 'recv') + (m.deleted ? ' deleted' : '') + (m.pending ? ' uploading' : '');
   el.dataset.mid = m.messageId;
 
-  if (m.deleted) { el.textContent = '🗑 Message deleted'; return el; }
+  if (m.deleted) { el.innerHTML = ic('trash', 'inl') + 'Message deleted'; return el; }
   if (m.group && state.lockedPeers.has(m.from)) {
-    el.innerHTML = `<span class="lock-note">🔒 Locked by ${esc(displayName(m.from))}</span><div class="meta">${fmtTime(m.ts)}</div>`;
+    el.innerHTML = `<span class="lock-note">${ic('lock', 'inl')}Locked by ${esc(displayName(m.from))}</span><div class="meta">${fmtTime(m.ts)}</div>`;
     return el;
   }
   if (m.locked) {
-    el.innerHTML = `<span class="lock-note">${esc(m.lockNote || '🔒 Sent from your phone - not readable here (older message)')}</span>
+    el.innerHTML = `<span class="lock-note">${iconize(m.lockNote || '🔒 Sent from your phone - not readable here (older message)')}</span>
       <div class="meta">${fmtTime(m.ts)}</div>`;
     return el;
   }
@@ -4599,9 +4654,9 @@ function buildMsgEl(m) {
   if (m.att && !m.att.fileId) {
     // Still uploading from this browser (or waiting its turn): name, progress, cancel.
     const pct = m._progress != null ? m._progress + '%' : 'Waiting';
-    body = `<div class="filechip up-chip"><div class="fi">⏫</div>
+    body = `<div class="filechip up-chip"><div class="fi">${ic('upload')}</div>
       <div><div class="fn">${esc(m.att.name)}</div><div class="fs"><span class="up-pct">${pct}</span> · ${fmtSize(m.att.size)}</div></div>
-      <button type="button" class="up-cancel" data-cancel-up="${esc(m.messageId)}" title="Cancel">✕</button></div>`;
+      <button type="button" class="up-cancel" data-cancel-up="${esc(m.messageId)}" title="Cancel">${ic('close')}</button></div>`;
   } else if (m.att) {
     const { fileId, name, mime, size } = m.att;
     const enc = MediaE2E.isEnc(m.att);
@@ -4621,24 +4676,24 @@ function buildMsgEl(m) {
              `<div class="gs-vctrl">` +
              `<input type="range" class="gs-seek" min="0" max="1000" value="0">` +
              `<div class="gs-vrow">` +
-             `<button type="button" class="gs-pp" title="Play/Pause">&#9654;</button>` +
+             `<button type="button" class="gs-pp" title="Play/Pause">${ic('play')}</button>` +
              `<span class="gs-time">0:00 / 0:00</span>` +
-             `<span>🔊</span>` +
+             `<span class="gs-spk">${ic('speaker')}</span>` +
              `<input type="range" class="gs-vol" min="0" max="100" value="100" style="width:90px">` +
-             `<button type="button" class="gs-fs" title="Open">&#10064;</button>` +
+             `<button type="button" class="gs-fs" title="Open">${ic('expand')}</button>` +
              `</div></div></div>`;
     } else if ((mime || '').startsWith('audio/')) {
       el.className += ' voice-bubble';
       const seed = esc(m.id || url || name);
       body = `<div class="voice-msg" data-src="${esc(url)}" data-seed="${esc(m.messageId || name)}"${encAttr}>
-        <button type="button" class="vp-btn" title="Play">&#9654;</button>
+        <button type="button" class="vp-btn" title="Play">${ic('play')}</button>
         <div class="vp-wave" aria-label="Seek"></div>
         <div class="vp-time">0:00</div>
       </div>`;
     } else {
-      body = `<div class="filechip"><div class="fi">📄</div>
+      body = `<div class="filechip"><div class="fi">${ic('file')}</div>
         <div><div class="fn">${esc(name)}</div><div class="fs">${fmtSize(size)}</div></div>
-        ${enc ? `<a href="#" data-enc-dl="${esc(fileId)}" title="Download">&#11015;</a>` : `<a href="${esc(url)}" download="${esc(name)}" title="Download">&#11015;</a>`}</div>`;
+        ${enc ? `<a href="#" data-enc-dl="${esc(fileId)}" title="Download">${ic('download')}</a>` : `<a href="${esc(url)}" download="${esc(name)}" title="Download">${ic('download')}</a>`}</div>`;
     }
   } else {
     // quoted reply block: lines starting with "> " before a blank line (app convention)
@@ -4738,7 +4793,7 @@ function renderDraftStrip() {
     const body = d.isImage && d.url
       ? `<img src="${d.url}" alt="">`
       : `<div class="draft-file"><span class="draft-icon">${fileDraftIcon(d.file)}</span><span class="draft-name">${escapeHtml(d.file.name || 'file')}</span></div>`;
-    return `<div class="draft-item">${body}<button type="button" title="Remove" aria-label="Remove" data-draft="${i}">&#10005;</button></div>`;
+    return `<div class="draft-item">${body}<button type="button" title="Remove" aria-label="Remove" data-draft="${i}"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button></div>`;
   }).join('');
   // The remove buttons never had a handler (the X did nothing).
   strip.querySelectorAll('button[data-draft]').forEach(b => {
@@ -4926,7 +4981,7 @@ function showCtxMenu(e, m) {
   menu.innerHTML = '';
   const add = (label, fn, danger) => {
     const b = document.createElement('button');
-    b.textContent = label; if (danger) b.className = 'danger';
+    b.innerHTML = iconize(label); if (danger) b.className = 'danger';
     b.onclick = () => { hideCtxMenu(); fn(); };
     menu.appendChild(b);
   };
@@ -4980,9 +5035,25 @@ function clearReply() {
 
 
 let toastTimer = null;
+/* Icons: one line-drawn set (the #i-* symbols at the top of <body>), drawn in the text color,
+   or engraved gold in the Silvershire theme. Always centered in their buttons. */
+function ic(name, cls) {
+  return '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true" focusable="false"><use href="#i-' + name + '"/></svg>';
+}
+const _EMO_IC = { '⚠': 'warn', '🤝': 'userplus', '🔒': 'lock', '📋': 'copy', '↩': 'reply', '↪': 'forward', '⬇': 'download',
+  '🗑': 'trash', '✏': 'pen', '🔔': 'bell', '🔇': 'belloff', '📤': 'export', '🚪': 'leave', '👥': 'group', '📷': 'camera',
+  '📸': 'camera', '⏺': 'record', '⏹': 'stop', '📄': 'file', '🖼': 'image', '🎬': 'film', '🎵': 'music', '🔊': 'speaker', '⏫': 'upload', '✓': 'check' };
+/** Escaped text, with a leading symbol (⚠, 🔒 ...) turned into its icon. */
+function iconize(text) {
+  const s = String(text == null ? '' : text);
+  for (const k in _EMO_IC) {
+    if (s.startsWith(k)) return ic(_EMO_IC[k], 'inl') + esc(s.slice(k.length).replace(/^\uFE0F?\s*/, ''));
+  }
+  return esc(s);
+}
 function toast(text) {
   const t = document.getElementById('toast');
-  t.textContent = text; t.style.display = 'block';
+  t.innerHTML = iconize(text); t.style.display = 'block';
   clearTimeout(toastTimer);
   const ms = Math.min(7000, 2200 + String(text || '').length * 40);
   toastTimer = setTimeout(() => t.style.display = 'none', ms);
@@ -5192,8 +5263,8 @@ function openGroupModal() {
   const rows = state.contacts.map(c =>
     `<label class="pick-item"><input type="checkbox" value="${esc(c)}"> ${esc(displayName(c))}</label>`).join('');
   showModal(`
-    <button class="close-x" onclick="closeModal()">✕</button>
-    <h2>👥 New Group</h2>
+    <button class="close-x" onclick="closeModal()" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
+    <h2>${ic('group', 'inl')}New Group</h2>
     <label>Group name</label>
     <input type="text" id="grpName" placeholder="The Tavern Crew" maxlength="50">
     <label>Members</label>
@@ -5241,7 +5312,7 @@ function enhanceVideoPlayers(root) {
         const { url } = await MediaE2E.getPlain(att, (p) => { if (tm) tm.textContent = 'Decrypting ' + p + '%'; });
         src = url; wrap.dataset.src = url; v.src = url;
         return true;
-      } catch (_) { toast("⚠ Couldn't open the video"); if (ppB) ppB.textContent = '▶'; return false; }
+      } catch (_) { toast("⚠ Couldn't open the video"); if (ppB) ppB.innerHTML = ic('play'); return false; }
     };
     const seek = wrap.querySelector('.gs-seek');
     const vol = wrap.querySelector('.gs-vol');
@@ -5260,7 +5331,7 @@ function enhanceVideoPlayers(root) {
         seek.value = Math.round((v.currentTime / v.duration) * 1000);
         time.textContent = gsFmtTime(v.currentTime) + ' / ' + gsFmtTime(v.duration);
       }
-      pp.textContent = v.paused ? '▶' : '⏸';
+      pp.innerHTML = ic(v.paused ? 'play' : 'pause');
     };
     pp.onclick = async (e) => { e.stopPropagation(); if (!(await ensureSrc())) return; if (v.paused) v.play().catch(()=>{}); else v.pause(); showCtrl(); };
     seek.oninput = () => { if (!v.duration) return; v.currentTime = (seek.value / 1000) * v.duration; showCtrl(); };
@@ -5506,7 +5577,7 @@ function bindVoiceMessages(root) {
         time.textContent = _voiceFmt(audio.currentTime) + ' / ' + _voiceFmt(audio.duration);
       });
       audio.addEventListener('ended', () => {
-        btn.textContent = '\u25B6';
+        btn.innerHTML = ic('play');
         setFrac(0);
         time.textContent = '0:00 / ' + _voiceFmt(audio.duration || 0);
         if (_voiceWrap === wrap) { _voiceAudio = null; _voiceWrap = null; }
@@ -5528,23 +5599,23 @@ function bindVoiceMessages(root) {
         const att = MediaE2E.atts.get(wrap.dataset.encFid); if (!att) return;
         btn.textContent = '…';
         try { wrap.dataset.src = (await MediaE2E.getPlain(att)).url; }
-        catch (_) { btn.textContent = '\u25B6'; toast("⚠ Couldn't play the voice message"); return; }
+        catch (_) { btn.innerHTML = ic('play'); toast("⚠ Couldn't play the voice message"); return; }
       }
       const a = ensure();
       if (_voiceAudio && _voiceAudio !== a) {
         try { _voiceAudio.pause(); } catch (err) {}
         if (_voiceWrap) {
           const b = _voiceWrap.querySelector('.vp-btn');
-          if (b) b.textContent = '\u25B6';
+          if (b) b.innerHTML = ic('play');
         }
       }
       if (a.paused) {
         a.play().catch(() => {});
-        btn.textContent = '\u275A\u275A';
+        btn.innerHTML = ic('pause');
         _voiceAudio = a; _voiceWrap = wrap;
       } else {
         a.pause();
-        btn.textContent = '\u25B6';
+        btn.innerHTML = ic('play');
       }
     };
     const seekFromEvent = (ev) => {
@@ -5574,18 +5645,18 @@ function stopPendingRecPlay() {
   try { if (recPendingAudio) { recPendingAudio.pause(); recPendingAudio.src = ''; } } catch (e) {}
   recPendingAudio = null;
   const b = document.getElementById('recPlay');
-  if (b) b.textContent = '\u25B6';
+  if (b) b.innerHTML = ic('play');
 }
 function togglePendingRecPlay() {
   if (!recPendingBlob) return;
   if (recPendingAudio && !recPendingAudio.paused) {
     recPendingAudio.pause();
-    document.getElementById('recPlay').textContent = '\u25B6';
+    document.getElementById('recPlay').innerHTML = ic('play');
     return;
   }
   if (recPendingAudio && recPendingAudio.paused) {
     recPendingAudio.play().catch(() => {});
-    document.getElementById('recPlay').textContent = '\u275A\u275A';
+    document.getElementById('recPlay').innerHTML = ic('pause');
     return;
   }
   const url = URL.createObjectURL(recPendingBlob);
@@ -5599,11 +5670,11 @@ function togglePendingRecPlay() {
   recPendingAudio.onplay = () => requestAnimationFrame(tick);
   recPendingAudio.onended = () => {
     try { drawRecWave(0); } catch(e) {}
-    document.getElementById('recPlay').textContent = '\u25B6';
+    document.getElementById('recPlay').innerHTML = ic('play');
     try { URL.revokeObjectURL(url); } catch (e) {}
   };
   recPendingAudio.play().catch(() => {});
-  document.getElementById('recPlay').textContent = '\u275A\u275A';
+  document.getElementById('recPlay').innerHTML = ic('pause');
 }
 
 
@@ -5849,8 +5920,8 @@ async function openCamera() {
   try {
     await restartCamStream({ video: { facingMode: 'environment', width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } }, audio: false });
     showModal(`
-      <button class="close-x" onclick="stopCameraStream();closeModal()">✕</button>
-      <h2>📷 Camera</h2>
+      <button class="close-x" onclick="stopCameraStream();closeModal()" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
+      <h2>${ic('camera', 'inl')}Camera</h2>
       <div id="camStage" style="position:relative;overflow:hidden;border-radius:9px;background:#000;touch-action:none">
         <video id="camView" autoplay playsinline style="width:100%;background:#000;transform-origin:center center"></video>
       </div>
@@ -5865,9 +5936,9 @@ async function openCamera() {
       </div>
       <div id="camAdv" class="row" style="margin-top:6px;flex-wrap:wrap;gap:8px;color:var(--text-dim);font-size:12px"></div>
       <div class="row" style="margin-top:12px">
-        <button class="btn" onclick="toggleCamRecord()" id="btnCamRec">⏺ Video</button>
+        <button class="btn" onclick="toggleCamRecord()" id="btnCamRec">${ic('record', 'inl')}Video</button>
         <div class="grow"></div>
-        <button class="btn primary" onclick="snapPhoto()">📸 Take Photo</button>
+        <button class="btn primary" onclick="snapPhoto()">${ic('camera', 'inl')}Take Photo</button>
       </div>
       <div style="font-size:11px;color:var(--text-dim);margin-top:6px">Pinch or scroll to zoom. Extra controls appear when this browser/device supports them.</div>`);
     const v = document.getElementById('camView');
@@ -5990,7 +6061,7 @@ async function toggleCamRecord() {
     addFileDrafts([new File([blob], `video_${Date.now()}.webm`, { type: blob.type || 'video/webm' })]);
   };
   _camRec.start();
-  const b = document.getElementById('btnCamRec'); if (b) b.textContent = '\u23F9 Stop';
+  const b = document.getElementById('btnCamRec'); if (b) b.innerHTML = ic('stop', 'inl') + 'Stop';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -5999,11 +6070,11 @@ async function toggleCamRecord() {
 function openForwardModal(m) {
   const targets = [...state.contacts, ...Object.keys(state.groups)].filter(t => t !== state.current);
   const rows = targets.map(t =>
-    `<div class="pick-item" onclick="doForward(${jsAttr(t)})">${isGroup(t) ? '👥' : ''} ${esc(displayName(t))}</div>`).join('');
+    `<div class="pick-item" onclick="doForward(${jsAttr(t)})">${isGroup(t) ? ic('group', 'inl') : ''}${esc(displayName(t))}</div>`).join('');
   forwardSource = m;
   showModal(`
-    <button class="close-x" onclick="closeModal()">✕</button>
-    <h2>↪ Forward to…</h2>
+    <button class="close-x" onclick="closeModal()" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
+    <h2>${ic('forward', 'inl')}Forward to…</h2>
     ${rows || '<div style="color:var(--text-dim)">No other chats</div>'}`);
 }
 let forwardSource = null;
@@ -6049,11 +6120,11 @@ async function toggleFilesDrawer() {
     (state.msgs[conv] || []).filter(m => m.att && m.att.fileId && !m.deleted && !state.lockedPeers.has(m.from)).slice().reverse();
   list.innerHTML = files.map(m => {
     const f = m.att, mt = String(f.mime || '');
-    const icon = mt.startsWith('image/') ? '🖼' : mt.startsWith('video/') ? '🎬' : mt.startsWith('audio/') ? '🎵' : '📄';
+    const icon = ic(mt.startsWith('image/') ? 'image' : mt.startsWith('video/') ? 'film' : mt.startsWith('audio/') ? 'music' : 'file');
     const link = MediaE2E.isEnc(f)
-      ? `<a href="#" data-enc-dl="${esc(f.fileId)}" title="Download">⬇</a>`
-      : `<a href="${esc(fileUrl(f.fileId))}" download="${esc(f.name)}" title="Download">⬇</a>`;
-    return `<div class="fd-item"><div>${icon}</div>
+      ? `<a href="#" data-enc-dl="${esc(f.fileId)}" title="Download">${ic('download')}</a>`
+      : `<a href="${esc(fileUrl(f.fileId))}" download="${esc(f.name)}" title="Download">${ic('download')}</a>`;
+    return `<div class="fd-item"><div class="fd-ic">${icon}</div>
       <div style="min-width:0"><div style="word-break:break-all">${esc(f.name)}</div>
       <div style="color:var(--text-dim);font-size:11px">${fmtSize(f.size)} · ${esc(m.sent ? 'You' : displayName(m.from))}</div></div>
       ${link}</div>`;
@@ -6076,7 +6147,7 @@ function openChatMenu(e) {
   menu.innerHTML = '';
   const add = (label, fn, danger) => {
     const b = document.createElement('button');
-    b.textContent = label; if (danger) b.className = 'danger';
+    b.innerHTML = iconize(label); if (danger) b.className = 'danger';
     b.onclick = () => { hideCtxMenu(); fn(); };
     menu.appendChild(b);
   };
@@ -6231,6 +6302,10 @@ function openProfileModal() {
               <option value="2" ${+p.chatAvatarMode === 2 ? 'selected' : ''}>Off</option>
             </select>
           </div>
+          <label class="ss-toggle">
+            <input type="checkbox" ${p.showMyAvatar ? 'checked' : ''} onchange="setPref('showMyAvatar', this.checked)">
+            <span class="ss-toggle-text">My picture beside my messages</span>
+          </label>
           <div class="ss-row"><div class="grow">Message text color</div>
             <input type="color" value="${p.msgTextColor || '#E8E8EC'}" onchange="setPref('msgTextColor', this.value)">
             <button class="btn" onclick="setPref('msgTextColor', null)">Reset</button>
@@ -6394,7 +6469,7 @@ function setPref(k, v) {
   if (br && k === 'bubbleRadius') br.textContent = (state.prefs.bubbleRadius != null ? state.prefs.bubbleRadius : 16) + 'px';
   // Colors / sizes are CSS variables; only these need the messages rebuilt (sliders used to
   // rebuild the whole chat on every step).
-  if (state.current && (k === 'chatAvatarMode' || k === 'clock24' || k === 'fullTimestamps')) queueRender();
+  if (state.current && (k === 'chatAvatarMode' || k === 'showMyAvatar' || k === 'clock24' || k === 'fullTimestamps')) queueRender();
   if (k === 'clock24') renderContacts();
 }
 
@@ -6597,18 +6672,18 @@ function openOwnProfile() {
   showModal(`
     <div class="ss-header">
       <h2>My profile</h2>
-      <button class="close-x" onclick="closeModal()" type="button">✕</button>
+      <button class="close-x" onclick="closeModal()" type="button" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
     </div>
     <div class="ss-body">
       <div class="friend-profile">
         <div class="fp-hero">
           <div class="fp-banner hidden" id="fpBanner"></div>
           <div class="fp-hero-fade"></div>
-          <button type="button" class="fp-edit-chip banner" title="Change banner" onclick="pickOwnMediaFile('banner')">&#128247;</button>
+          <button type="button" class="fp-edit-chip banner" title="Change banner" onclick="pickOwnMediaFile('banner')">${ic('image')}</button>
           <div class="fp-identity">
             <div class="fp-avatar-wrap">
               <div class="fp-avatar avatar" id="fpAvatar" data-u="${esc(username)}"></div>
-              <button type="button" class="fp-edit-chip avatar" title="Change picture" onclick="pickOwnMediaFile('pic')">&#128100;</button>
+              <button type="button" class="fp-edit-chip avatar" title="Change picture" onclick="pickOwnMediaFile('pic')">${ic('camera')}</button>
             </div>
             <div class="fp-name">${esc(dn)}</div>
             <div class="fp-handle">@${esc(username)}</div>
@@ -6633,7 +6708,7 @@ function openFriendProfile(username) {
   showModal(`
     <div class="ss-header">
       <h2>Profile</h2>
-      <button class="close-x" onclick="closeModal()" type="button">✕</button>
+      <button class="close-x" onclick="closeModal()" type="button" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
     </div>
     <div class="ss-body">
       <div class="friend-profile">
@@ -6661,7 +6736,7 @@ function openFriendProfile(username) {
 }
 
 function openNicknameEditor(c) {
-  showModal(`<button class="close-x" onclick="closeModal()">✕</button>
+  showModal(`<button class="close-x" onclick="closeModal()" aria-label="Close"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
     <h2>Nickname</h2>
     <p style="color:var(--text-dim);font-size:13px">Username: <b>${esc(c)}</b></p>
     <input type="text" id="nickEdit" value="${esc(state.nicknames[c]||'')}" placeholder="Local nickname" maxlength="40">

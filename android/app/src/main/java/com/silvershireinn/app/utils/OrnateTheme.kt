@@ -52,6 +52,13 @@ object OrnateTheme {
 
     private fun attach(a: Activity) {
         val root = a.window?.decorView ?: return
+        attachRoot(root)
+    }
+
+    /** Theme a window that is not an activity (the floating chat), and whatever is added to it later. */
+    fun attachRoot(root: View) {
+        val a = root.context
+        if (!isOn(a)) return
         decorate(root)
         if (listening.add(root)) {
             var pending = false
@@ -78,6 +85,29 @@ object OrnateTheme {
             if (styleOne(v)) v.setTag(R.id.ornate_done, true)
         }
         if (v is ViewGroup) for (i in 0 until v.childCount) decorate(v.getChildAt(i))
+    }
+
+    /** Grey, white and gold icon tints become engraved gold; anything else (red, on-gold) stays. */
+    private val iconTints by lazy {
+        val c = com.silvershireinn.app.SilvershireApp.instance
+        setOf(ContextCompat.getColor(c, R.color.color_text_secondary), ContextCompat.getColor(c, R.color.color_text_primary),
+              ContextCompat.getColor(c, R.color.color_gold), ContextCompat.getColor(c, R.color.color_gold_dark),
+              Color.WHITE, 0xFFC9A84C.toInt(), 0xFFFFD700.toInt())
+    }
+
+    /** Camera, photo editor, viewer and video call keep white icons over the picture. */
+    private fun overMedia(v: View): Boolean {
+        var c = v.context
+        while (c is android.content.ContextWrapper && c !is Activity) c = c.baseContext
+        val n = (c as? Activity)?.javaClass?.simpleName ?: return false
+        return listOf("Camera", "Editor", "Viewer", "VideoCall", "Crop", "Media").any { n.contains(it) }
+    }
+
+    /** Bottom bar icons keep their selected / not selected colours. */
+    private fun inNavBar(v: View): Boolean {
+        var p = v.parent
+        while (p is View) { if (p is BottomNavigationView || p is com.google.android.material.navigation.NavigationBarView) return true; p = p.parent }
+        return false
     }
 
     private fun idName(v: View): String = if (v.id == View.NO_ID) "" else try { v.resources.getResourceEntryName(v.id) } catch (_: Exception) { "" }
@@ -107,6 +137,18 @@ object OrnateTheme {
                 v.background = sl
                 v.setPadding(pl, pt, pr, pb)
                 v.insetTop = 0; v.insetBottom = 0
+                return true
+            }
+            is android.widget.ImageView -> {
+                // Line icons (vector drawables) in engraved gold; photos and pictures are left alone.
+                val d = v.drawable ?: return false
+                if (d !is android.graphics.drawable.VectorDrawable && d.javaClass.simpleName != "VectorDrawableCompat") return v.width != 0 || v.height != 0
+                if (overMedia(v) || inNavBar(v)) return true
+                val t = v.imageTintList?.defaultColor
+                if (t == null || t in iconTints) {
+                    v.imageTintList = android.content.res.ColorStateList.valueOf(ThemeIcons.GOLD)
+                    v.imageTintMode = android.graphics.PorterDuff.Mode.MULTIPLY
+                }
                 return true
             }
             is CardView -> {

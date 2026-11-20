@@ -26,7 +26,8 @@
         <LinearLayout
             android:id="@+id/overlayStackSwitcher"
             android:layout_width="wrap_content"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:clipChildren="false"
@@ -58,10 +59,19 @@
             android:padding="10dp"/>
 
         <FrameLayout
+            android:id="@+id/overlayAvatarBox"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginStart="4dp"
             android:clipChildren="true">
+            <TextView
+                android:id="@+id/tvOverlayInitials"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textColor="@color/color_background"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium"/>
             <ImageView
                 android:id="@+id/ivOverlayAvatar"
                 android:layout_width="match_parent"

@@ -199,7 +199,7 @@ class ContactsFragment : Fragment() {
         )
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(PreferenceManager.displayNameFor(contact.username))
-            .setItems(options) { _, which ->
+            .setItems(options.map { com.silvershireinn.app.utils.ThemeIcons.iconize(requireContext(), it) }.toTypedArray()) { _, which ->
                 when (which) {
                     0 -> showContactProfile(contact.username)
                     1 -> openChat(contact)

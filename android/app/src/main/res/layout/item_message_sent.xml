@@ -121,4 +121,33 @@
         </LinearLayout>
 
     </LinearLayout>
+    <!-- Your own picture beside your messages (setting "My picture in chats", off by default) -->
+    <FrameLayout
+        android:id="@+id/avatarFrameMine"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="6dp"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/tvMyInitials"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <ImageView
+            android:id="@+id/ivMyAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
+    </FrameLayout>
+
 </LinearLayout>

@@ -85,14 +85,15 @@ class MessageAdapter(
      * (the others keep the space so bubbles stay aligned), 2 = off.
      */
     private fun bindSenderAvatar(frame: View, iv: ImageView, tv: android.widget.TextView,
-                                 msg: Message, position: Int) {
+                                 msg: Message, position: Int, mine: Boolean = false) {
         val mode = PreferenceManager.chatAvatarMode
-        if (mode == 2) { frame.visibility = View.GONE; return }
-        val user = msg.fromUser.ifBlank { contactUsername }
+        if (mine && !PreferenceManager.showMyAvatar) { frame.visibility = View.GONE; return }
+        if (!mine && mode == 2) { frame.visibility = View.GONE; return }
+        val user = if (mine) PreferenceManager.username else msg.fromUser.ifBlank { contactUsername }
         if (mode == 1) {
             val next = if (position + 1 < itemCount) getItem(position + 1) else null
-            val sameRun = next != null && !next.isSent && next.fromUser == msg.fromUser &&
-                !isSystemMessage(next)
+            val sameRun = next != null && !isSystemMessage(next) &&
+                (if (mine) next.isSent else (!next.isSent && next.fromUser == msg.fromUser))
             if (sameRun) { frame.visibility = View.INVISIBLE; return }
         }
         frame.visibility = View.VISIBLE
@@ -103,7 +104,8 @@ class MessageAdapter(
         tv.background = com.silvershireinn.app.utils.AvatarShapeHelper.backgroundDrawable(
             user.toAvatarColor(), shape)
         tv.text = user.toInitials()
-        val pic = com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(frame.context, user)
+        val pic = if (mine) com.silvershireinn.app.utils.ProfileMediaHelper.findOwnProfilePic(frame.context)
+                  else com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(frame.context, user)
         if (pic != null && pic.exists()) {
             iv.visibility = View.VISIBLE
             if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(pic.absolutePath)) {
@@ -135,7 +137,7 @@ class MessageAdapter(
             iv.setImageDrawable(null)
             iv.visibility = View.GONE
         }
-        frame.setOnClickListener { onAvatarTap(user) }
+        if (mine) frame.setOnClickListener(null) else frame.setOnClickListener { onAvatarTap(user) }
         frame.contentDescription = user
     }
 
@@ -758,11 +760,11 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
         val msg = getItem(position)
         when (holder) {
             is SystemVH             -> holder.bind(msg)
-            is SentVH               -> holder.bind(msg)
+            is SentVH               -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true) }
             is ReceivedVH           -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position) }
-            is AttachmentSentVH     -> holder.bind(msg)
+            is AttachmentSentVH     -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true) }
             is AttachmentReceivedVH -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position) }
-            is AudioSentVH          -> holder.bind(msg)
+            is AudioSentVH          -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true) }
             is AudioReceivedVH      -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position) }
             is CallSentVH           -> holder.bind(msg)
             is CallReceivedVH       -> holder.bind(msg)
@@ -873,7 +875,11 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                     binding.btnApkDownload.visibility = View.GONE
                     binding.btnApkDownload.setOnClickListener(null)
                 }
-                binding.tvMessageText.text  = bodyText
+                binding.tvMessageText.text  = bodyText.let { t ->       // app notes ("locked", "can't decrypt"): icon, not emoji
+                    val str = t.toString()
+                    if (str.startsWith("🔒 Locked by ") || str.startsWith("🔒 Encrypted message") || str.startsWith("🔒 Message couldn't"))
+                        com.silvershireinn.app.utils.ThemeIcons.iconize(binding.root.context, t, (binding.tvMessageText.textSize * 1.25f).toInt()) else t
+                }
                 linkJob = if (apkNotice) {
                     binding.layoutLinkPreview.visibility = View.GONE
                     binding.tvMessageText.movementMethod = null
@@ -1037,7 +1043,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                 binding.rowFileInfo.visibility       = View.VISIBLE
                 binding.tvFileEmoji.visibility       = View.VISIBLE
                 binding.progressUpload.visibility    = View.GONE
-                binding.tvFileEmoji.text             = "🗑"
+                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, R.drawable.ic_delete)
                 binding.tvAttachmentName.text        = "Message deleted"
                 binding.tvAttachmentName.alpha       = 0.45f
                 binding.tvAttachmentSize.text        = ""
@@ -1085,7 +1091,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                 binding.btnDownloadAttachment.text = if (isImage) "Open" else "Play"
             } else {
                 binding.frameMediaPreview.visibility = View.GONE; binding.rowFileInfo.visibility = View.VISIBLE
-                binding.tvFileEmoji.text = emojiForMime(mime); binding.btnDownloadAttachment.text = "Download"
+                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, com.silvershireinn.app.utils.ThemeIcons.forMime(mime)); binding.btnDownloadAttachment.text = "Download"
             }
             binding.tvAttachmentName.text = msg.attachmentName ?: "File"
             binding.tvAttachmentSize.text = if (msg.attachmentSize > 0) FileRepository.formatSize(msg.attachmentSize) else ""
@@ -1109,7 +1115,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
             if (msg.isDeleted) {
                 binding.frameMediaPreview.visibility = View.GONE
                 binding.rowFileInfo.visibility       = View.VISIBLE
-                binding.tvFileEmoji.text             = "🗑"
+                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, R.drawable.ic_delete)
                 binding.tvAttachmentName.text        = "Message deleted"
                 binding.tvAttachmentName.alpha       = 0.45f
                 binding.tvAttachmentSize.text        = ""
@@ -1138,7 +1144,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                 binding.btnDownloadAttachment.text = if (isImage) "Open" else "Play"
             } else {
                 binding.frameMediaPreview.visibility = View.GONE; binding.rowFileInfo.visibility = View.VISIBLE
-                binding.tvFileEmoji.text = emojiForMime(mime); binding.btnDownloadAttachment.text = "Download"
+                com.silvershireinn.app.utils.ThemeIcons.setIcon(binding.tvFileEmoji, com.silvershireinn.app.utils.ThemeIcons.forMime(mime)); binding.btnDownloadAttachment.text = "Download"
             }
             binding.tvAttachmentName.text = msg.attachmentName ?: "File"
             binding.tvAttachmentSize.text = if (msg.attachmentSize > 0) FileRepository.formatSize(msg.attachmentSize) else ""

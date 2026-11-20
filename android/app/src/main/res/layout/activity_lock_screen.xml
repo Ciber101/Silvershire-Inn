@@ -177,7 +177,9 @@
                     style="@style/Widget.Silvershire.Button.Outlined"
                     android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="64dp"
                     android:layout_weight="1" android:layout_margin="4dp"
-                    android:text="⌫" android:textSize="22sp"
+                    android:text="" android:contentDescription="Delete"
+                    app:icon="@drawable/ic_backspace" app:iconSize="26dp" app:iconGravity="textStart" app:iconPadding="0dp"
+                    app:iconTint="@color/color_gold" android:paddingStart="0dp" android:paddingEnd="0dp"
                     android:textColor="@color/color_text_secondary"
                     app:strokeColor="@color/color_gold_dim" app:cornerRadius="12dp" />
             </LinearLayout>

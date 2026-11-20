@@ -147,13 +147,32 @@ class VideoCallActivity : AppCompatActivity() {
 
         placeholder = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
-            val av = TextView(context).apply {
-                text = PreferenceManager.displayNameFor(remoteUser).toInitials()
-                textSize = 36f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
-                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(remoteUser.toAvatarColor()) }
+            // Their picture in their shape, with their border (the camera-off note sits below it)
+            val shape = com.silvershireinn.app.utils.AvatarShapeHelper.forUser(remoteUser)
+            val wrap = FrameLayout(context).apply { clipChildren = false; clipToPadding = false }
+            val av = FrameLayout(context).apply {
+                background = com.silvershireinn.app.utils.AvatarShapeHelper.backgroundDrawable(remoteUser.toAvatarColor(), shape)
+                com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(this, shape)
+                addView(TextView(context).apply {
+                    text = PreferenceManager.displayNameFor(remoteUser).toInitials()
+                    textSize = 36f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
+                }, FrameLayout.LayoutParams(-1, -1))
+                val f = com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(context, remoteUser)
+                if (f != null && f.exists()) {
+                    val iv = android.widget.ImageView(context).apply { scaleType = android.widget.ImageView.ScaleType.CENTER_CROP }
+                    addView(iv, FrameLayout.LayoutParams(-1, -1))
+                    val path = f.absolutePath
+                    Thread {
+                        val b = if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(path)) com.silvershireinn.app.utils.ProfileMediaHelper.videoFrameBitmap(path)
+                                else com.silvershireinn.app.utils.VideoThumbs.decodeSmall(path, 512)
+                        if (b != null) runOnUiThread { iv.setImageBitmap(b) }
+                    }.start()
+                }
             }
-            addView(av, LinearLayout.LayoutParams(dp(120), dp(120)))
-            addView(TextView(context).apply { tag = "camoff"; setTextColor(0xCCFFFFFF.toInt()); textSize = 14f; setPadding(0, dp(12), 0, 0) })
+            wrap.addView(av, FrameLayout.LayoutParams(dp(120), dp(120), Gravity.CENTER))
+            addView(wrap, LinearLayout.LayoutParams(dp(120), dp(120)))
+            val framed = com.silvershireinn.app.utils.ProfileFrames.applyFull(av, remoteUser)
+            addView(TextView(context).apply { tag = "camoff"; setTextColor(0xCCFFFFFF.toInt()); textSize = 14f; setPadding(0, dp(if (framed) 64 else 12), 0, 0) })
         }
         root.addView(placeholder, FrameLayout.LayoutParams(-1, -1))
 

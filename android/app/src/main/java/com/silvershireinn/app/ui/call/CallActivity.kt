@@ -111,6 +111,7 @@ class CallActivity : AppCompatActivity() {
         // Name they're saved as (it showed the raw username)
         binding.tvCallName.text      = com.silvershireinn.app.utils.PreferenceManager.displayNameFor(remoteUser)
         binding.tvAvatarInitial.text = binding.tvCallName.text.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        showCallAvatar(remoteUser)
 
         // Wire CallManager state listener (kept so onDestroy only clears OUR listener)
         val stateL: (CallManager.State) -> Unit = { state -> runOnUiThread { applyState(state, remoteUser) } }
@@ -365,5 +366,45 @@ class CallActivity : AppCompatActivity() {
     override fun onBackPressed() {
         // Back minimises; call continues until End is pressed
         finish()
+    }
+
+    /** Their profile picture (still frame for video pictures) in their shape, with their border. */
+    private fun showCallAvatar(user: String?) {
+        if (user.isNullOrBlank()) return
+        val dm = resources.displayMetrics.density
+        val shape = com.silvershireinn.app.utils.AvatarShapeHelper.forUser(user)
+        val a = 120 * dm
+        binding.cardAvatar.radius = when (shape) {
+            com.silvershireinn.app.utils.AvatarShape.CIRCLE -> a / 2
+            com.silvershireinn.app.utils.AvatarShape.ROUNDED_SQUARE -> a * 0.22f
+            com.silvershireinn.app.utils.AvatarShape.SQUIRCLE -> a * 0.34f
+            com.silvershireinn.app.utils.AvatarShape.DIAMOND -> if (Build.VERSION.SDK_INT >= 30) 0f else a / 2
+        }
+        if (shape == com.silvershireinn.app.utils.AvatarShape.DIAMOND) {
+            com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(binding.cardAvatar, shape)
+            binding.cardAvatar.strokeWidth = 0
+        }
+        val f = com.silvershireinn.app.utils.ProfileMediaHelper.contactPic(this, user)
+        if (f != null && f.exists()) {
+            val path = f.absolutePath
+            val still = if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(path))
+                com.silvershireinn.app.utils.ProfileMediaHelper.cachedVideoFrame(path) else com.silvershireinn.app.utils.VideoThumbs.decodeSmall(path, 512)
+            if (still != null) {
+                binding.ivCallAvatar.setImageBitmap(still); binding.ivCallAvatar.visibility = View.VISIBLE
+            } else if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(path)) {
+                Thread {
+                    val b = com.silvershireinn.app.utils.ProfileMediaHelper.videoFrameBitmap(path) ?: return@Thread
+                    runOnUiThread { if (!isFinishing) { binding.ivCallAvatar.setImageBitmap(b); binding.ivCallAvatar.visibility = View.VISIBLE } }
+                }.start()
+            }
+        }
+        // Their border; the name moves down so the border never covers it
+        val framed = com.silvershireinn.app.utils.ProfileFrames.applyFull(binding.cardAvatar, user)
+        if (framed) {
+            binding.cardAvatar.strokeWidth = 0
+            (binding.tvCallName.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { lp ->
+                lp.topMargin = (lp.topMargin + 60 * dm).toInt(); binding.tvCallName.layoutParams = lp
+            }
+        }
     }
 }
