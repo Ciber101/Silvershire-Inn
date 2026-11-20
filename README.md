@@ -33,6 +33,14 @@ and the features you would expect from a modern messenger.
 | Windows, Linux or macOS that stays on | Android Studio (includes Java 17), or the Android command-line tools + JDK 17 |
 | [Node.js](https://nodejs.org) 18 or newer (LTS) | About 8 GB of free disk space for the first build |
 
+## Download
+
+- **Android app:** the newest APK is on the [Releases](https://github.com/Ciber101/Silvershire-Inn/releases/latest)
+  page. It only works with a Silvershire Inn server, so set one up first (below). If you publish
+  app updates to your own group, build the app yourself (see [docs/ANDROID.md](docs/ANDROID.md))
+  so every update is signed with your key.
+- **Server and web app:** this repository.
+
 ## Quick start
 
 Download this repository (green **Code** button, then **Download ZIP**, and unzip it), or:
