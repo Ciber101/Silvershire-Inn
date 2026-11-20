@@ -945,7 +945,7 @@
       const backR = (a) => bodyR(a) + bodyW(a) * 0.36, base = backR(aSh) + T * 0.1;
       const Uw = U * Math.min(1, Math.max(0.45, (2.0 * r - base) / (U * wH * k * 1.15)));   // keep the wing on the canvas
       const aE = A(wrT * 0.3), rE = base + Uw * wH * 0.6 * k, aW = A(wrT), rW = base + Uw * wH * k;
-      const arm = arcPts(A(0), backR(A(0)) - T * 0.15, aE, rE, 6, 0, U * 0.42, U * 0.3).concat(arcPts(aE, rE, aW, rW, 6, U * 0.12, U * 0.3, U * 0.2).slice(1));
+      const arm = arcPts(A(0), backR(A(0)) - T * 0.15, aE, rE, 6, Uw * 0.12, U * 0.42, U * 0.3).concat(arcPts(aE, rE, aW, rW, 6, Uw * 0.26, U * 0.3, U * 0.2).slice(1));   // bowed, never a straight edge
       const fingers = tipT.map((t, j) => arcPts(aW, rW, A(t), base + Uw * Math.max(0.1, tipR[j]) * k, 10, Uw * wBulge * (1 - j / nF) * k, U * 0.13, U * 0.03));
       const attach = { a: A(tipT[nF - 1] + 0.12) }; attach.r = backR(attach.a);
       const W = pol(aW, rW);

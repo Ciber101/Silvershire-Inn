@@ -463,7 +463,8 @@
   .avatar.av-shape-rounded.has-frame, .friend-profile .fp-avatar.av-shape-rounded.framed { border-radius:28%; }
   .avatar.av-shape-squircle.has-frame, .friend-profile .fp-avatar.av-shape-squircle.framed { border-radius:45%; }
   .friend-profile .fp-avatar.framed { border-color:transparent; }
-  .fp-frame { position:absolute; pointer-events:none; z-index:3; max-width:none; }
+  .fp-frame { position:absolute; pointer-events:none; z-index:3; max-width:none; scale:var(--fit, 1); }
+  .avatar.has-frame, .friend-profile .fp-avatar.framed { scale:var(--fit, 1); }
   .friend-profile .fp-identity, .friend-profile .fp-hero, .friend-profile .fp-avatar-wrap { overflow:visible; }
   /* room for the border around framed pictures, and names always drawn above it */
   #meBar .avatar.has-frame, #chatHeader .avatar.has-frame, .contact .avatar.has-frame { margin-left:12px; margin-right:16px; }
@@ -3823,6 +3824,66 @@ function frameFor(user) {
   return state.contactFrames[user] || 'none';
 }
 const _frameCache = new Map();          // key -> data URL
+const _frameBounds = new Map();         // key -> drawn area {x0,y0,x1,y1} as fractions of the frame image
+function _alphaBounds(c) {
+  try {
+    const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+      if (d[(y * W + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    return x1 < 0 ? null : { x0: x0 / W, y0: y0 / H, x1: Math.min(1, (x1 + 2) / W), y1: Math.min(1, (y1 + 2) / H) };
+  } catch (_) { return null; }
+}
+/** The box a framed picture has to stay inside: every clipping ancestor (scrolling lists count
+ *  with their whole content, not just the visible part) and the window. */
+function _clipRectOf(el) {
+  let r = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+  for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+    const q = p.getBoundingClientRect();
+    const scrollsY = /(auto|scroll)/.test(cs.overflowY), scrollsX = /(auto|scroll)/.test(cs.overflowX);
+    const top = scrollsY ? q.top - p.scrollTop : q.top, bottom = scrollsY ? top + p.scrollHeight : q.bottom;
+    const left = scrollsX ? q.left - p.scrollLeft : q.left, right = scrollsX ? left + p.scrollWidth : q.right;
+    r = { left: Math.max(r.left, left), top: Math.max(r.top, top), right: Math.min(r.right, right), bottom: Math.min(r.bottom, bottom) };
+  }
+  return r;
+}
+/** Shrink a framed picture (picture and border together) until the border's drawn area fits
+ *  inside its box with a few pixels to spare. [frameEl] is the element the border is drawn on
+ *  (null = the avatar's own ::after), [scaleEls] are scaled together. */
+function _fitFrame(anchor, bounds, frameSize, scaleEls) {
+  if (!anchor || !bounds || !anchor.isConnected) return;
+  const rect = anchor.getBoundingClientRect();
+  if (!rect.width) return;
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  const need = { l: (0.5 - bounds.x0) * frameSize, r: (bounds.x1 - 0.5) * frameSize, t: (0.5 - bounds.y0) * frameSize, b: (bounds.y1 - 0.5) * frameSize };
+  const box = _clipRectOf(anchor), tol = 4;
+  let k = 1;
+  if (need.l > 0) k = Math.min(k, (cx - box.left - tol) / need.l);
+  if (need.r > 0) k = Math.min(k, (box.right - tol - cx) / need.r);
+  if (need.t > 0) k = Math.min(k, (cy - box.top - tol) / need.t);
+  if (need.b > 0) k = Math.min(k, (box.bottom - tol - cy) / need.b);
+  k = Math.max(0.3, Math.min(1, k));
+  for (const e of scaleEls) if (e) e.style.setProperty('--fit', k.toFixed(3));
+}
+function _fitAvatar(el) {
+  const b = _frameBounds.get(el.dataset.frameKey || '');
+  if (!b || !el.classList.contains('has-frame')) { el.style.removeProperty('--fit'); return; }
+  const A = el.offsetWidth || 40, diamond = el.classList.contains('av-shape-diamond');
+  _fitFrame(el, b, A * (diamond ? 1.414 : 1) / 0.44, [el]);
+}
+let _refitTimer = 0;
+function refitFrames() {
+  clearTimeout(_refitTimer);
+  _refitTimer = setTimeout(() => {
+    document.querySelectorAll('.avatar.has-frame').forEach(_fitAvatar);
+    const fp = document.getElementById('fpAvatar'), img = fp && fp.parentElement && fp.parentElement.querySelector(':scope > .fp-frame');
+    if (fp && img && img.dataset.key) _fitFrame(fp, _frameBounds.get(img.dataset.key), img.offsetWidth, [fp, img]);
+  }, 60);
+}
+window.addEventListener('resize', refitFrames);
 const _frameWaiting = new Map();        // key -> [resolve]
 const _frameJobs = [];
 let _frameTimer = 0;
@@ -3843,7 +3904,13 @@ function _pumpFrames() {
     _frameTimer = 0;
     const j = _frameJobs.shift();
     let url = '';
-    try { if (window.SilvershireFrames) url = SilvershireFrames.render(j.id, j.shape, j.S, j.mode).toDataURL('image/png'); } catch (e) { console.warn('frame', e); }
+    try {
+      if (window.SilvershireFrames) {
+        const cv = SilvershireFrames.render(j.id, j.shape, j.S, j.mode);
+        _frameBounds.set(j.key, _alphaBounds(cv));
+        url = cv.toDataURL('image/png');
+      }
+    } catch (e) { console.warn('frame', e); }
     _frameCache.set(j.key, url);
     (_frameWaiting.get(j.key) || []).forEach(r => r(url));
     _frameWaiting.delete(j.key);
@@ -3862,12 +3929,14 @@ function applyFrameToEl(el, user) {
   const css = el.offsetWidth || 40;
   // frame canvas = picture radius / 0.22; a diamond's corners reach 0.707 of the (rotated) box
   const S = _frameBucket(css * (shape === 'diamond' ? 1.414 : 1) / 0.44 * (window.devicePixelRatio || 1));
-  const tag = id + '|' + shape;
+  const tag = id + '|' + shape, px = Math.max(128, S);
   el.dataset.frame = tag;
-  frameDataUrl(id, shape, Math.max(128, S), 'full').then(url => {
+  frameDataUrl(id, shape, px, 'full').then(url => {
     if (!url || el.dataset.frame !== tag || el.dataset.u !== user) return;
     el.style.setProperty('--frame', 'url("' + url + '")');
     el.classList.add('has-frame');
+    el.dataset.frameKey = _frameKey(id, shape, px, 'full');
+    requestAnimationFrame(() => _fitAvatar(el));     // never cut off: shrink to fit its box
   });
 }
 /** Full frame around the big profile picture (friend / own profile sheets). */
@@ -3886,7 +3955,12 @@ function applyFullFrame(avatarEl, user) {
   cv.style.left = (avatarEl.offsetLeft + pic / 2 - S / 2) + 'px';
   cv.style.top = (avatarEl.offsetTop + (avatarEl.offsetHeight || pic) / 2 - S / 2) + 'px';
   const tag = id + '|' + shape; cv.dataset.frame = tag;
-  frameDataUrl(id, shape, Math.max(px, 320), 'full').then(url => { if (url && cv.dataset.frame === tag) cv.src = url; });
+  const fpx = Math.max(px, 320);
+  frameDataUrl(id, shape, fpx, 'full').then(url => {
+    if (!url || cv.dataset.frame !== tag) return;
+    cv.src = url; cv.dataset.key = _frameKey(id, shape, fpx, 'full');
+    requestAnimationFrame(() => _fitFrame(avatarEl, _frameBounds.get(cv.dataset.key), S, [avatarEl, cv]));
+  });
 }
 function refreshFrames() {
   document.querySelectorAll('.avatar[data-u]').forEach(el => applyFrameToEl(el, el.dataset.u));
