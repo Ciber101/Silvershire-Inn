@@ -134,9 +134,9 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 1,
-  versionName: '1.0.0',
-  notes: '- First release'
+  versionCode: 2,
+  versionName: '1.0.1',
+  notes: '- Messages, pictures and files are never sent unencrypted: without a friend\'s key a message waits (or shows Not sent, Retry) and the server refuses anything unencrypted'
 };
 const UPDATES_USER    = 'Silvershire Updates';
 
@@ -353,6 +353,19 @@ function publicOrigin() {
 }
 /** Link to the download page friends can open on their phone, or null if not known yet. */
 function shareLink() { const o = publicOrigin(); return o ? o + '/download' : null; }
+
+// Every chat message must arrive end-to-end encrypted: 1:1 {v:1, enc, key} or group
+// {v:2, enc, keys}. Anything else is refused, so nothing readable is ever stored or relayed,
+// even from an old or modified client.
+function isE2EPayload(p, group) {
+  if (typeof p !== 'string' || p[0] !== '{') return false;
+  try {
+    const j = JSON.parse(p);
+    if (!j || typeof j.enc !== 'string' || !j.enc) return false;
+    if (group) return j.v === 2 && j.keys && typeof j.keys === 'object';
+    return (j.v === 1 && typeof j.key === 'string' && !!j.key) || (j.v === 2 && j.keys && typeof j.keys === 'object');
+  } catch (_) { return false; }
+}
 
 function userAvatarShape(u) {
   const sh = normalizeAvatarShape(users[u]?.settings?.avatarShape);
@@ -1407,6 +1420,8 @@ a.btn{display:inline-block;margin-top:18px;padding:14px 28px;background:#A8A9AD;
     // End-to-end encrypted by the sender (x-e2e): already noise, stored as it is. Anything
     // else (older apps) is encrypted here before it touches the disk.
     const clientE2E = String(req.headers['x-e2e'] || '') === '1';
+    // Chat files must be end-to-end encrypted by the app or web app; anything else is refused.
+    if (!clientE2E) { abortUpload('Files must be end-to-end encrypted (update the app)', 400); try { req.destroy(); } catch (_) {} return; }
     if (clientE2E) req.pipe(writeStream);
     else {
       const sealer = AtRest.chunkSealer();
@@ -2396,6 +2411,11 @@ wss.on('connection', (ws, req) => {
         if (typeof payload !== 'string' || payload.length > MAX_PAYLOAD_CHARS) {
           send(ws, { type: 'error', message: 'Message too large' }); return;
         }
+        if (!isE2EPayload(payload, false)) {
+          send(ws, { type: 'message_rejected', messageId, reason: 'not_encrypted' });
+          console.warn(`[E2E] refused an unencrypted message from ${username}`);
+          return;
+        }
 
         const history = loadHistory(username, to);
         // Idempotent resend: clients retry unacked messages after reconnects. If we already
@@ -2634,6 +2654,11 @@ wss.on('connection', (ws, req) => {
         if (!groupId || !payload || !groups[groupId]) return;
         if (typeof payload !== 'string' || payload.length > MAX_PAYLOAD_CHARS) {
           send(ws, { type: 'error', message: 'Message too large' }); return;
+        }
+        if (!isE2EPayload(payload, true)) {
+          send(ws, { type: 'message_rejected', messageId, reason: 'not_encrypted' });
+          console.warn(`[E2E] refused an unencrypted group message from ${username}`);
+          return;
         }
         if (!groups[groupId].members.includes(username)) return;
         const history = loadGroupHistory(groupId);

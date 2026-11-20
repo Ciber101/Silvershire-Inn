@@ -1567,7 +1567,7 @@ const Crypto = {
         peerKey = await this.getPeerKey(recipient);
       }
     }
-    if (!peerKey) { console.warn('E2E: no key for', recipient, '(sending plain)'); return plaintext; }
+    if (!peerKey) throw new Error('E2E_NO_KEY');      // never sent unencrypted
     const aesKey  = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
     const iv      = crypto.getRandomValues(new Uint8Array(12));
     const ct      = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, tagLength: 128 },
@@ -1707,9 +1707,24 @@ async function encryptForGroup(gid, text) {
     }
   }
   const keys = members.map(keyFor).filter(Boolean);
-  if (!keys.length && members.length) { console.warn('group E2E: no member keys (sending plain)'); return text; }
-  try { return await Crypto.encryptGroup(text, keys); }
-  catch (e) { console.warn('group encrypt failed (sending plain)', e); return text; }
+  if (!keys.length && members.length) throw new Error('E2E_NO_KEY');   // never sent unencrypted
+  return await Crypto.encryptGroup(text, keys);
+}
+
+/* Encrypt and send, or (no key yet) keep it as "Not sent. Retry": nothing ever goes out unencrypted. */
+const failedPlain = new Map();   // messageId -> { conv, content, timestamp } waiting for a key
+async function sendSecure(conv, content, messageId, timestamp) {
+  try {
+    if (isGroup(conv)) sendWire({ type: 'group_message', groupId: conv, payload: await encryptForGroup(conv, content), messageId, timestamp });
+    else sendWire({ type: 'private_message', to: conv, payload: await Crypto.encryptE2E(content, conv), messageId, timestamp });
+    return true;
+  } catch (e) {
+    console.warn('not sent (encryption)', e && e.message);
+    failedPlain.set(messageId, { conv, content, timestamp });
+    markSendFailed(messageId, null);
+    toast(`Not sent: no encryption key for ${isGroup(conv) ? 'this group' : displayName(conv)} yet. Press Retry in a moment.`);
+    return false;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -4710,15 +4725,8 @@ async function sendCurrentMessage() {
   // already preserved their scroll position, so sending while scrolled up won't yank the view.
   if (state.prefs.jumpOnSend) scrollToBottom(false);
 
-  if (isGroup(c)) {
-    // Group messages are plaintext - same as the app
-    const gPayload = await encryptForGroup(c, text);
-    sendWire({ type: 'group_message', groupId: c, payload: gPayload, messageId, timestamp });
-  } else {
-    if (!state.contactKeys[c]) wsSend({ type: 'get_public_key', target: c });
-    const payload = await Crypto.encryptE2E(text, c);
-    sendWire({ type: 'private_message', to: c, payload, messageId, timestamp });
-  }
+  if (!isGroup(c) && !state.contactKeys[c]) wsSend({ type: 'get_public_key', target: c });
+  await sendSecure(c, text, messageId, timestamp);   // end-to-end encrypted (group or 1:1)
 }
 
 let typingThrottle = 0;
@@ -4807,13 +4815,7 @@ async function uploadFiles(files, conv) {
       m.att = att;
       m.pending = false; m._progress = null;
       const attPayload = JSON.stringify({ _att: att });
-      if (!isGroup(c)) {
-        const payload = await Crypto.encryptE2E(attPayload, c);
-        sendWire({ type: 'private_message', to: c, payload, messageId, timestamp });
-      } else {
-        // The server no longer announces group files in plain text (x-group-e2e).
-        sendWire({ type: 'group_message', groupId: c, payload: await encryptForGroup(c, attPayload), messageId, timestamp });
-      }
+      await sendSecure(c, attPayload, messageId, timestamp);
     } catch (e) {
       m._xhr = null;
       state.msgs[c] = (state.msgs[c] || []).filter(x => x.messageId !== messageId);
@@ -5009,6 +5011,13 @@ function findMsg(messageId) {
 }
 function retrySend(messageId) {
   const hit = findMsg(messageId);
+  const plain = failedPlain.get(messageId);
+  if (hit && plain) {   // was waiting for an encryption key: encrypt now (or wait again)
+    failedPlain.delete(messageId);
+    hit.m.failed = false; hit.m.pending = true; queueRender();
+    sendSecure(plain.conv, plain.content, messageId, plain.timestamp).then(() => { queueRender(); renderContacts(); });
+    return;
+  }
   const obj = failedWire.get(messageId);
   if (!hit || !obj) return;
   failedWire.delete(messageId);
@@ -5931,14 +5940,9 @@ async function doForward(target) {
   state.msgs[target].push({ messageId, from: state.me, to: target, ts: timestamp, sent: true,
     group: isGroup(target), text: m.att ? null : content, att: m.att ? { ...m.att } : null,
     pending: true, read: false, deleted: false, locked: false });
-  if (isGroup(target)) {
-    sendWire({ type: 'group_message', groupId: target, payload: await encryptForGroup(target, content), messageId, timestamp });
-  } else {
-    const payload = await Crypto.encryptE2E(content, target);
-    sendWire({ type: 'private_message', to: target, payload, messageId, timestamp });
-  }
+  const ok = await sendSecure(target, content, messageId, timestamp);
   renderContacts();
-  toast(`Forwarded to ${displayName(target)}`);
+  if (ok) toast(`Forwarded to ${displayName(target)}`);
 }
 
 /* ═══════════════════════════════════════════════════════════════

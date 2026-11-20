@@ -63,11 +63,14 @@ class NotificationReplyReceiver : BroadcastReceiver() {
                 awaitConnection(context)
                 if (!groupId.isNullOrBlank()) {
                     repo.insertGroupOutgoing(me, groupId, groupName, reply, ts, mid)
-                    WebSocketManager.sendGroupMessage(groupId, com.silvershireinn.app.ui.chat.ChatSender.encryptForGroup(groupId, reply), mid, ts)
+                    try { WebSocketManager.sendGroupMessage(groupId, com.silvershireinn.app.ui.chat.ChatSender.encryptForGroup(groupId, reply), mid, ts) }
+                    catch (_: com.silvershireinn.app.ui.chat.ChatSender.NoKeyException) { /* waits, sent encrypted later */ }
                 } else {
                     repo.insertOutgoing(me, contactId, reply, ts, mid)
+                    // Never unencrypted: without the friend's key the reply waits on the phone and
+                    // the unsent-message loop sends it (encrypted) once the key arrives.
                     val payload = encryptForContact(contactId, reply)
-                    WebSocketManager.sendPrivateMessage(me, contactId, payload, mid, ts)
+                    if (payload != null) WebSocketManager.sendPrivateMessage(me, contactId, payload, mid, ts)
                 }
                 // Replying means you've read the chat: clear its unread badge here and on
                 // your other devices (and tell the sender, if read receipts are on).
@@ -161,25 +164,10 @@ class NotificationReplyReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun encryptForContact(contactId: String, plaintext: String): String {
-        return try {
-            val contact = SilvershireApp.database.contactDao().getContact(contactId)
-            val pubKeyB64 = contact?.publicKey?.takeIf { it.isNotBlank() }
-            if (pubKeyB64 != null && CryptoManager.hasRsaKeyPair()) {
-                CryptoManager.encryptE2E(plaintext, pubKeyB64)
-            } else {
-                if (pubKeyB64 == null) {
-                    WebSocketManager.sendRaw(JSONObject().apply {
-                        put("type", "get_public_key")
-                        put("target", contactId)
-                    }.toString())
-                }
-                plaintext
-            }
-        } catch (_: Exception) {
-            plaintext
-        }
-    }
+    /** Encrypted payload, or null when the friend's key isn't known yet (never plain text). */
+    private suspend fun encryptForContact(contactId: String, plaintext: String): String? =
+        try { com.silvershireinn.app.ui.chat.ChatSender.encryptFor(contactId, plaintext) }
+        catch (_: com.silvershireinn.app.ui.chat.ChatSender.NoKeyException) { null }
 
     companion object {
         private const val TAG = "NotifReply"

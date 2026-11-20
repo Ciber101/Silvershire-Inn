@@ -34,6 +34,20 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object ChatSender {
 
+    /**
+     * Thrown instead of ever sending a message unencrypted: the friend's (or every group
+     * member's) public key isn't known yet. The message stays on the phone as "sending" and goes
+     * out encrypted as soon as the key arrives (the unsent-message loop retries it).
+     */
+    class NoKeyException(msg: String) : Exception(msg)
+
+    private fun waitingForKeyToast(who: String) {
+        val app = SilvershireApp.instance
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            try { android.widget.Toast.makeText(app, "Waiting for $who's encryption key. It sends (encrypted) as soon as it arrives.", android.widget.Toast.LENGTH_LONG).show() } catch (_: Exception) {}
+        }
+    }
+
     private val repo by lazy { MessageRepository(SilvershireApp.database) }
     private val jobs = ConcurrentHashMap<String, Job>()
 
@@ -60,6 +74,8 @@ object ChatSender {
                     val payload = encryptFor(contactId, text)
                     sendWithRetry { WebSocketManager.sendPrivateMessage(me, contactId, payload, messageId, ts) }
                 }
+            } catch (e: NoKeyException) {
+                waitingForKeyToast(if (groupId != null) groupName.ifBlank { "the group" } else com.silvershireinn.app.utils.PreferenceManager.displayNameFor(contactId))
             } catch (e: Exception) {
                 android.util.Log.e("ChatSender", "text send failed: ${e.message}")
             }
@@ -174,6 +190,11 @@ object ChatSender {
         com.silvershireinn.app.utils.MediaKeys.learn(attObj)   // before the bubble tries to show it
         repo.markUploadComplete(messageId, fileId)
         val att = JSONObject().put("_att", attObj).toString()
+        try { sendAtt(att, contactId, groupId, messageId, ts) }
+        catch (e: NoKeyException) { waitingForKeyToast(if (groupId != null) "the group" else com.silvershireinn.app.utils.PreferenceManager.displayNameFor(contactId)) }
+    }
+
+    private suspend fun sendAtt(att: String, contactId: String, groupId: String?, messageId: String, ts: String) {
         if (groupId != null) {
             // The server no longer announces group files in plain text (x-group-e2e):
             // the file message goes out encrypted like any group message.
@@ -211,20 +232,19 @@ object ChatSender {
             }
             val k = key
             if (k != null && CryptoManager.hasRsaKeyPair()) CryptoManager.encryptE2E(plaintext, k)
-            else {
-                android.util.Log.w("ChatSender", "E2E: sending PLAINTEXT to $contactId (no key)")
-                plaintext
-            }
+            else throw NoKeyException("no key for $contactId")          // never sent unencrypted
+        } catch (e: NoKeyException) {
+            throw e
         } catch (e: Exception) {
-            android.util.Log.w("ChatSender", "E2E encrypt failed (sending PLAINTEXT): ${e.javaClass.simpleName}")
-            plaintext
+            android.util.Log.w("ChatSender", "E2E encrypt failed: ${e.javaClass.simpleName}")
+            throw NoKeyException("encrypt failed")
         }
     }
 
     /**
      * End-to-end encrypt a group message for every member (key wrapped per member). Member
      * keys come from the server's group list; missing or stale ones are fetched (up to 3 s).
-     * With no keys at all (old server) it falls back to plain text like before.
+     * With no member keys at all it refuses (NoKeyException): nothing is ever sent unencrypted.
      */
     suspend fun encryptForGroup(groupId: String, plaintext: String): String {
         return try {
@@ -244,16 +264,19 @@ object ChatSender {
                 }
             }
             val keys = members.mapNotNull { keyFor(it) }
-            if (keys.isEmpty() || !CryptoManager.hasRsaKeyPair()) {
+            if (!CryptoManager.hasRsaKeyPair()) throw NoKeyException("no own key")
+            if (keys.isEmpty()) {
                 if (members.isEmpty()) CryptoManager.encryptGroupE2E(plaintext, emptyList())
-                else { android.util.Log.w("ChatSender", "group E2E: no member keys, sending PLAINTEXT"); plaintext }
+                else throw NoKeyException("no member keys for $groupId")      // never sent unencrypted
             } else {
                 if (missing.isNotEmpty()) android.util.Log.w("ChatSender", "group E2E: no key for ${missing.size} member(s)")
                 CryptoManager.encryptGroupE2E(plaintext, keys)
             }
+        } catch (e: NoKeyException) {
+            throw e
         } catch (e: Exception) {
-            android.util.Log.w("ChatSender", "group encrypt failed (sending PLAINTEXT): ${e.javaClass.simpleName}")
-            plaintext
+            android.util.Log.w("ChatSender", "group encrypt failed: ${e.javaClass.simpleName}")
+            throw NoKeyException("group encrypt failed")
         }
     }
 

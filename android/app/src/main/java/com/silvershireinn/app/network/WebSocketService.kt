@@ -1680,8 +1680,10 @@ class WebSocketService : Service() {
                             .put("mime", msg.attachmentMime ?: "application/octet-stream")
                             .put("size", msg.attachmentSize)).toString()
                     } else msg.encryptedPayload
+                    // No member keys yet: stays unsent (never goes out unencrypted), tried again later.
+                    val gPayload = try { com.silvershireinn.app.ui.chat.ChatSender.encryptForGroup(gid, plain) }
+                                   catch (_: com.silvershireinn.app.ui.chat.ChatSender.NoKeyException) { continue }
                     pendingAttempts[msg.messageId] = tries + 1
-                    val gPayload = com.silvershireinn.app.ui.chat.ChatSender.encryptForGroup(gid, plain)
                     WebSocketManager.sendGroupMessage(gid, gPayload, msg.messageId, msg.timestamp)
                     continue
                 }
@@ -1693,12 +1695,9 @@ class WebSocketService : Service() {
                         .put("mime", msg.attachmentMime ?: "application/octet-stream")
                         .put("size", msg.attachmentSize)).toString()
                 } else msg.encryptedPayload
-                val payload = try {
-                    val pubKey = SilvershireApp.database.contactDao().getContact(msg.toUser)
-                        ?.publicKey?.takeIf { it.isNotBlank() }
-                    if (pubKey != null && CryptoManager.hasRsaKeyPair()) CryptoManager.encryptE2E(text, pubKey)
-                    else text
-                } catch (_: Exception) { text }
+                // Encrypted or not at all: without the friend's key it waits (and asks for the key).
+                val payload = try { com.silvershireinn.app.ui.chat.ChatSender.encryptFor(msg.toUser, text) }
+                              catch (_: com.silvershireinn.app.ui.chat.ChatSender.NoKeyException) { continue }
                 pendingAttempts[msg.messageId] = tries + 1
                 WebSocketManager.sendPrivateMessage(me, msg.toUser, payload, msg.messageId, msg.timestamp)
             }
