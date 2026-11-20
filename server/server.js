@@ -134,9 +134,9 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 2,
-  versionName: '1.0.1',
-  notes: '- Messages, pictures and files are never sent unencrypted: without a friend\'s key a message waits (or shows Not sent, Retry) and the server refuses anything unencrypted'
+  versionCode: 3,
+  versionName: '1.0.2',
+  notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
 
