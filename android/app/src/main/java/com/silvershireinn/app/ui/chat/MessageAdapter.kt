@@ -106,6 +106,7 @@ class MessageAdapter(
         iv.tag = null
         val shape = com.silvershireinn.app.utils.AvatarShapeHelper.forUser(user)
         com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(frame, shape)
+        frame.setTag(R.id.seal_shape, shape); bubble?.invalidate()    // the bubble's cut takes the picture's shape
         com.silvershireinn.app.utils.ProfileFrames.applyFloating(frame, user, reserve = bubble == null)
         tv.background = com.silvershireinn.app.utils.AvatarShapeHelper.backgroundDrawable(
             user.toAvatarColor(), shape)

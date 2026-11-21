@@ -107,18 +107,25 @@ object FrameGeneratorDialog {
         root.addView(row2, LinearLayout.LayoutParams(-1, -2))
         root.addView(note, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4) })
 
-        // saved collection
-        root.addView(TextView(ctx).apply { text = "My borders"; textSize = 15f; setTextColor(gold) },
-            LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(16); bottomMargin = dp(6) })
+        // Two tabs: Saved (My borders) and History (the last 10 generated)
+        var tab = 0
+        val tabs = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
+        val tabSaved = Button(ctx).apply { text = "Saved"; isAllCaps = false }
+        val tabHistory = Button(ctx).apply { text = "History (last 10)"; isAllCaps = false }
+        tabs.addView(tabSaved, LinearLayout.LayoutParams(0, -2, 1f)); tabs.addView(tabHistory, LinearLayout.LayoutParams(0, -2, 1f))
+        root.addView(tabs, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14); bottomMargin = dp(6) })
         val grid = GridLayout(ctx).apply { columnCount = 3 }
         root.addView(grid, LinearLayout.LayoutParams(-1, -2))
-        val emptyHint = TextView(ctx).apply { textSize = 12f; setTextColor(dim); text = "Borders you save show up here, so you can switch back to them any time." }
+        val emptyHint = TextView(ctx).apply { textSize = 12f; setTextColor(dim) }
         root.addView(emptyHint, LinearLayout.LayoutParams(-1, -2))
 
         lateinit var renderSaved: () -> Unit
         renderSaved = {
             grid.removeAllViews()
-            val list = ProfileFrames.savedFrames
+            tabSaved.setTextColor(if (tab == 0) gold else dim); tabHistory.setTextColor(if (tab == 1) gold else dim)
+            val list = if (tab == 0) ProfileFrames.savedFrames else ProfileFrames.history
+            emptyHint.text = if (tab == 0) "Borders you save show up here, so you can switch back to them any time."
+                             else "The last 10 borders you generated show up here, so a good one is never lost."
             emptyHint.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
             val cell = dp(86)
             for (id in list) {
@@ -127,6 +134,11 @@ object FrameGeneratorDialog {
                 FrameRenderer.get(ctx, id, shapeName, 256, "full") { b -> if (iv.tag == id) iv.setImageBitmap(b) }
                 iv.setOnClickListener { current = id; refreshPreview() }
                 iv.setOnLongClickListener {
+                    if (tab == 1) {
+                        MaterialAlertDialogBuilder(ctx).setTitle("Remove this border from History?")
+                            .setPositiveButton("Remove") { _, _ -> ProfileFrames.history = ProfileFrames.history - id; renderSaved() }
+                            .setNegativeButton("Cancel", null).show(); return@setOnLongClickListener true
+                    }
                     MaterialAlertDialogBuilder(ctx).setTitle("Remove this border from My borders?")
                         .setPositiveButton("Remove") { _, _ -> WebSocketManager.sendSaveFrame(id, remove = true)
                             ProfileFrames.savedFrames = ProfileFrames.savedFrames - id; renderSaved() }
@@ -134,7 +146,7 @@ object FrameGeneratorDialog {
                 }
                 val lbl = TextView(ctx).apply {
                     textSize = 11f; gravity = Gravity.CENTER
-                    text = if (id == ProfileFrames.myFrame) "In use" else (ProfileFrames.KINDS[id.split(':').getOrNull(1)] ?: "")
+                    text = if (id == ProfileFrames.myFrame) "In use" else if (tab == 1 && id in ProfileFrames.savedFrames) "Saved" else (ProfileFrames.KINDS[id.split(':').getOrNull(1)] ?: "")
                     setTextColor(if (id == ProfileFrames.myFrame) gold else dim)
                 }
                 box.addView(iv, LinearLayout.LayoutParams(cell, cell))
@@ -144,10 +156,15 @@ object FrameGeneratorDialog {
                 })
             }
         }
+        tabSaved.setOnClickListener { tab = 0; renderSaved() }
+        tabHistory.setOnClickListener { tab = 1; renderSaved() }
         renderSaved()
         refreshPreview()
 
-        gen.setOnClickListener { current = ProfileFrames.newId(kind); refreshPreview() }
+        gen.setOnClickListener {
+            current = ProfileFrames.newId(kind).also { ProfileFrames.addToHistory(it) }
+            refreshPreview(); if (tab == 1) renderSaved()
+        }
         use.setOnClickListener {
             val id = current ?: run { note.text = "Generate a border first."; return@setOnClickListener }
             ProfileFrames.myFrame = id

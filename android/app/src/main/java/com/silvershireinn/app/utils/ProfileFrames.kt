@@ -58,6 +58,12 @@ object ProfileFrames {
         get() = try { val a = JSONArray(prefs().getString("saved", "[]")); (0 until a.length()).map { a.optString(it) }.filter { isValid(it) } } catch (_: Exception) { emptyList() }
         set(v) { prefs().edit().putString("saved", JSONArray(v.filter { isValid(it) }.take(60)).toString()).apply() }
 
+    /** The last 10 borders generated on this phone (newest first). */
+    var history: List<String>
+        get() = try { val a = JSONArray(prefs().getString("history", "[]")); (0 until a.length()).map { a.optString(it) }.filter { isValid(it) } } catch (_: Exception) { emptyList() }
+        set(v) { prefs().edit().putString("history", JSONArray(v.filter { isValid(it) }.distinct().take(10)).toString()).apply() }
+    fun addToHistory(id: String) { history = listOf(id) + history.filter { it != id } }
+
     fun contactFrame(user: String): String = prefs().getString("c_$user", "none") ?: "none"
     fun setContactFrame(user: String, id: String?) {
         val e = prefs().edit()
@@ -178,7 +184,14 @@ object ProfileFrames {
             val s = bucket(full.toInt()).coerceAtLeast(128)
             if (s != asked) {
                 asked = s
-                FrameRenderer.get(app, id, shape, s, "full") { b -> if (b != null && asked == s) { bmp = b; drawn = drawnArea(b); host.invalidate() } }
+                FrameRenderer.get(app, id, shape, s, "full") { b ->
+                    if (b != null && asked == s) {
+                        bmp = b; drawn = drawnArea(b)
+                        // where the border's ring ends: the bubble cut keeps one exact gap from it
+                        ref.get()?.let { av -> av.setTag(com.silvershireinn.app.R.id.seal_ring, ringOuter(b)); (av.parent as? ViewGroup)?.let { p -> for (i in 0 until p.childCount) p.getChildAt(i).invalidate() } }
+                        host.invalidate()
+                    }
+                }
             }
             val b = bmp ?: return
             val d = drawn ?: floatArrayOf(0f, 0f, 1f, 1f)
@@ -220,6 +233,28 @@ object ProfileFrames {
         override fun setColorFilter(cf: ColorFilter?) { paint.colorFilter = cf }
         @Deprecated("Deprecated in Java")
         override fun getOpacity() = PixelFormat.TRANSLUCENT
+    }
+
+    /**
+     * How far the border's ring reaches from the centre, as a fraction of half the bitmap: walk out
+     * along the four axes past the clear picture area, through the band, to the first clear pixel
+     * again (the smallest of the four, so a dragon lying across one axis doesn't count).
+     */
+    fun ringOuter(b: Bitmap): Float {
+        val w = b.width; val h = b.height; val cx = w / 2; val cy = h / 2
+        val half = minOf(w, h) / 2
+        var best = Float.MAX_VALUE
+        for ((dx, dy) in listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)) {
+            var inBand = false
+            var t = (half * 0.3f).toInt()
+            while (t < half - 1) {
+                val a = b.getPixel(cx + dx * t, cy + dy * t) ushr 24
+                if (!inBand && a > 60) inBand = true
+                else if (inBand && a < 30) { best = minOf(best, t.toFloat() / half); break }
+                t++
+            }
+        }
+        return if (best == Float.MAX_VALUE) PIC else best
     }
 
     /** The part of a border bitmap that is actually drawn (alpha > 20), as fractions. */

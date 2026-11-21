@@ -66,15 +66,22 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
         var cx = if (sealCorner == LEFT) -sealOffset else width + sealOffset
         var cy = -sealOffset
         var rad = sealRadius
+        var shapeOf: com.silvershireinn.app.utils.AvatarShape = com.silvershireinn.app.utils.AvatarShape.CIRCLE
+        val gap = GAP_DP * resources.displayMetrics.density
         val av = sealAvatar
         if (av != null && av.parent === parent && av.width > 0) {
             cx = av.left + av.translationX + av.width / 2f - (left + translationX)
             cy = av.top + av.translationY + av.height / 2f - (top + translationY)
-            // around the picture AND its border's ring (about 1.27 x the picture), then a clear gap
-            val framed = av.getTag(R.id.profile_frame_float) != null
-            rad = av.width / 2f * av.scaleX * (if (framed) 1.27f else 1f) + 3f * resources.displayMetrics.density
-        }
-        cut.reset(); cut.addCircle(cx, cy, rad, Path.Direction.CW)
+            // The edge of the picture, or of its border's ring when it has one (measured from the
+            // border itself), then ONE fixed gap, the same at every picture size.
+            val k = av.scaleX
+            val ringFrac = av.getTag(R.id.seal_ring) as? Float
+            val framed = av.getTag(R.id.profile_frame_float) != null && ringFrac != null
+            val edge = if (framed) ringFrac!! * (av.width / com.silvershireinn.app.utils.ProfileFrames.PIC) / 2f * k else av.width / 2f * k
+            rad = edge
+            shapeOf = (av.getTag(R.id.seal_shape) as? com.silvershireinn.app.utils.AvatarShape) ?: com.silvershireinn.app.utils.AvatarShape.CIRCLE
+        } else rad = sealRadius - gap
+        outline(cut, shapeOf, cx, cy, rad, gap)
         c.save()
         if (Build.VERSION.SDK_INT >= 26) c.clipOutPath(cut)
         else @Suppress("DEPRECATION") c.clipPath(cut, Region.Op.DIFFERENCE)
@@ -87,12 +94,36 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
             c.save()
             c.clipPath(shape)
             ring.color = rimColor; ring.strokeWidth = rimWidth
-            c.drawCircle(cx, cy, rad + rimWidth / 2f, ring)
+            outline(rimPath, shapeOf, cx, cy, rad, gap + rimWidth / 2f)
+            c.drawPath(rimPath, ring)
             c.restore()
         }
     }
 
+    private val rimPath = Path()
+
+    /** The picture's own shape around ([cx],[cy]) with half size [h], grown by [grow] all round:
+     *  a circle stays a circle, a square gets a square corner, a diamond a diamond point. */
+    private fun outline(p: Path, s: com.silvershireinn.app.utils.AvatarShape, cx: Float, cy: Float, h: Float, grow: Float) {
+        p.reset()
+        when (s) {
+            com.silvershireinn.app.utils.AvatarShape.CIRCLE -> p.addCircle(cx, cy, h + grow, Path.Direction.CW)
+            com.silvershireinn.app.utils.AvatarShape.ROUNDED_SQUARE, com.silvershireinn.app.utils.AvatarShape.SQUIRCLE -> {
+                val cr = (if (s == com.silvershireinn.app.utils.AvatarShape.SQUIRCLE) 0.34f else 0.22f) * 2 * h + grow
+                val H = h + grow
+                p.addRoundRect(cx - H, cy - H, cx + H, cy + H, cr, cr, Path.Direction.CW)
+            }
+            com.silvershireinn.app.utils.AvatarShape.DIAMOND -> {
+                if (Build.VERSION.SDK_INT < 30) { p.addCircle(cx, cy, h + grow, Path.Direction.CW); return }
+                val v = h + grow * 1.4142f
+                p.moveTo(cx, cy - v); p.lineTo(cx + v, cy); p.lineTo(cx, cy + v); p.lineTo(cx - v, cy); p.close()
+            }
+        }
+    }
+
     companion object {
+        /** The gap between the picture (or its border) and the bubble, at every size. */
+        const val GAP_DP = 3.5f
         const val LEFT = 1; const val RIGHT = 2
         const val NONE = 0; const val ALIGNED = 1; const val SEAL = 2
 

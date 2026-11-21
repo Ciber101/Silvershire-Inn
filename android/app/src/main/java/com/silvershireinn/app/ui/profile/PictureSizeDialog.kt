@@ -112,6 +112,7 @@ object PictureSizeDialog {
         }
         msgRow.addView(msgPic)
         root.addView(msgRow, LinearLayout.LayoutParams(-1, -2))
+        msgPic.setTag(R.id.seal_shape, AvatarShapeHelper.forUser(me))
         fun refreshMsg() {
             SealBubble.place(msgPic, bubble, false, SealBubble.SEAL, PreferenceManager.msgAvatarSize, OrnateTheme.isOn(a))
             ProfileFrames.applyFloating(msgPic, me, reserve = false)

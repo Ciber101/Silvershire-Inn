@@ -494,7 +494,8 @@ class ChatHeadService : Service() {
         // Move sender to tail (newest) and increment their unread count - unless that chat is
         // open in the floating window and scrolled to the bottom (then it's already seen).
         val prev = activeSenders.remove(fromUser) ?: 0
-        val seenNow = overlayView != null && !overlayHiddenForPicker && overlayContact == fromUser && overlayAtBottom
+        // Open in the floating window right now: no number on the head for it (only other chats count)
+        val seenNow = overlayView != null && !overlayHiddenForPicker && overlayContact == fromUser
         activeSenders[fromUser] = if (seenNow) 0 else if (manual) prev else prev + 1
 
         if (bubbleView == null) createBubble()

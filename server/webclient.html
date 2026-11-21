@@ -487,6 +487,9 @@
   .fg-cell.current { outline:2px solid var(--gold); }
   .fg-cell img { width:92px; height:92px; cursor:pointer; }
   .fg-cell .btn { padding:3px 10px; font-size:12px; }
+  .fg-tabs { display:flex; gap:8px; margin:14px 0 8px; }
+  .fg-tabs .fg-tab { flex:1; }
+  .fg-tabs .fg-tab.on { color:var(--gold); border-color:var(--gold-dim); }
   .fg-del { position:absolute; top:2px; right:4px; background:none; border:0; color:var(--text-dim); cursor:pointer; font-size:13px; }
   #meBar .name {
     font-weight:650; color:var(--gold); font-size:15px; letter-spacing:.2px;
@@ -755,7 +758,28 @@
   /* Seal geometry from the picture size (Settings > Picture sizes): half size, how far big
      pictures sit out of the corner, the cut's radius, and the padding that keeps text clear. */
   .msg-row { --mh:calc(var(--av-msg, 30px) / 2); --mo:0px;
-             --mr:calc(var(--mh) + 2.5px); --mneed:calc(var(--mr) * .7071 + 1px - var(--mo)); }
+             --mneed:calc(var(--mr) * .7071 + 1px - var(--mo)); }
+  /* The cut takes the picture's own shape (square -> a corner, diamond -> a point), with the same
+     gap at every size: --avk is the picture's current scale, the gap is fixed. */
+  .msg-row { --gap:3.5px; --mr:calc(var(--mh) * var(--avk, 1) + var(--gap)); }
+  .msg.cut-diamond { --mr:calc(var(--mh) * var(--avk, 1) + var(--gap) * 1.4142); }
+  .msg.seal-l.cut-rounded, .msg.seal-l.cut-squircle, .msg.seal-l.cut-diamond,
+  .msg.seal-r.cut-rounded, .msg.seal-r.cut-squircle, .msg.seal-r.cut-diamond {
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-size:calc(2 * var(--mr)) calc(2 * var(--mr)), 100% 100%; mask-size:calc(2 * var(--mr)) calc(2 * var(--mr)), 100% 100%;
+    -webkit-mask-composite:xor; mask-composite:exclude;
+  }
+  .msg.seal-l.cut-rounded, .msg.seal-l.cut-squircle, .msg.seal-l.cut-diamond {
+    -webkit-mask-position:calc(-1 * var(--mr)) calc(-1 * var(--mr)), 0 0; mask-position:calc(-1 * var(--mr)) calc(-1 * var(--mr)), 0 0; }
+  .msg.seal-r.cut-rounded, .msg.seal-r.cut-squircle, .msg.seal-r.cut-diamond {
+    -webkit-mask-position:calc(100% + var(--mr)) calc(-1 * var(--mr)), 0 0; mask-position:calc(100% + var(--mr)) calc(-1 * var(--mr)), 0 0; }
+  .msg.cut-rounded { -webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2224%22/%3E%3C/svg%3E"), linear-gradient(#000 0 0); mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2224%22/%3E%3C/svg%3E"), linear-gradient(#000 0 0); }
+  .msg.cut-squircle { -webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2236%22/%3E%3C/svg%3E"), linear-gradient(#000 0 0); mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2236%22/%3E%3C/svg%3E"), linear-gradient(#000 0 0); }
+  .msg.cut-diamond { -webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Cpolygon%20points%3D%2250%2C0%20100%2C50%2050%2C100%200%2C50%22/%3E%3C/svg%3E"), linear-gradient(#000 0 0); mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Cpolygon%20points%3D%2250%2C0%20100%2C50%2050%2C100%200%2C50%22/%3E%3C/svg%3E"), linear-gradient(#000 0 0); }
+  .msg.cut-rounded::before { border-radius:24% !important; }
+  .msg.cut-squircle::before { border-radius:36% !important; }
+  .msg.cut-diamond::before { border-radius:3px !important; transform:rotate(45deg) scale(.7071); }
+
   .msg-row > .msg-av { position:relative; z-index:3; margin:var(--fm-v, 0px) calc(var(--mo) - var(--mh)) 0 calc(var(--av-msg, 30px) * .3) !important; }
   .msg-row.mine > .msg-av { margin:var(--fm-v, 0px) calc(var(--av-msg, 30px) * .3) 0 calc(var(--mo) - var(--mh)) !important; }
   .msg-row > .msg.seal-l, .msg-row > .msg.seal-r { margin-top:calc(var(--fm-v, 0px) + var(--mh) + var(--mo)); }
@@ -4030,6 +4054,7 @@ function _fitAvatar(el) {
     }
     // Message pictures: always the same size (the list's scroll edges used to shrink some)
     _fitFrame(el, b, vis / 0.44, [el], { left: cx - A / 2 - mh, right: cx + A / 2 + mh, top, bottom }, msgAv);
+    if (msgAv && el.parentElement) el.parentElement.style.setProperty('--avk', el.style.getPropertyValue('--fit') || '1');   // the cut keeps its gap
   });
 }
 let _refitTimer = 0;
@@ -4151,7 +4176,10 @@ function openFrameGenerator() {
         <button class="btn" type="button" onclick="frameUse('none')">No border</button>
       </div>
       <div class="ss-hint" id="fgNote"></div>
-      <h3 class="fg-title">My borders</h3>
+      <div class="fg-tabs">
+        <button class="btn fg-tab on" type="button" id="fgTabSaved" onclick="_gen.tab = 'saved'; renderSavedFrames()">Saved</button>
+        <button class="btn fg-tab" type="button" id="fgTabHist" onclick="_gen.tab = 'history'; renderSavedFrames()">History (last 10)</button>
+      </div>
       <div class="fg-saved" id="fgSaved"></div>
     </div>`, { sheet: true });
   framePreview();
@@ -4159,7 +4187,11 @@ function openFrameGenerator() {
 }
 function frameGenerate() {
   _gen.id = 'gen:' + _gen.kind + ':' + SilvershireFrames.newSeed();
+  // History: the last 10 borders generated in this browser, newest first
+  const h = (LS.get('frameHistory', []) || []).filter(x => x !== _gen.id);
+  LS.set('frameHistory', [_gen.id, ...h].slice(0, 10));
   framePreview();
+  if (_gen.tab === 'history') renderSavedFrames();
 }
 function framePreview() {
   const c = document.getElementById('fgCanvas'); if (!c) return;
@@ -4201,8 +4233,11 @@ function frameSave(id) {
 function frameRemoveSaved(id) { wsSend({ type: 'remove_saved_frame', frame: id }); }
 function renderSavedFrames() {
   const box = document.getElementById('fgSaved'); if (!box) return;
-  const list = state.savedFrames || [];
-  if (!list.length) { box.innerHTML = '<div class="ss-hint">Borders you save show up here, so you can switch back to them any time.</div>'; return; }
+  const hist = _gen.tab === 'history';
+  const ts = document.getElementById('fgTabSaved'), th = document.getElementById('fgTabHist');
+  if (ts) ts.classList.toggle('on', !hist); if (th) th.classList.toggle('on', hist);
+  const list = hist ? (LS.get('frameHistory', []) || []) : (state.savedFrames || []);
+  if (!list.length) { box.innerHTML = `<div class="ss-hint">${hist ? 'The last 10 borders you generate show up here, so a good one is never lost.' : 'Borders you save show up here, so you can switch back to them any time.'}</div>`; return; }
   box.innerHTML = '';
   const shape = avatarShapeFor(state.me);
   list.forEach(id => {
@@ -4212,7 +4247,11 @@ function renderSavedFrames() {
     const use = document.createElement('button'); use.type = 'button'; use.className = 'btn'; use.textContent = id === state.myFrame ? 'In use' : 'Use';
     use.onclick = () => frameUse(id);
     const del = document.createElement('button'); del.type = 'button'; del.className = 'fg-del'; del.title = 'Remove'; del.innerHTML = ic('close');
-    del.onclick = (e) => { e.stopPropagation(); frameRemoveSaved(id); };
+    del.onclick = (e) => {
+      e.stopPropagation();
+      if (hist) { LS.set('frameHistory', (LS.get('frameHistory', []) || []).filter(x => x !== id)); renderSavedFrames(); }
+      else frameRemoveSaved(id);
+    };
     cell.append(im, use, del); box.appendChild(cell);
     frameDataUrl(id, shape, 256, 'full').then(url => { if (url) im.src = url; });
   });
@@ -4744,6 +4783,8 @@ function renderMessages() {
       av.onclick = (e) => { e.stopPropagation(); if (who !== state.me) openFriendProfile(who); };
       if (!hideAv) {
         el.classList.add(mineAv ? 'seal-r' : 'seal-l');
+        const shp = ((av.className.match(/av-shape-(\w+)/) || [])[1]) || 'circle';
+        el.classList.add('cut-' + shp);
         const sp = document.createElement('span'); sp.className = 'seal-space'; sp.setAttribute('aria-hidden', 'true');
         el.insertBefore(sp, el.firstChild);
       }
