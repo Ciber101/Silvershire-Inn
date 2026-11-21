@@ -761,6 +761,8 @@
              --mneed:calc(var(--mr) * .7071 + 1px - var(--mo)); }
   /* The cut takes the picture's own shape (square -> a corner, diamond -> a point), with the same
      gap at every size: --avk is the picture's current scale, the gap is fixed. */
+  /* room above message pictures is there from the start (it used to arrive with the border: a jump) */
+  .msg-row { --fm-v:round(calc(var(--av-msg, 30px) * .2), 1px); }
   .msg-row { --gap:3.5px; --mr:calc(var(--mh) * var(--avk, 1) + var(--gap)); }
   .msg.cut-diamond { --mr:calc(var(--mh) * var(--avk, 1) + var(--gap) * 1.4142); }
   .msg.seal-l.cut-rounded, .msg.seal-l.cut-squircle, .msg.seal-l.cut-diamond,
@@ -4772,6 +4774,20 @@ function renderMessages() {
     if (cached && cached.sig === sig && cached.conv === c) { desired.push(cached.node); continue; }
     const el = buildMsgEl(m);
     let node = el;
+    // Only the bubble changed (sent -> delivered -> read, server time...): swap just the bubble and
+    // keep the row and picture as they are, so nothing jumps or reloads while a message goes out.
+    const rowSig = [withAv, hideAv, mineAv, who].join('\u0001');
+    if (withAv && cached && cached.conv === c && cached.rowSig === rowSig && cached.row && cached.el && cached.el.parentNode === cached.row) {
+      if (!hideAv) {
+        for (const k of cached.el.classList) if (k.startsWith('cut-') || k === 'seal-l' || k === 'seal-r') el.classList.add(k);
+        const sp = document.createElement('span'); sp.className = 'seal-space'; sp.setAttribute('aria-hidden', 'true');
+        el.insertBefore(sp, el.firstChild);
+      }
+      cached.row.replaceChild(el, cached.el);
+      _msgNodeCache.set(m, { sig, node: cached.row, conv: c, rowSig, row: cached.row, el });
+      desired.push(cached.row);
+      continue;
+    }
     if (withAv) {
       const row = document.createElement('div');
       row.className = 'msg-row';
@@ -4791,6 +4807,9 @@ function renderMessages() {
       if (mineAv) { row.classList.add('mine'); row.appendChild(el); row.appendChild(av); }
       else { row.appendChild(av); row.appendChild(el); }
       node = row;
+      _msgNodeCache.set(m, { sig, node, conv: c, rowSig, row, el });
+      desired.push(node);
+      continue;
     }
     _msgNodeCache.set(m, { sig, node, conv: c });
     desired.push(node);
