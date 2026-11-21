@@ -61,11 +61,13 @@ object OrnateTheme {
         if (!isOn(a)) return
         decorate(root)
         if (listening.add(root)) {
-            var pending = false
+            var busy = false
+            // Right after layout and BEFORE the frame is drawn: new tabs, rows and sheets never
+            // show the plain look for a moment (it used to be applied 250 ms later: a blink).
             root.viewTreeObserver.addOnGlobalLayoutListener {
-                if (pending || !isOn(a)) return@addOnGlobalLayoutListener
-                pending = true
-                root.postDelayed({ pending = false; decorate(root) }, 250)   // new rows, fragments, sheets
+                if (busy || !isOn(a)) return@addOnGlobalLayoutListener
+                busy = true
+                try { decorate(root) } finally { busy = false }
             }
         }
     }

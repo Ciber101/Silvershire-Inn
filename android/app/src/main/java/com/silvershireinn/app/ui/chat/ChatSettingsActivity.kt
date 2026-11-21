@@ -203,6 +203,19 @@ class ChatSettingsActivity : AppCompatActivity() {
         }
 
         // ── Save ──────────────────────────────────────────────────────────────
+        // A floating chat head for this chat (needs "display over other apps")
+        if (com.silvershireinn.app.utils.NotesChat.isNotes(contactUsername)) binding.btnOpenChatHead.visibility = android.view.View.GONE
+        binding.btnOpenChatHead.setOnClickListener {
+            if (android.os.Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(this)) {
+                toast("Allow \"Display over other apps\" for chat heads")
+                try { startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    android.net.Uri.parse("package:$packageName"))) } catch (_: Exception) {}
+                return@setOnClickListener
+            }
+            val gName = intent.getStringExtra(EXTRA_GROUP_NAME)
+            com.silvershireinn.app.ui.chathead.ChatHeadService.openManually(this, contactUsername, gName)
+            toast("Chat head opened")
+        }
         binding.btnSaveChatSettings.setOnClickListener {
             val nickname = binding.etNickname.text?.toString()?.trim() ?: ""
             val muted    = binding.switchMute.isChecked

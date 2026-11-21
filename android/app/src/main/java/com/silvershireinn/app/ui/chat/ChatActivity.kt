@@ -1364,14 +1364,17 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
             if (mime != "silvershire/call") options += "Copy"
         }
 
-        // Delete options for non-deleted messages
+        // Delete options for non-deleted messages (Notes: only you, so one delete)
         if (!msg.isDeleted) {
-            options += "Delete for me"
-            if (msg.isSent && msg.attachmentMime != "silvershire/call") options += "Delete for everyone"
+            if (isNotesChat()) options += "Delete"
+            else {
+                options += "Delete for me"
+                if (msg.isSent && msg.attachmentMime != "silvershire/call") options += "Delete for everyone"
+            }
         }
 
         // Read receipt info (only for sent messages that have been read)
-        if (msg.isSent && msg.isRead) options += "Seen"
+        if (msg.isSent && msg.isRead && !isNotesChat()) options += "Seen"
 
         options += "Export chat"
 
@@ -1390,6 +1393,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                     "Save to phone" -> viewModel.downloadAttachment(this, msg)
                     "Copy"          -> copyAttachmentToClipboard(msg)
                     "Delete for me" -> viewModel.deleteForMe(msg)
+                    "Delete" -> viewModel.deleteNote(msg)
                     "Delete for everyone" -> {
                         MaterialAlertDialogBuilder(this)
                             .setTitle("Delete for everyone?")

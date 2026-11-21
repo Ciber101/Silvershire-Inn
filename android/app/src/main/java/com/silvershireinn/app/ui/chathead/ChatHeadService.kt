@@ -104,6 +104,17 @@ class ChatHeadService : Service() {
         const val EXTRA_GROUP_NAME              = "group_name"
         const val EXTRA_PICKER_URI              = "picker_uri"
         const val EXTRA_PICKER_TEXT             = "picker_text"
+        const val EXTRA_MANUAL                  = "manual"
+
+        /** Chat settings > Open chat head: a head for this chat, no unread count. */
+        fun openManually(context: Context, id: String, groupName: String? = null) {
+            safeStart(context, Intent(context, ChatHeadService::class.java).apply {
+                action = ACTION_SHOW
+                putExtra(EXTRA_USER, id)
+                putExtra(EXTRA_MANUAL, true)
+                if (groupName != null) { putExtra(EXTRA_GROUP_ID, id); putExtra(EXTRA_GROUP_NAME, groupName) }
+            })
+        }
 
         /** Android 8+ refuses startService while the app is in the background; never crash on it. */
         private fun safeStart(context: Context, intent: Intent) {
@@ -320,7 +331,7 @@ class ChatHeadService : Service() {
                 if (groupId != null && groupName != null) {
                     groupExtras[groupId] = groupId to groupName
                 }
-                handleShow(fromUser, preview)
+                handleShow(fromUser, preview, manual = intent.getBooleanExtra(EXTRA_MANUAL, false))
             }
             ACTION_DISMISS -> {
                 val fromUser = intent.getStringExtra(EXTRA_USER) ?: return START_NOT_STICKY
@@ -328,6 +339,7 @@ class ChatHeadService : Service() {
             }
             ACTION_REFRESH_AVATAR, ACTION_REFRESH_CONTACT_AVATAR -> {
                 refreshAllAvatars()
+                updateBubble(refreshAvatars = false)      // size may have changed too
             }
             ACTION_PICKER_RESULT -> {
                 handlePickerResult(intent)
@@ -477,12 +489,12 @@ class ChatHeadService : Service() {
 
     // ── Show / update ─────────────────────────────────────────────────────────
 
-    private fun handleShow(fromUser: String, preview: String) {
+    private fun handleShow(fromUser: String, preview: String, manual: Boolean = false) {
         // Move sender to tail (newest) and increment their unread count - unless that chat is
         // open in the floating window and scrolled to the bottom (then it's already seen).
         val prev = activeSenders.remove(fromUser) ?: 0
         val seenNow = overlayView != null && !overlayHiddenForPicker && overlayContact == fromUser && overlayAtBottom
-        activeSenders[fromUser] = if (seenNow) 0 else prev + 1
+        activeSenders[fromUser] = if (seenNow) 0 else if (manual) prev else prev + 1
 
         if (bubbleView == null) createBubble()
         updateBubble()
@@ -564,6 +576,13 @@ class ChatHeadService : Service() {
 
         val count = listOfNotNull(frontUser, midUser, backUser).size
 
+        // Size (Profile > Chat heads > Size): front head, the ones behind a little smaller
+        run {
+            val s = PreferenceManager.chatHeadSize * dp
+            fun size(v: View, f: Float) { val lp = v.layoutParams; val px = (s * f).toInt(); if (lp.width != px) { lp.width = px; lp.height = px; v.layoutParams = lp } }
+            size(cvFront, 1f); size(cvMid, 50f / 56f); size(cvBack, 44f / 56f)
+        }
+        val step = 14 * dp * PreferenceManager.chatHeadSize / 56f
         // Position avatars dynamically — overlap so earlier senders peek behind
         when (count) {
             1 -> {
@@ -574,15 +593,15 @@ class ChatHeadService : Service() {
             }
             2 -> {
                 // Two senders: mid peeks 14 dp to the left of front
-                cvFront.translationX = 14 * dp
+                cvFront.translationX = step
                 cvMid.translationX   = 0f
                 cvMid.visibility     = View.VISIBLE
                 cvBack.visibility    = View.GONE
             }
             else -> {
                 // Three senders: staggered 14 dp each
-                cvFront.translationX = 28 * dp
-                cvMid.translationX   = 14 * dp
+                cvFront.translationX = step * 2
+                cvMid.translationX   = step
                 cvBack.translationX  = 0f
                 cvMid.visibility     = View.VISIBLE
                 cvBack.visibility    = View.VISIBLE
@@ -771,7 +790,7 @@ class ChatHeadService : Service() {
     private fun layoutBubbleFrames(root: FrameLayout, slots: List<Pair<View, String?>>) {
         val PF = com.silvershireinn.app.utils.ProfileFrames
         val tol = 2 * dp
-        val contentH = 56 * dp
+        val contentH = PreferenceManager.chatHeadSize * dp
         data class S(val cv: View, val iv: ImageView, val a: Float, val full: Float, val d: FloatArray?)
         val live = ArrayList<S>()
         for ((cv, user) in slots) {
@@ -813,9 +832,9 @@ class ChatHeadService : Service() {
             val reach = maxOf((0.5f - d[0]), (d[2] - 0.5f), (0.5f - d[1]), (d[3] - 0.5f)) * s.full - s.a / 2f
             need = maxOf(need, reach + tol)
         }
-        val pad = need.coerceIn(0f, 30 * dp).toInt()
+        val pad = need.coerceIn(0f, contentH * 0.22f).toInt()      // a little room: the border shrinks to fit
         val contentW = slots.filter { it.first.visibility == View.VISIBLE }
-            .maxOfOrNull { it.first.translationX + (it.first.layoutParams?.width ?: 0) } ?: (56 * dp)
+            .maxOfOrNull { it.first.translationX + (it.first.layoutParams?.width ?: 0) } ?: contentH
         val w = (contentW + 2 * pad).toInt(); val h = (contentH + 2 * pad).toInt()
         for (s in live) {
             val d = s.d

@@ -196,7 +196,12 @@ object ProfileFrames {
             if (nt > 0) k = minOf(k, (cy - top) / nt)
             if (nb > 0) k = minOf(k, (bottom - cy) / nb)
             k = k.coerceIn(0.3f, 1f)
-            if (kotlin.math.abs(v.scaleX - k) > 0.01f) { v.post { v.scaleX = k; v.scaleY = k } }   // picture shrinks with its border
+            if (kotlin.math.abs(v.scaleX - k) > 0.01f) {
+                v.post {
+                    v.scaleX = k; v.scaleY = k                    // picture shrinks with its border
+                    (v.parent as? ViewGroup)?.let { p -> for (i in 0 until p.childCount) p.getChildAt(i).invalidate() }   // bubble cuts follow it
+                }
+            }
             val size = full * k
             dst.set((cx - size / 2).toInt(), (cy - size / 2).toInt(), (cx + size / 2).toInt(), (cy + size / 2).toInt())
             paint.alpha = (v.alpha * 255).toInt()

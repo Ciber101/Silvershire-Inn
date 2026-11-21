@@ -83,7 +83,7 @@
             android:name=".LauncherAliasEmber"
             android:enabled="false"
             android:exported="true"
-            android:icon="@drawable/ic_flame"
+            android:icon="@mipmap/ic_launcher"
             android:label="${appLabel}"
             android:targetActivity=".ui.splash.SplashActivity">
             <intent-filter>
@@ -95,7 +95,7 @@
             android:name=".LauncherAliasNight"
             android:enabled="false"
             android:exported="true"
-            android:icon="@drawable/ic_flame"
+            android:icon="@mipmap/ic_launcher"
             android:label="${appLabel}"
             android:targetActivity=".ui.splash.SplashActivity">
             <intent-filter>

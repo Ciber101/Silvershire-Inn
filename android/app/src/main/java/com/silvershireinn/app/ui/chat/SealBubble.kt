@@ -29,6 +29,9 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
     private var sealOffset = 0f
     private var rimColor = 0
     private var rimWidth = 0f
+    /** The picture this bubble's cut follows: the cut is drawn from where (and how big) the
+     *  picture really is, so the arc always lines up with it, at any size or border scale. */
+    var sealAvatar: View? = null
     private val maxW: Int
     private val cut = Path()
     private val shape = Path()
@@ -60,9 +63,16 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
 
     override fun draw(c: Canvas) {
         if (sealCorner == 0 || sealRadius <= 0f || width == 0) { super.draw(c); return }
-        val cx = if (sealCorner == LEFT) -sealOffset else width + sealOffset
-        val cy = -sealOffset
-        cut.reset(); cut.addCircle(cx, cy, sealRadius, Path.Direction.CW)
+        var cx = if (sealCorner == LEFT) -sealOffset else width + sealOffset
+        var cy = -sealOffset
+        var rad = sealRadius
+        val av = sealAvatar
+        if (av != null && av.parent === parent && av.width > 0) {
+            cx = av.left + av.translationX + av.width / 2f - (left + translationX)
+            cy = av.top + av.translationY + av.height / 2f - (top + translationY)
+            rad = av.width / 2f * av.scaleX + 2.5f * resources.displayMetrics.density
+        }
+        cut.reset(); cut.addCircle(cx, cy, rad, Path.Direction.CW)
         c.save()
         if (Build.VERSION.SDK_INT >= 26) c.clipOutPath(cut)
         else @Suppress("DEPRECATION") c.clipPath(cut, Region.Op.DIFFERENCE)
@@ -75,7 +85,7 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
             c.save()
             c.clipPath(shape)
             ring.color = rimColor; ring.strokeWidth = rimWidth
-            c.drawCircle(cx, cy, sealRadius + rimWidth / 2f, ring)
+            c.drawCircle(cx, cy, rad + rimWidth / 2f, ring)
             c.restore()
         }
     }
@@ -95,7 +105,7 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
             val d = frame.resources.displayMetrics.density
             val a = (sizeDp * d).toInt()
             val half = a / 2f
-            val o = max(0f, half - 15 * d) * 0.55f
+            val o = 0f                  // the picture sits right on the corner (the cut follows the real picture)
             val roomTop = max(6 * d, a * 0.15f + 2 * d).toInt()       // above the picture, for its border
             (frame.layoutParams as? FrameLayout.LayoutParams)?.let { flp ->
                 if (flp.width != a || flp.height != a || flp.topMargin != roomTop) {
@@ -118,11 +128,12 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
             val orig = (b.getTag(R.id.seal_padding) as? IntArray)
                 ?: intArrayOf(b.paddingLeft, b.paddingTop, b.paddingRight, b.paddingBottom).also { b.setTag(R.id.seal_padding, it) }
             val radius = half + 2.5f * d
+            b.sealAvatar = frame
             if (state == SEAL) {
-                val need = (radius / sqrt(2f) + 1 * d - o).toInt()
-                val padTop = max(orig[1], need)
-                val padSide = max(if (mine) orig[2] else orig[0], need)
-                b.setPadding(if (!mine) padSide else orig[0], padTop, if (mine) padSide else orig[2], orig[3])
+                // Nothing of the picture or its border ever sits on the text: the border may reach
+                // 0.15 x the size below the picture, so the content starts under all of it.
+                val clearY = (half - o + a * 0.15f + 3 * d).toInt()
+                b.setPadding(orig[0], max(orig[1], clearY), orig[2], orig[3])
                 val rim = if (!ornate) 0xFF3C3C42.toInt() else if (mine) 0xFF8C6A2A.toInt() else 0xFF6E7078.toInt()
                 b.setSeal(if (mine) RIGHT else LEFT, radius, rim, 1.5f * d, o)
             } else {

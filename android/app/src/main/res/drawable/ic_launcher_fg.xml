@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon art: the flame, sized to sit fully inside the icon's safe circle (66 of 108 dp) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_flame" android:width="40dp" android:height="54dp" android:gravity="center" />
+</layer-list>

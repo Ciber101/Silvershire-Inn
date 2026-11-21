@@ -85,9 +85,9 @@ object PictureSizeDialog {
             listRow.invalidate()
         }
         root.addView(SeekBar(a).apply {
-            max = 120 - 40; progress = PreferenceManager.listAvatarSize - 40
+            max = 120 - 48; progress = PreferenceManager.listAvatarSize - 48
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) { PreferenceManager.listAvatarSize = p + 40; refreshList() } }
+                override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) { PreferenceManager.listAvatarSize = p + 48; refreshList() } }
                 override fun onStartTrackingTouch(s: SeekBar?) {}
                 override fun onStopTrackingTouch(s: SeekBar?) {}
             })
@@ -118,9 +118,9 @@ object PictureSizeDialog {
             msgRow.invalidate()
         }
         root.addView(SeekBar(a).apply {
-            max = 110 - 24; progress = PreferenceManager.msgAvatarSize - 24
+            max = 110 - 30; progress = PreferenceManager.msgAvatarSize - 30
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) { PreferenceManager.msgAvatarSize = p + 24; refreshMsg() } }
+                override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { if (fromUser) { PreferenceManager.msgAvatarSize = p + 30; refreshMsg() } }
                 override fun onStartTrackingTouch(s: SeekBar?) {}
                 override fun onStopTrackingTouch(s: SeekBar?) {}
             })
@@ -132,7 +132,7 @@ object PictureSizeDialog {
             .setView(scroll)
             .setPositiveButton("Done", null)
             .setNeutralButton("Reset") { _, _ ->
-                PreferenceManager.listAvatarSize = 56; PreferenceManager.msgAvatarSize = 72
+                PreferenceManager.listAvatarSize = 48; PreferenceManager.msgAvatarSize = 30
                 a.sendBroadcast(Intent("com.silvershireinn.PROFILE_UPDATED").setPackage(a.packageName))
             }
             .setOnDismissListener {

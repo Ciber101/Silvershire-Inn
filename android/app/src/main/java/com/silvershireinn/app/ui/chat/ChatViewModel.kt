@@ -218,6 +218,15 @@ class ChatViewModel(val contactUsername: String) : ViewModel() {
     }
 
     /** Delete just for the local user - no server round-trip needed */
+    /** Notes: there is only you, so a delete removes it everywhere (no "Message deleted" left). */
+    fun deleteNote(msg: com.silvershireinn.app.model.Message) {
+        viewModelScope.launch {
+            repo.deleteMessage(msg.messageId)
+            WebSocketManager.sendRaw(org.json.JSONObject().put("type", "delete_message").put("to", contactUsername)
+                .put("messageId", msg.messageId).put("deleteForEveryone", true).toString())
+        }
+    }
+
     fun deleteForMe(msg: com.silvershireinn.app.model.Message) {
         viewModelScope.launch { repo.markDeleted(msg.messageId) }
     }

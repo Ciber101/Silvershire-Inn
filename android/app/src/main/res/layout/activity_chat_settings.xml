@@ -436,6 +436,19 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- Open a floating chat head for this chat -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenChatHead"
+                style="@style/Widget.Silvershire.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="52dp"
+                android:text="Open chat head"
+                app:icon="@drawable/ic_chat"
+                app:iconGravity="textStart"
+                app:iconTint="@color/color_gold"
+                app:cornerRadius="12dp"
+                android:layout_marginTop="8dp" />
+
             <!-- Save button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSaveChatSettings"

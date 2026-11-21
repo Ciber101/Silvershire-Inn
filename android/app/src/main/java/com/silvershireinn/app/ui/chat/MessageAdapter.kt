@@ -94,7 +94,7 @@ class MessageAdapter(
         if (mine && !PreferenceManager.showMyAvatar) { frame.visibility = View.GONE; placeSeal(frame, bubble, mine, NONE); return }
         if (!mine && mode == 2) { frame.visibility = View.GONE; placeSeal(frame, bubble, mine, NONE); return }
         val user = if (mine) PreferenceManager.username else msg.fromUser.ifBlank { contactUsername }
-        if (mode == 1) {
+        if (mode == 1 || mine) {      // your own picture: once per run, always
             // The seal goes on the FIRST message of a run (it sits on the top corner)
             val prev = if (position > 0) getItem(position - 1) else null
             val sameRun = prev != null && !isSystemMessage(prev) &&
@@ -1096,7 +1096,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                         thumbJob = loadVideoThumbnail(msg, binding.ivMediaPreview)
                     }
                 }
-                binding.frameMediaPreview.setOnClickListener { onTapMedia(msg) }
+                binding.frameMediaPreview.setOnClickListener { onTapMedia(msg) }; binding.frameMediaPreview.setOnLongClickListener { onLongPress(msg); true }   // hold a picture: options (delete...)
                 binding.btnDownloadAttachment.visibility = View.GONE   // tapping the picture / video opens it
             } else {
                 binding.frameMediaPreview.visibility = View.GONE; binding.rowFileInfo.visibility = View.VISIBLE
@@ -1149,7 +1149,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                         thumbJob = loadVideoThumbnail(msg, binding.ivMediaPreview)
                     }
                 }
-                binding.frameMediaPreview.setOnClickListener { onTapMedia(msg) }
+                binding.frameMediaPreview.setOnClickListener { onTapMedia(msg) }; binding.frameMediaPreview.setOnLongClickListener { onLongPress(msg); true }   // hold a picture: options (delete...)
                 binding.btnDownloadAttachment.visibility = View.GONE   // tapping the picture / video opens it
             } else {
                 binding.frameMediaPreview.visibility = View.GONE; binding.rowFileInfo.visibility = View.VISIBLE

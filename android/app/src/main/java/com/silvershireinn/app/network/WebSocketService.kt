@@ -1189,7 +1189,12 @@ class WebSocketService : Service() {
             }
             "message_deleted" -> {
                 val messageId = json.optString("messageId")
-                if (messageId.isNotBlank()) messageRepo.markDeleted(messageId)
+                if (messageId.isNotBlank()) {
+                    // Notes (a chat with yourself): gone for good, no "Message deleted" left behind
+                    val m = messageRepo.getMessageById(messageId)
+                    if (m != null && m.conversationId == PreferenceManager.username) messageRepo.deleteMessage(messageId)
+                    else messageRepo.markDeleted(messageId)
+                }
             }
 
             // ── Incoming profile picture update ───────────────────────────────

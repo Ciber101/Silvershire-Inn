@@ -754,10 +754,10 @@
      around it and its edge follows the cut. Room for the picture's border is kept around it. */
   /* Seal geometry from the picture size (Settings > Picture sizes): half size, how far big
      pictures sit out of the corner, the cut's radius, and the padding that keeps text clear. */
-  .msg-row { --mh:calc(var(--av-msg, 48px) / 2); --mo:max(0px, calc((var(--mh) - 15px) * .55));
+  .msg-row { --mh:calc(var(--av-msg, 30px) / 2); --mo:0px;
              --mr:calc(var(--mh) + 2.5px); --mneed:calc(var(--mr) * .7071 + 1px - var(--mo)); }
-  .msg-row > .msg-av { position:relative; z-index:3; margin:var(--fm-v, 0px) calc(var(--mo) - var(--mh)) 0 calc(var(--av-msg, 48px) * .3) !important; }
-  .msg-row.mine > .msg-av { margin:var(--fm-v, 0px) calc(var(--av-msg, 48px) * .3) 0 calc(var(--mo) - var(--mh)) !important; }
+  .msg-row > .msg-av { position:relative; z-index:3; margin:var(--fm-v, 0px) calc(var(--mo) - var(--mh)) 0 calc(var(--av-msg, 30px) * .3) !important; }
+  .msg-row.mine > .msg-av { margin:var(--fm-v, 0px) calc(var(--av-msg, 30px) * .3) 0 calc(var(--mo) - var(--mh)) !important; }
   .msg-row > .msg.seal-l, .msg-row > .msg.seal-r { margin-top:calc(var(--fm-v, 0px) + var(--mh) + var(--mo)); }
   .msg.seal-l { -webkit-mask:radial-gradient(circle at calc(-1 * var(--mo)) calc(-1 * var(--mo)), transparent var(--mr), #000 calc(var(--mr) + .5px));
                 mask:radial-gradient(circle at calc(-1 * var(--mo)) calc(-1 * var(--mo)), transparent var(--mr), #000 calc(var(--mr) + .5px)); }
@@ -770,10 +770,13 @@
   }
   .msg.seal-l::before { left:calc(-1 * (var(--mo) + var(--mr) + 1.5px)); }
   .msg.seal-r::before { right:calc(-1 * (var(--mo) + var(--mr) + 1.5px)); }
-  .msg.seal-l, .msg.seal-r { padding-top:max(10px, var(--mneed)); }      /* the first line stays clear of the cut */
-  .msg.seal-l { padding-left:max(14px, var(--mneed)); }
-  .msg.seal-r { padding-right:max(14px, var(--mneed)); }
-  .msg-av { width:var(--av-msg, 48px); height:var(--av-msg, 48px); flex:0 0 var(--av-msg, 48px); font-size:calc(var(--av-msg, 48px) * .38); cursor:pointer; }
+  /* Nothing of the picture or its border sits on the text: an invisible block the size of the
+     picture's corner (and its border's room) that the text flows around. */
+  .msg.seal-l, .msg.seal-r { display:flow-root; }
+  .msg > .seal-space { width:calc(var(--mh) + var(--av-msg, 30px) * .3 - 12px); height:calc(var(--mh) + var(--av-msg, 30px) * .2 - 7px); }
+  .msg.seal-l > .seal-space { float:left; margin-right:4px; }
+  .msg.seal-r > .seal-space { float:right; margin-left:4px; }
+  .msg-av { width:var(--av-msg, 30px); height:var(--av-msg, 30px); flex:0 0 var(--av-msg, 30px); font-size:calc(var(--av-msg, 30px) * .38); cursor:pointer; }
   /* Picture sizes (Settings > Picture sizes) */
   #meBar #meAvatar { width:var(--av-me, 44px); height:var(--av-me, 44px); font-size:calc(var(--av-me, 44px) * .38); }
   #chatHeader #chAvatar { width:var(--av-head, 44px); height:var(--av-head, 44px); font-size:calc(var(--av-head, 44px) * .38); }
@@ -917,6 +920,10 @@
   #lightbox.visible { display:flex; }
   #lightbox img { max-width:92vw; max-height:84vh; border-radius:8px; }
   #lightbox .lb-actions { display:flex; gap:14px; }
+  /* Notes PIN / password box: big, clear, with a visible caret and dots */
+  .modal input.nl-input, body.theme-ornate .modal input.nl-input[type=password] { width:100%; box-sizing:border-box; font-size:22px; letter-spacing:6px; padding:12px 14px;
+    background:#0e0f11; color:#fff; caret-color:var(--gold); border:1.5px solid var(--gold-dim); border-radius:10px; text-align:center; }
+  .modal input.nl-input:focus, body.theme-ornate .modal input.nl-input[type=password]:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.18); }
   /* ── Photo editor (from the viewer): crop, rotate, filters, adjust, draw, text ── */
   #imgEditor { position:fixed; inset:0; z-index:420; background:#0b0b0d; display:none; flex-direction:column; color:#eee; }
   #imgEditor.visible { display:flex; }
@@ -930,6 +937,7 @@
   #imgEditor button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:10px;
     padding:8px 12px; font-size:13px; display:inline-flex; align-items:center; justify-content:center; gap:6px; line-height:1; }
   #imgEditor button.on, #imgEditor .ed-tabs button.on { color:var(--gold); border-color:var(--gold-dim); }
+  #imgEditor button:disabled { opacity:.3; cursor:default; }
   #imgEditor button.primary { background:var(--gold); color:var(--on-accent); border-color:var(--gold); }
   #imgEditor .sw { width:26px; height:26px; padding:0; border-radius:50%; border:2px solid #444; }
   #imgEditor .sw.on { border-color:#fff; }
@@ -1564,7 +1572,8 @@
 <div id="imgEditor" aria-label="Edit photo">
   <div class="ed-top">
     <button onclick="closeImageEditor()">Cancel</button>
-    <button onclick="edUndo()" title="Undo" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-reply"/></svg></button>
+    <button id="edUndoBtn" onclick="edUndo()" title="Undo" aria-label="Undo" disabled><svg class="ic" aria-hidden="true"><use href="#i-reply"/></svg></button>
+    <button id="edRedoBtn" onclick="edRedo()" title="Redo" aria-label="Redo" disabled><svg class="ic" aria-hidden="true"><use href="#i-forward"/></svg></button>
     <div class="grow">Edit photo</div>
     <button onclick="edExport('download')"><svg class="ic inl" aria-hidden="true"><use href="#i-download"/></svg>Download</button>
     <button class="primary" onclick="edExport('send')"><svg class="ic inl" aria-hidden="true"><use href="#i-send"/></svg>Send</button>
@@ -2183,8 +2192,8 @@ function applyBrandedName() {
   if (typeof updateTitle === 'function') updateTitle();
   else document.title = name;
 }
-const AV_SIZES = { avMe: ['--av-me', 44, 32, 96, 'My picture (top left)'], avHead: ['--av-head', 44, 32, 96, "Friend's picture (top of the chat)"],
-  avList: ['--av-list', 42, 32, 96, 'Pictures in the chats list'], avMsg: ['--av-msg', 48, 24, 110, 'Pictures on message bubbles'] };
+const AV_SIZES = { avMe: ['--av-me', 44, 44, 110, 'My picture (top left)'], avHead: ['--av-head', 44, 44, 110, "Friend's picture (top of the chat)"],
+  avList: ['--av-list', 42, 42, 110, 'Pictures in the chats list'], avMsg: ['--av-msg', 30, 30, 110, 'Pictures on message bubbles'] };
 function applyPrefs() {
   const p = state.prefs || {};
   const r = document.documentElement.style;
@@ -2951,6 +2960,9 @@ async function handleServerMessage(msg) {
         }
         applyOwnPresenceFromSettings(msg.settings);
         NotesLockW.apply(msg.settings && msg.settings.notesLock);
+        if (msg.settings && typeof msg.settings.showMyAvatar === 'boolean' && state.prefs.showMyAvatar === undefined) {
+          state.prefs.showMyAvatar = msg.settings.showMyAvatar; LS.set('prefs', state.prefs);   // same as on the phone
+        }
         if (msg.displayName) state.displayNames[state.me] = msg.displayName;   // set on any device
         if (msg.settings && typeof msg.settings.bannerHiddenFromContacts === 'boolean') {
           state.prefs.bannerVisibleToContacts = !msg.settings.bannerHiddenFromContacts;
@@ -3181,8 +3193,10 @@ async function handleServerMessage(msg) {
       for (const u of Object.keys(state.msgs)) {
         const m = state.msgs[u].find(x => x.messageId === msg.messageId);
         if (m) {
-          m.deleted = true; m.text = null; m.att = null;   // nothing readable left behind
+          if (isNotes(u)) state.msgs[u] = state.msgs[u].filter(x => x !== m);   // Notes: gone, no placeholder
+          else { m.deleted = true; m.text = null; m.att = null; }   // nothing readable left behind
           if (state.current === u) renderMessages();
+          renderContacts();
           break;
         }
       }
@@ -3968,13 +3982,13 @@ function _clipRectOf(el) {
 /** Shrink a framed picture (picture and border together) until the border's drawn area fits
  *  inside its box with a few pixels to spare. [frameEl] is the element the border is drawn on
  *  (null = the avatar's own ::after), [scaleEls] are scaled together. */
-function _fitFrame(anchor, bounds, frameSize, scaleEls, ownBox) {
+function _fitFrame(anchor, bounds, frameSize, scaleEls, ownBox, onlyOwn) {
   if (!anchor || !bounds || !anchor.isConnected) return;
   const rect = anchor.getBoundingClientRect();
   if (!rect.width) return;
   const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
   const need = { l: (0.5 - bounds.x0) * frameSize, r: (bounds.x1 - 0.5) * frameSize, t: (0.5 - bounds.y0) * frameSize, b: (bounds.y1 - 0.5) * frameSize };
-  const box = _clipRectOf(anchor), tol = ownBox ? 2 : 4;
+  const box = onlyOwn && ownBox ? { ...ownBox } : _clipRectOf(anchor), tol = ownBox ? 2 : 4;
   if (ownBox) {   // nothing may overlap anything: the border stays in the room kept around its picture
     box.left = Math.max(box.left, ownBox.left); box.right = Math.min(box.right, ownBox.right);
     box.top = Math.max(box.top, ownBox.top); box.bottom = Math.min(box.bottom, ownBox.bottom);
@@ -3994,12 +4008,23 @@ function _fitAvatar(el) {
   // Room kept around the picture (margins) for its border; the border never reaches past it,
   // so it never covers names, bubbles or other pictures.
   const vis = diamond ? A * 1.414 : A, ex = (vis - A) / 2;     // a diamond's corners already reach past its box
-  const mh = Math.round(ex + A * 0.3), mv = Math.round(ex + A * 0.2);
+  const msgAv = el.classList.contains('msg-av');
+  // Messages keep room above for the seal's border; elsewhere only a little (the border may use
+  // the bar / row it sits in, never more), so there is no big empty band above and below.
+  const mh = Math.round(ex + A * 0.3), mv = Math.round(ex + A * (msgAv ? 0.2 : 0.05));
   el.style.setProperty('--fm-h', mh + 'px'); el.style.setProperty('--fm-v', mv + 'px');
-  if (el.classList.contains('msg-av') && el.parentElement) el.parentElement.style.setProperty('--fm-v', mv + 'px');   // its bubble lines up with it
+  if (msgAv && el.parentElement) el.parentElement.style.setProperty('--fm-v', mv + 'px');   // its bubble lines up with it
   requestAnimationFrame(() => {
     const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    _fitFrame(el, b, vis / 0.44, [el], { left: cx - A / 2 - mh, right: cx + A / 2 + mh, top: cy - A / 2 - mv, bottom: cy + A / 2 + mv });
+    const k = parseFloat(el.style.getPropertyValue('--fit')) || 1;
+    const half = (r.width / k) / 2;               // unscaled half size
+    let top = cy - half - mv, bottom = cy + half + mv;
+    if (!msgAv && el.parentElement) {           // the row / bar it sits in
+      const pr = el.parentElement.getBoundingClientRect();
+      top = Math.max(cy - half - A * 0.3, pr.top + 1); bottom = Math.min(cy + half + A * 0.3, pr.bottom - 1);
+    }
+    // Message pictures: always the same size (the list's scroll edges used to shrink some)
+    _fitFrame(el, b, vis / 0.44, [el], { left: cx - A / 2 - mh, right: cx + A / 2 + mh, top, bottom }, msgAv);
   });
 }
 let _refitTimer = 0;
@@ -4528,7 +4553,7 @@ const NotesLockW = {
     showModal(`<button class="close-x" onclick="closeModal()" aria-label="Close">${ic('close')}</button>
       <h2>${ic('lock', 'inl')}Open Notes</h2>
       <p style="color:var(--text-dim);margin:6px 0 12px">${pin ? 'Enter your Notes PIN' : 'Enter your Notes password'} (set on your phone).</p>
-      <input type="password" id="nlIn" ${pin ? 'inputmode="numeric" autocomplete="off"' : 'autocomplete="off"'} style="width:100%">
+      <input type="password" id="nlIn" class="nl-input" ${pin ? 'inputmode="numeric" autocomplete="off"' : 'autocomplete="off"'}>
       <div id="nlErr" style="color:var(--danger);min-height:18px;margin-top:6px"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
         <button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="nlGo">Open</button>
@@ -4694,7 +4719,7 @@ function renderMessages() {
     const who = m.sent ? state.me : (m.from || c);
     // The picture is set into the FIRST bubble of a run (top corner, like a seal)
     const pv = list[i - 1];
-    const hideAv = withAv && avMode === 1 && pv && !pv.sys && (mineAv ? pv.sent : (!pv.sent && (pv.from || c) === who));
+    const hideAv = withAv && (avMode === 1 || mineAv) && pv && !pv.sys && (mineAv ? pv.sent : (!pv.sent && (pv.from || c) === who));
     const sig = [m.ts, m.deleted, m.locked, m.text, m.att && m.att.fileId, m.att && m.att.name, m.pending,
       m.serverAck, m.delivered, m.read, m.failed, withAv, hideAv, mineAv, clockKey, state.lockedPeers.has(m.from),
       m.group ? displayName(m.from) : ''].join('\u0001');
@@ -4711,7 +4736,11 @@ function renderMessages() {
       if (hideAv) av.classList.add('hidden-av');
       else renderAvatar(av, who);
       av.onclick = (e) => { e.stopPropagation(); if (who !== state.me) openFriendProfile(who); };
-      if (!hideAv) el.classList.add(mineAv ? 'seal-r' : 'seal-l');
+      if (!hideAv) {
+        el.classList.add(mineAv ? 'seal-r' : 'seal-l');
+        const sp = document.createElement('span'); sp.className = 'seal-space'; sp.setAttribute('aria-hidden', 'true');
+        el.insertBefore(sp, el.firstChild);
+      }
       if (mineAv) { row.classList.add('mine'); row.appendChild(el); row.appendChild(av); }
       else { row.appendChild(av); row.appendChild(el); }
       node = row;
@@ -5148,6 +5177,27 @@ function showCtxMenu(e, m) {
     b.onclick = () => { hideCtxMenu(); fn(); };
     menu.appendChild(b);
   };
+  if (isNotes(state.current)) {
+    // Notes: only you, so one delete (removed everywhere, nothing left behind)
+    if (m.text) add('📋 Copy', () => navigator.clipboard.writeText(m.text).then(() => toast('Copied')));
+    add('↩ Reply', () => setReply(m));
+    add('↪ Forward', () => openForwardModal(m));
+    if (m.att?.fileId) add('⬇ Download', () => {
+      if (MediaE2E.isEnc(m.att)) { MediaE2E.download(m.att); return; }
+      const a = document.createElement('a'); a.href = fileUrl(m.att.fileId); a.download = m.att.name; a.click();
+    });
+    add('🗑 Delete', () => {
+      const conv = state.current;
+      state.msgs[conv] = (state.msgs[conv] || []).filter(x => x !== m);
+      renderMessages(); renderContacts();
+      if (m.serverAck || !m.pending) wsSend({ type: 'delete_message', to: conv, messageId: m.messageId, deleteForEveryone: true });
+    }, true);
+    menu.style.display = 'block';
+    const mw0 = 190, mh0 = menu.offsetHeight || 200;
+    menu.style.left = Math.min(e.clientX, innerWidth - mw0 - 8) + 'px';
+    menu.style.top  = Math.min(e.clientY, innerHeight - mh0 - 8) + 'px';
+    return;
+  }
   if (m.text) add('📋 Copy', () => navigator.clipboard.writeText(m.text).then(() => toast('Copied')));
   add('↩ Reply', () => setReply(m));
   add('↪ Forward', () => openForwardModal(m));
@@ -5576,7 +5626,8 @@ function openImageEditor() {
     c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
     Object.assign(ImgEd, { base: c, crop: { x: 0, y: 0, w: c.width, h: c.height }, filter: 'None', adj: { b: 100, c: 100, s: 100 },
-      strokes: [], texts: [], hist: [], tool: 'crop', aspect: 0, drag: null });
+      strokes: [], texts: [], hist: [], redo: [], tool: 'crop', aspect: 0, drag: null });
+    edSyncBtns();
     document.getElementById('imgEditor').classList.add('visible');
     edBuildTabs(); edSetTool('crop');
     requestAnimationFrame(edRender);
@@ -5586,15 +5637,32 @@ function openImageEditor() {
 }
 function closeImageEditor() { document.getElementById('imgEditor').classList.remove('visible'); ImgEd.base = null; }
 
+function edSnap() {
+  return { base: ImgEd.base, crop: { ...ImgEd.crop }, filter: ImgEd.filter, adj: { ...ImgEd.adj },
+    strokes: ImgEd.strokes.slice(), texts: ImgEd.texts.map(t => ({ ...t })) };
+}
 function edPush() {
-  ImgEd.hist.push({ base: ImgEd.base, crop: { ...ImgEd.crop }, filter: ImgEd.filter, adj: { ...ImgEd.adj },
-    strokes: ImgEd.strokes.slice(), texts: ImgEd.texts.map(t => ({ ...t })) });
+  ImgEd.hist.push(edSnap());
   if (ImgEd.hist.length > 40) ImgEd.hist.shift();
+  ImgEd.redo = [];                    // a new change ends the redo trail
+  edSyncBtns();
+}
+function edSyncBtns() {
+  const u = document.getElementById('edUndoBtn'), r = document.getElementById('edRedoBtn');
+  if (u) u.disabled = !ImgEd.hist.length;
+  if (r) r.disabled = !(ImgEd.redo && ImgEd.redo.length);
 }
 function edUndo() {
   const h = ImgEd.hist.pop();
-  if (!h) { toast('Nothing to undo'); return; }
-  Object.assign(ImgEd, h); edSetTool(ImgEd.tool);
+  if (!h) return;
+  (ImgEd.redo = ImgEd.redo || []).push(edSnap());
+  Object.assign(ImgEd, h); edSetTool(ImgEd.tool); edSyncBtns();
+}
+function edRedo() {
+  const h = ImgEd.redo && ImgEd.redo.pop();
+  if (!h) return;
+  ImgEd.hist.push(edSnap());
+  Object.assign(ImgEd, h); edSetTool(ImgEd.tool); edSyncBtns();
 }
 function edFilterCss() {
   const a = ImgEd.adj;
@@ -5781,7 +5849,14 @@ function edSetTool(t) {
     }
     ImgEd.crop = edClampCrop(c); edRender();
   });
-  const end = () => { ImgEd.drag = null; };
+  const end = () => {
+    // a tap that changed nothing leaves nothing to undo
+    const d = ImgEd.drag, last = ImgEd.hist[ImgEd.hist.length - 1];
+    if (d && d.kind !== 'draw' && last && JSON.stringify([last.crop, last.texts]) === JSON.stringify([ImgEd.crop, ImgEd.texts])) {
+      ImgEd.hist.pop(); edSyncBtns();
+    }
+    ImgEd.drag = null;
+  };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
   window.addEventListener('resize', () => { if (document.getElementById('imgEditor').classList.contains('visible')) edRender(); });
 })();
@@ -6903,6 +6978,7 @@ function setPref(k, v) {
   // rebuild the whole chat on every step).
   if (state.current && (k === 'chatAvatarMode' || k === 'showMyAvatar' || k === 'clock24' || k === 'fullTimestamps')) queueRender();
   if (k === 'notesChat') renderContacts();
+  if (k === 'showMyAvatar') wsSend({ type: 'save_settings', settings: { showMyAvatar: !!v } });   // same on the phone
   if (k in AV_SIZES) {
     const pv = document.getElementById('prev_' + k);
     if (pv) { pv.style.width = pv.style.height = v + 'px'; }

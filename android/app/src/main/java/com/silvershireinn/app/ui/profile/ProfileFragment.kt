@@ -495,6 +495,21 @@ class ProfileFragment : Fragment() {
             override fun onStopTrackingTouch(sb: SeekBar?)  {}
         })
 
+        // ── Chat head size (40-96 dp) ─────────────────────────────────────────
+        binding.seekbarChatHeadSize.progress = PreferenceManager.chatHeadSize - 40
+        binding.tvChatHeadSizeLabel.text = "${PreferenceManager.chatHeadSize}dp"
+        binding.seekbarChatHeadSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                PreferenceManager.chatHeadSize = progress + 40
+                binding.tvChatHeadSizeLabel.text = "${progress + 40}dp"
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {
+                com.silvershireinn.app.ui.chathead.ChatHeadService.refreshAvatar(requireContext(), PreferenceManager.profilePicturePath)
+            }
+        })
+
         // ── Chat head dismiss-on-tap toggle ───────────────────────────────────
         binding.switchChatHeadDismissOnTap.isChecked = PreferenceManager.chatHeadDismissOnTap
         binding.switchChatHeadDismissOnTap.setOnCheckedChangeListener { _, checked ->
@@ -511,7 +526,7 @@ class ProfileFragment : Fragment() {
         binding.rowChatHeadShape.setOnClickListener {
             val items = com.silvershireinn.app.utils.AvatarShape.values()
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Chat head shape")
+                .setTitle("My picture shape")
                 .setItems(items.map { it.label() }.toTypedArray()) { _, which ->
                     val chosen = items[which]
                     PreferenceManager.chatHeadShape = chosen.prefKey()

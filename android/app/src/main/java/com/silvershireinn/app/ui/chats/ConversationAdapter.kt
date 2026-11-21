@@ -87,7 +87,7 @@ class ConversationAdapter(
                 com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(avatarCircle, shape)
                 com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(ivContactPic, shape)
             }
-            com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatarCircle, if (isGroup) null else conv.contactUsername, dot = onlineDot)
+            com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatarCircle, if (isGroup) null else conv.contactUsername)
             val picFile = when {
                 isGroup -> null
                 isNotes -> com.silvershireinn.app.utils.ProfileMediaHelper.findOwnProfilePic(holder.itemView.context)
@@ -101,8 +101,10 @@ class ConversationAdapter(
                 if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(path)) {
                     // Video portrait: first frame decoded off the main thread (it was decoded
                     // during scrolling, a visible stutter on cheap phones).
-                    ivContactPic.setImageDrawable(null)
-                    com.silvershireinn.app.SilvershireApp.appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    // Already decoded once: show it at once (switching tabs used to blink the pictures)
+                    val cachedFrame = com.silvershireinn.app.utils.ProfileMediaHelper.cachedVideoFrame(path)
+                    if (cachedFrame != null) ivContactPic.setImageBitmap(cachedFrame) else ivContactPic.setImageDrawable(null)
+                    if (cachedFrame == null) com.silvershireinn.app.SilvershireApp.appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         val frame = com.silvershireinn.app.utils.ProfileMediaHelper.videoFrameBitmap(path)
                         ivContactPic.post {
                             if (ivContactPic.tag != path) return@post
@@ -148,15 +150,17 @@ class ConversationAdapter(
 
             // ── Online status — hidden for group chats ────────────────────────
             val isOnline = if (!isGroup && !isNotes) OnlineStatusManager.isOnline(conv.contactUsername) else false
-            onlineDot.visibility = if (isOnline) View.VISIBLE else View.GONE
+            // The status dot sits beside the name (like the web app), never on the picture
+            onlineDot.visibility = View.GONE
             if (isOnline) {
                 val color = OnlineStatusManager.statusColor(conv.contactUsername)
-                onlineDot.setCardBackgroundColor(color)
-                if (onlineDot.childCount > 0) {
-                    onlineDot.getChildAt(0).setBackgroundColor(color)
+                val px = (9 * tvContactName.resources.displayMetrics.density).toInt()
+                val dot = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(color); setSize(px, px); setBounds(0, 0, px, px)
                 }
-            }
-            com.silvershireinn.app.utils.ProfileFrames.refresh(avatarCircle)   // the dot is drawn over the border
+                tvContactName.setCompoundDrawablesRelative(dot, null, null, null)
+                tvContactName.compoundDrawablePadding = (6 * tvContactName.resources.displayMetrics.density).toInt()
+            } else tvContactName.setCompoundDrawablesRelative(null, null, null, null)
 
             val label = if (!isGroup) OnlineStatusManager.statusLabel(conv.contactUsername) else ""
             if (label.isNotEmpty()) {

@@ -966,6 +966,23 @@
                         app:thumbTint="@color/color_gold" app:trackTint="@color/color_gold_dark" />
                 </LinearLayout>
 
+                <!-- Chat Head Size -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Size" android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:layout_marginEnd="12dp" />
+                    <SeekBar android:id="@+id/seekbarChatHeadSize"
+                        android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:max="56" android:progress="16"
+                        android:progressTint="@color/color_gold" android:thumbTint="@color/color_gold" />
+                    <TextView android:id="@+id/tvChatHeadSizeLabel"
+                        android:layout_width="wrap_content" android:minWidth="44dp" android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp" android:text="56dp"
+                        android:textColor="@color/color_text_secondary" android:textSize="13sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
                 <!-- Chat Head Opacity -->
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
@@ -1030,7 +1047,7 @@
                     android:background="?attr/selectableItemBackground" android:paddingVertical="6dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Chat head shape" android:textColor="@color/color_text_primary" android:textSize="15sp" />
+                            android:text="My picture shape (friends see it too)" android:textColor="@color/color_text_primary" android:textSize="15sp" />
                         <TextView android:id="@+id/tvChatHeadShape" android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Circle" android:textColor="@color/color_text_secondary" android:textSize="12sp" />
                     </LinearLayout>

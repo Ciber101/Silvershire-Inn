@@ -165,13 +165,18 @@ object PreferenceManager {
 
     /** Size of the pictures set into message bubbles, in dp (slider in Profile). */
     var msgAvatarSize: Int
-        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("msg_avatar_size", 72)
-        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putInt("msg_avatar_size", v.coerceIn(24, 110)).apply() }
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("msg_avatar_size", 30)
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putInt("msg_avatar_size", v.coerceIn(30, 110)).apply() }
+
+    /** Floating chat head size in dp (slider in Profile > Chat heads). */
+    var chatHeadSize: Int
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("chat_head_size", 56)
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putInt("chat_head_size", v.coerceIn(40, 96)).apply() }
 
     /** Size of the pictures in the Chats list, in dp (slider in Profile). */
     var listAvatarSize: Int
-        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("list_avatar_size", 56)
-        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putInt("list_avatar_size", v.coerceIn(40, 120)).apply() }
+        get() = prefs(com.silvershireinn.app.SilvershireApp.instance).getInt("list_avatar_size", 48)
+        set(v) { prefs(com.silvershireinn.app.SilvershireApp.instance).edit().putInt("list_avatar_size", v.coerceIn(48, 120)).apply() }
 
     /** The Notes chat (messages to yourself) pinned at the top of the chats list. */
     var notesEnabled: Boolean
@@ -695,7 +700,7 @@ object PreferenceManager {
         "chat_head_snap", "chat_head_shape", "stack_switcher_opacity",
         "app_display_name", "splash_text", "auto_login", "my_display_name",
         "launcher_pack", "chat_avatar_mode", "button_haptics",
-        "notes_lock_type", "notes_lock_hash", "msg_avatar_size", "list_avatar_size"
+        "notes_lock_type", "notes_lock_hash", "msg_avatar_size", "list_avatar_size", "show_my_avatar"
     )
 
     /** Returns true when this prefs key should trigger a settings sync to the server. */
@@ -721,6 +726,7 @@ object PreferenceManager {
         put("notesLock", JSONObject().put("type", notesLockType).put("salt", notesLockSalt).put("hash", notesLockHash))
         put("msgAvatarSize",       msgAvatarSize)
         put("listAvatarSize",      listAvatarSize)
+        put("showMyAvatar",        showMyAvatar)
         put("jumpToBottomOnSend",  jumpToBottomOnSend)
         put("uiOpacity",           uiOpacity)
         put("navBarAtTop",         navBarAtTop)
@@ -812,8 +818,9 @@ object PreferenceManager {
                 notesLockSalt = nl.optString("salt", "")
                 notesLockHash = nl.optString("hash", "")
             }
-            if (json.has("msgAvatarSize")) msgAvatarSize = json.optInt("msgAvatarSize", 72)
-            if (json.has("listAvatarSize")) listAvatarSize = json.optInt("listAvatarSize", 56)
+            if (json.has("msgAvatarSize")) msgAvatarSize = json.optInt("msgAvatarSize", 30)
+            if (json.has("listAvatarSize")) listAvatarSize = json.optInt("listAvatarSize", 48)
+            if (json.has("showMyAvatar")) showMyAvatar = json.optBoolean("showMyAvatar", false)
             if (json.has("chatAvatarMode"))
                 chatAvatarMode      = json.optInt("chatAvatarMode", 0)
             if (json.has("jumpToBottomOnSend"))
