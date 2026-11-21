@@ -2982,6 +2982,11 @@ async function handleServerMessage(msg) {
       break;
     }
 
+    case 'notes_wiped': {
+      if (state.me) { state.msgs[state.me] = []; if (state.current === state.me) renderMessages(); renderContacts(); }
+      break;
+    }
+
     case 'settings_updated': {
       if (msg.settings && 'notesLock' in msg.settings) NotesLockW.apply(msg.settings.notesLock);
       break;
@@ -4719,7 +4724,8 @@ function renderMessages() {
     const who = m.sent ? state.me : (m.from || c);
     // The picture is set into the FIRST bubble of a run (top corner, like a seal)
     const pv = list[i - 1];
-    const hideAv = withAv && (avMode === 1 || mineAv) && pv && !pv.sys && (mineAv ? pv.sent : (!pv.sent && (pv.from || c) === who));
+    // One picture per run: it stays one run until someone else writes, however long it takes
+    const hideAv = withAv && pv && !pv.sys && (mineAv ? pv.sent : (!pv.sent && (pv.from || c) === who));
     const sig = [m.ts, m.deleted, m.locked, m.text, m.att && m.att.fileId, m.att && m.att.name, m.pending,
       m.serverAck, m.delivered, m.read, m.failed, withAv, hideAv, mineAv, clockKey, state.lockedPeers.has(m.from),
       m.group ? displayName(m.from) : ''].join('\u0001');
@@ -6645,6 +6651,19 @@ function openChatMenu(e) {
     b.onclick = () => { hideCtxMenu(); fn(); };
     menu.appendChild(b);
   };
+  if (isNotes(c)) {
+    // Notes: no friend to remove; wipe every note instead (after a confirmation)
+    add('📤 Export chat (.txt)', () => exportChat(c));
+    add('🗑 Wipe Notes', () => {
+      if (!confirm('Wipe Notes?\n\nEvery note, picture and file in Notes is deleted on all your devices. This can\'t be undone.')) return;
+      wsSend({ type: 'wipe_notes' });
+      state.msgs[c] = []; renderMessages(); renderContacts();
+    }, true);
+    menu.style.display = 'block';
+    menu.style.left = Math.min(e.clientX, innerWidth - 200) + 'px';
+    menu.style.top = Math.min(e.clientY, innerHeight - 140) + 'px';
+    return;
+  }
   if (!isGroup(c)) add('✏️ Set nickname', () => openNicknameEditor(c));
   add(state.mutes[c] ? '🔔 Unmute' : '🔇 Mute notifications', () => {
     if (state.mutes[c]) delete state.mutes[c]; else state.mutes[c] = true;
@@ -6791,8 +6810,7 @@ function openProfileModal() {
           </div>
           <div class="ss-row"><div class="grow">Friend's picture beside messages</div>
             <select onchange="setPref('chatAvatarMode', +this.value)">
-              <option value="0" ${(+p.chatAvatarMode || 0) === 0 ? 'selected' : ''}>Every message</option>
-              <option value="1" ${+p.chatAvatarMode === 1 ? 'selected' : ''}>Last in a row</option>
+              <option value="0" ${+p.chatAvatarMode !== 2 ? 'selected' : ''}>Once per run of messages</option>
               <option value="2" ${+p.chatAvatarMode === 2 ? 'selected' : ''}>Off</option>
             </select>
           </div>

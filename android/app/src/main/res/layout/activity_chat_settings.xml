@@ -449,6 +449,22 @@
                 app:cornerRadius="12dp"
                 android:layout_marginTop="8dp" />
 
+            <!-- Notes only: delete every note at once -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnWipeNotes"
+                style="@style/Widget.Silvershire.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="52dp"
+                android:text="Wipe Notes"
+                android:textColor="@color/color_error"
+                app:strokeColor="@color/color_error"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:iconTint="@color/color_error"
+                app:cornerRadius="12dp"
+                android:visibility="gone"
+                android:layout_marginTop="8dp" />
+
             <!-- Save button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSaveChatSettings"

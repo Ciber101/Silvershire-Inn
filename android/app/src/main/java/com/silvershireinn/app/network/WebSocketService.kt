@@ -1187,6 +1187,12 @@ class WebSocketService : Service() {
                 val messageId = json.optString("messageId")
                 if (messageId.isNotBlank()) messageRepo.markRead(messageId)
             }
+            "notes_wiped" -> {
+                // Notes wiped on one of my devices: gone here too
+                val me = PreferenceManager.username
+                if (me.isNotBlank()) messageRepo.deleteConversation(me)
+            }
+
             "message_deleted" -> {
                 val messageId = json.optString("messageId")
                 if (messageId.isNotBlank()) {

@@ -70,7 +70,9 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
         if (av != null && av.parent === parent && av.width > 0) {
             cx = av.left + av.translationX + av.width / 2f - (left + translationX)
             cy = av.top + av.translationY + av.height / 2f - (top + translationY)
-            rad = av.width / 2f * av.scaleX + 2.5f * resources.displayMetrics.density
+            // around the picture AND its border's ring (about 1.27 x the picture), then a clear gap
+            val framed = av.getTag(R.id.profile_frame_float) != null
+            rad = av.width / 2f * av.scaleX * (if (framed) 1.27f else 1f) + 3f * resources.displayMetrics.density
         }
         cut.reset(); cut.addCircle(cx, cy, rad, Path.Direction.CW)
         c.save()
@@ -130,10 +132,12 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
             val radius = half + 2.5f * d
             b.sealAvatar = frame
             if (state == SEAL) {
-                // Nothing of the picture or its border ever sits on the text: the border may reach
-                // 0.15 x the size below the picture, so the content starts under all of it.
-                val clearY = (half - o + a * 0.15f + 3 * d).toInt()
-                b.setPadding(orig[0], max(orig[1], clearY), orig[2], orig[3])
+                // Nothing of the picture or its border ever sits on the text, and the bubble does
+                // not grow taller: the content keeps clear sideways (its border may reach 0.3 x the
+                // size past the picture), so the bubble just gets a little wider on that side.
+                val clearX = (half - o + a * 0.3f + 2 * d).toInt()
+                if (mine) b.setPadding(orig[0], orig[1], max(orig[2], clearX), orig[3])
+                else b.setPadding(max(orig[0], clearX), orig[1], orig[2], orig[3])
                 val rim = if (!ornate) 0xFF3C3C42.toInt() else if (mine) 0xFF8C6A2A.toInt() else 0xFF6E7078.toInt()
                 b.setSeal(if (mine) RIGHT else LEFT, radius, rim, 1.5f * d, o)
             } else {

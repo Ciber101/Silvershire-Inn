@@ -204,7 +204,24 @@ class ChatSettingsActivity : AppCompatActivity() {
 
         // ── Save ──────────────────────────────────────────────────────────────
         // A floating chat head for this chat (needs "display over other apps")
-        if (com.silvershireinn.app.utils.NotesChat.isNotes(contactUsername)) binding.btnOpenChatHead.visibility = android.view.View.GONE
+        if (com.silvershireinn.app.utils.NotesChat.isNotes(contactUsername)) {
+            binding.btnOpenChatHead.visibility = android.view.View.GONE
+            binding.btnWipeNotes.visibility = android.view.View.VISIBLE
+            binding.btnWipeNotes.setOnClickListener {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle("Wipe Notes?")
+                    .setMessage("Every note, picture and file in Notes is deleted on all your devices. This can't be undone.")
+                    .setPositiveButton("Wipe") { _, _ ->
+                        com.silvershireinn.app.network.WebSocketManager.sendRaw(org.json.JSONObject().put("type", "wipe_notes").toString())
+                        lifecycleScope.launch {
+                            com.silvershireinn.app.repository.MessageRepository(com.silvershireinn.app.SilvershireApp.database).deleteConversation(contactUsername)
+                            toast("Notes wiped")
+                            finish()
+                        }
+                    }
+                    .setNegativeButton("Cancel", null).show()
+            }
+        }
         binding.btnOpenChatHead.setOnClickListener {
             if (android.os.Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(this)) {
                 toast("Allow \"Display over other apps\" for chat heads")

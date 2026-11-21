@@ -436,13 +436,15 @@ class ProfileFragment : Fragment() {
             }
         })
 
-        val avatarModes = arrayOf("Every message", "Last in a row", "Off")
-        binding.tvChatAvatarMode.text = avatarModes[PreferenceManager.chatAvatarMode.coerceIn(0, 2)]
+        // One picture per run of messages (however long between them), or none
+        val avatarModes = arrayOf("Once per run of messages", "Off")
+        fun modeIdx() = if (PreferenceManager.chatAvatarMode == 2) 1 else 0
+        binding.tvChatAvatarMode.text = avatarModes[modeIdx()]
         binding.rowChatAvatarMode.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Friend's picture in chats")
-                .setSingleChoiceItems(avatarModes, PreferenceManager.chatAvatarMode.coerceIn(0, 2)) { d, which ->
-                    PreferenceManager.chatAvatarMode = which
+                .setSingleChoiceItems(avatarModes, modeIdx()) { d, which ->
+                    PreferenceManager.chatAvatarMode = if (which == 1) 2 else 0
                     binding.tvChatAvatarMode.text = avatarModes[which]
                     d.dismiss()
                 }.show()
@@ -490,6 +492,7 @@ class ProfileFragment : Fragment() {
                 val clamped = progress.coerceAtLeast(10)
                 PreferenceManager.chatHeadAlpha = clamped
                 binding.tvChatHeadAlphaLabel.text = "$clamped%"
+                if (fromUser) com.silvershireinn.app.ui.chathead.ChatHeadService.refreshAvatar(requireContext(), PreferenceManager.profilePicturePath)   // live
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?)  {}
@@ -1537,7 +1540,7 @@ class ProfileFragment : Fragment() {
         binding.tvFontFamilyLabel.text                 = "Default (Sans-Serif)"
         binding.switchUse24HourClock.isChecked         = PreferenceManager.use24HourClock
         binding.viewUiTextColor.visibility             = View.INVISIBLE
-        binding.tvChatAvatarMode.text                  = "Every message"
+        binding.tvChatAvatarMode.text                  = "Once per run of messages"
         binding.switchChatHeadSnap.isChecked           = true
         AccentColorHelper.applyTextColor(binding.root, null)
         binding.seekbarUiOpacity.progress              = 100

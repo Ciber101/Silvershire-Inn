@@ -94,7 +94,7 @@ class MessageAdapter(
         if (mine && !PreferenceManager.showMyAvatar) { frame.visibility = View.GONE; placeSeal(frame, bubble, mine, NONE); return }
         if (!mine && mode == 2) { frame.visibility = View.GONE; placeSeal(frame, bubble, mine, NONE); return }
         val user = if (mine) PreferenceManager.username else msg.fromUser.ifBlank { contactUsername }
-        if (mode == 1 || mine) {      // your own picture: once per run, always
+        run {      // one picture per run: until the other person (or a notice) comes in between, however long it takes
             // The seal goes on the FIRST message of a run (it sits on the top corner)
             val prev = if (position > 0) getItem(position - 1) else null
             val sameRun = prev != null && !isSystemMessage(prev) &&

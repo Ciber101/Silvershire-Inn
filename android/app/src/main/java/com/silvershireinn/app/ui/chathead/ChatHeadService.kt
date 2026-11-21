@@ -340,6 +340,7 @@ class ChatHeadService : Service() {
             ACTION_REFRESH_AVATAR, ACTION_REFRESH_CONTACT_AVATAR -> {
                 refreshAllAvatars()
                 updateBubble(refreshAvatars = false)      // size may have changed too
+                bubbleView?.alpha = PreferenceManager.chatHeadAlpha / 100f   // and the opacity (live while sliding)
             }
             ACTION_PICKER_RESULT -> {
                 handlePickerResult(intent)

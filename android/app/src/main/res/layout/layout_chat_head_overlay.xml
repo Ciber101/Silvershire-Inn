@@ -188,16 +188,6 @@
 
     </LinearLayout>
 
-    <!-- Emoji grid (hidden by default)  -  rows populated in code -->
-    <LinearLayout
-        android:id="@+id/overlayEmojiGrid"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@color/color_surface"
-        android:padding="4dp"
-        android:visibility="gone"/>
-
     <!-- Recording hint + lock trash -->
     <LinearLayout
         android:id="@+id/overlayRecordingBar"
@@ -488,6 +478,16 @@
             android:textSize="13sp"
             android:visibility="gone" />
     </LinearLayout>
+
+    <!-- Emoji grid (hidden by default), right above the typing bar  -  rows populated in code -->
+    <LinearLayout
+        android:id="@+id/overlayEmojiGrid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/color_surface"
+        android:padding="4dp"
+        android:visibility="gone"/>
 
     <!-- Composer dock matching main chat polish -->
     <LinearLayout

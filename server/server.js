@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 7,
-  versionName: '1.0.6',
+  versionCode: 8,
+  versionName: '1.0.7',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -2652,6 +2652,14 @@ wss.on('connection', (ws, req) => {
           // Delete for me only -------- just confirm to sender, don't touch history or notify recipient
           send(ws, { type: 'message_deleted', messageId, by: username, forEveryone: false });
         }
+        break;
+      }
+
+      case 'wipe_notes': {
+        // Notes: delete every note at once (only your own chat with yourself), on all your devices
+        if (!username) return;
+        saveHistory(username, username, []);
+        sendToUser(username, { type: 'notes_wiped' });
         break;
       }
 
