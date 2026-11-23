@@ -1388,16 +1388,19 @@ class ChatHeadService : Service() {
 
         fabScrollBottom?.setOnClickListener {
             val last = adapter.itemCount - 1
-            if (last >= 0) recycler.smoothScrollToPosition(last)
+            if (last >= 0) {
+                recycler.stopScroll(); recycler.scrollToPosition(last)
+                recycler.post { recycler.scrollBy(0, 1_000_000) }   // the very end, even of a tall last message
+            }
             updateOverlayFabBadge(0)
         }
 
         recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
-                val lm    = rv.layoutManager as? LinearLayoutManager ?: return
-                val last  = lm.findLastCompletelyVisibleItemPosition()
-                val total = adapter.itemCount
-                val atBottom = total == 0 || last >= total - 2
+                // By pixels, not by rows: a message taller than the screen used to hide the arrow
+                // halfway through it, and keep it after a tap on it.
+                val left = rv.computeVerticalScrollRange() - rv.computeVerticalScrollOffset() - rv.computeVerticalScrollExtent()
+                val atBottom = adapter.itemCount == 0 || left <= (24 * rv.resources.displayMetrics.density)
                 overlayAtBottom = atBottom
                 // Show/hide scroll-to-bottom FAB
                 fabScrollBottom?.visibility = if (atBottom) View.GONE else View.VISIBLE

@@ -362,9 +362,10 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         // Show scroll-to-bottom FAB when user has scrolled up more than ~2 items
         binding.rvMessages.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
-                val lastVisible = layoutManager.findLastCompletelyVisibleItemPosition()
-                val total = adapter.itemCount
-                val scrolledUp = total > 0 && lastVisible < total - 2
+                // By pixels, not by rows: any distance from the very bottom shows the arrow. Rows
+                // made it vanish halfway up a tall message and stay after tapping it.
+                val left = rv.computeVerticalScrollRange() - rv.computeVerticalScrollOffset() - rv.computeVerticalScrollExtent()
+                val scrolledUp = adapter.itemCount > 0 && left > (24 * rv.resources.displayMetrics.density)
                 binding.fabScrollBottom.visibility = if (scrolledUp) View.VISIBLE else View.GONE
                 // Back at the bottom -> everything below is seen, clear the red counter
                 if (!scrolledUp && fabUnreadCount > 0) updateFabUnreadBadge(0)

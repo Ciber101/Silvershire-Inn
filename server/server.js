@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 10,
-  versionName: '1.0.9',
+  versionCode: 11,
+  versionName: '1.0.10',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -522,13 +522,29 @@ function ensureUpdatesUser() {
   }
 }
 
+/** What's new for the version being published: its section in UPDATE_NOTES.txt (next to this
+ *  file), so every release says what changed. Falls back to APP_VERSION.notes. */
+function versionNotes() {
+  try {
+    const txt = fs.readFileSync(path.join(__dirname, 'UPDATE_NOTES.txt'), 'utf8').replace(/\r/g, '');
+    const lines = txt.split('\n');
+    const start = lines.findIndex(l => l.trim() === '## ' + APP_VERSION.versionName);
+    if (start >= 0) {
+      const out = [];
+      for (let i = start + 1; i < lines.length && !lines[i].startsWith('## '); i++) if (lines[i].trim() && !lines[i].startsWith('#')) out.push(lines[i].trimEnd());
+      if (out.length) return out.join('\n');
+    }
+  } catch (_) {}
+  return APP_VERSION.notes || '';
+}
+
 function publishUpdateNotice(customText) {
   ensureUpdatesUser();
   const defaultNotes = [
     'Android app update available (v' + APP_VERSION.versionName + ').',
     '',
     "What's new:",
-    APP_VERSION.notes || '- Bug fixes and improvements',
+    versionNotes() || '- Bug fixes and improvements',
     '',
     'Tap Download to install. /download/silvershire-inn.apk'
   ].join('\n');
@@ -682,8 +698,17 @@ function autoUpdateNotice() {
     if (!secrets) return;
     const apk = path.join(DOWNLOAD_DIR, 'silvershire-inn.apk');
     if (!fs.existsSync(apk)) return;
-    if ((secrets.lastNoticeVersion || 0) >= APP_VERSION.versionCode) return;
-    secrets.lastNoticeVersion = APP_VERSION.versionCode; saveSecrets();
+    const notes = versionNotes();
+    if ((secrets.lastNoticeVersion || 0) >= APP_VERSION.versionCode) {
+      // Already announced, but without the notes written for it since: send them once
+      if (notes && secrets.lastNoticeNotes !== APP_VERSION.versionName && (secrets.lastNoticeVersion || 0) === APP_VERSION.versionCode) {
+        secrets.lastNoticeNotes = APP_VERSION.versionName; saveSecrets();
+        publishUpdateNotice();
+        console.log('[UPDATES] Notes for ' + APP_VERSION.versionName + ' sent');
+      }
+      return;
+    }
+    secrets.lastNoticeVersion = APP_VERSION.versionCode; secrets.lastNoticeNotes = APP_VERSION.versionName; saveSecrets();
     publishUpdateNotice();
     console.log('[UPDATES] Notice for ' + APP_VERSION.versionName + ' sent');
   } catch (e) { console.error('[UPDATES] auto notice failed', e.message); }
