@@ -329,7 +329,28 @@ class ChatHeadService : Service() {
         com.silvershireinn.app.SilvershireApp.onAppForegrounded = {
             if (overlayView != null && !overlayHiddenForPicker) hideOverlay()
         }
+        // Unlocking / turning the screen on: put the head back against its edge (the screen size
+        // can differ on the lock screen, and the window may have been nudged meanwhile).
+        try {
+            val f = android.content.IntentFilter().apply { addAction(Intent.ACTION_USER_PRESENT); addAction(Intent.ACTION_SCREEN_ON) }
+            edgeReceiver = object : android.content.BroadcastReceiver() {
+                override fun onReceive(c: Context?, i: Intent?) { Handler(Looper.getMainLooper()).postDelayed({ if (bubbleView != null) updateBubble(refreshAvatars = false) }, 300) }
+            }
+            registerReceiver(edgeReceiver, f)
+        } catch (_: Throwable) {}
     }
+
+    private var edgeReceiver: android.content.BroadcastReceiver? = null
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        Handler(Looper.getMainLooper()).postDelayed({ if (bubbleView != null) updateBubble(refreshAvatars = false) }, 200)
+    }
+
+    /** The screen edge the head was dropped against ("left" / "right"), or "" when free. */
+    private var headSide: String
+        get() = getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE).getString("side", "") ?: ""
+        set(v) { getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE).edit().putString("side", v).apply() }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -473,6 +494,8 @@ class ChatHeadService : Service() {
     } catch (_: Exception) { null }
 
     override fun onDestroy() {
+        try { edgeReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
+        edgeReceiver = null
         com.silvershireinn.app.SilvershireApp.overlayOpen = false
         if (instance === this) instance = null
         try { avatarFrameLoader.shutdownNow() } catch (_: Exception) {}
@@ -882,6 +905,27 @@ class ChatHeadService : Service() {
             padPrefs.edit().putInt("pad", pad).apply()
             try { if (root.isAttachedToWindow) wm.updateViewLayout(root, p) } catch (_: Exception) {}
         }
+        // Dropped against an edge: stay flush with it whatever the width does (more heads in the
+        // stack, a border, a size change, the screen size after unlocking). It used to keep its
+        // old x and end up 40-50 px away from the edge.
+        if (!isDraggingBubble) {
+            // Heads placed before this was remembered: work out the edge once from where it is
+            val sp = getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE)
+            if (!sp.contains("side")) headSide = when {
+                p.x <= (8 * dp).toInt() -> "left"
+                p.x + w >= screenWidth - (40 * dp).toInt() -> "right"
+                else -> ""
+            }
+            val wantX = when (headSide) {
+                "right" -> (screenWidth - w).coerceAtLeast(0)
+                "left" -> 0
+                else -> p.x.coerceIn(0, (screenWidth - w).coerceAtLeast(0))
+            }
+            if (p.x != wantX) {
+                p.x = wantX
+                try { if (root.isAttachedToWindow) wm.updateViewLayout(root, p) } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun refreshAllAvatars() {
@@ -1003,6 +1047,12 @@ class ChatHeadService : Service() {
                             params.y = params.y.coerceIn(0, (screenHeight - headH).coerceAtLeast(0))
                             if (PreferenceManager.chatHeadSnapEnabled) {
                                 edgeSnap(params, headW, headH)
+                            }
+                            // Remember the edge it now sits against (kept flush there later)
+                            headSide = when {
+                                params.x <= 0 -> "left"
+                                params.x + headW >= screenWidth - 1 -> "right"
+                                else -> ""
                             }
                             PreferenceManager.saveChatHeadPos(BUBBLE_POS_KEY, params.x, params.y)
                             try { wm.updateViewLayout(view, params) } catch (_: Exception) {}
