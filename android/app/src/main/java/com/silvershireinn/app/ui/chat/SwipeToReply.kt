@@ -22,6 +22,9 @@ class SwipeToReply(
 
     private var armed: Message? = null
     private var armedHolder: RecyclerView.ViewHolder? = null
+    /** Let go past the mark: the reply starts once the bubble is back in place (clearView). */
+    private var pending: Message? = null
+    private var pendingHolder: RecyclerView.ViewHolder? = null
 
     override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder) = false
 
@@ -54,15 +57,26 @@ class SwipeToReply(
                     armed = null; armedHolder = null        // pulled back: cancelled
                 }
             } else if (armedHolder === vh) {
-                armed?.let(onReply)                          // let go past the mark
+                // Let go past the mark. The reply bar (and keyboard) change the list's size; doing
+                // that while the bubble springs back made it jump right a second time. So it
+                // waits until the bubble has settled (clearView).
+                pending = armed; pendingHolder = vh
                 armed = null; armedHolder = null
             }
         }
         super.onChildDraw(c, rv, vh, x, dY, actionState, isCurrentlyActive)
     }
 
+    /** A quick spring back, so the reply opens right after. */
+    override fun getAnimationDuration(rv: RecyclerView, animationType: Int, animateDx: Float, animateDy: Float): Long = 170L
+
     override fun clearView(rv: RecyclerView, vh: RecyclerView.ViewHolder) {
         super.clearView(rv, vh)
         vh.itemView.translationX = 0f
+        if (pendingHolder === vh) {
+            val m = pending
+            pending = null; pendingHolder = null
+            if (m != null) rv.post { onReply(m) }
+        }
     }
 }
