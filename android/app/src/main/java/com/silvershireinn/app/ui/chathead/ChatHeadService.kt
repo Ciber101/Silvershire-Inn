@@ -1397,10 +1397,7 @@ class ChatHeadService : Service() {
 
         recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
-                // By pixels, not by rows: a message taller than the screen used to hide the arrow
-                // halfway through it, and keep it after a tap on it.
-                val left = rv.computeVerticalScrollRange() - rv.computeVerticalScrollOffset() - rv.computeVerticalScrollExtent()
-                val atBottom = adapter.itemCount == 0 || left <= (24 * rv.resources.displayMetrics.density)
+                val atBottom = com.silvershireinn.app.ui.chat.SwipeToReply.atVeryBottom(rv)
                 overlayAtBottom = atBottom
                 // Show/hide scroll-to-bottom FAB
                 fabScrollBottom?.visibility = if (atBottom) View.GONE else View.VISIBLE
@@ -1520,7 +1517,7 @@ class ChatHeadService : Service() {
                         // PIXEL-perfect bottom check (same fix as ChatActivity): big media
                         // bubbles made the item-based overlayAtBottom flag report "at bottom"
                         // while the user was visibly scrolled up, causing yank-downs.
-                        val pinnedToBottom = adapter.itemCount == 0 || !recycler.canScrollVertically(1)
+                        val pinnedToBottom = com.silvershireinn.app.ui.chat.SwipeToReply.atVeryBottom(recycler)
                         // Read receipts only when the newest messages are actually on screen
                         if (pinnedToBottom && overlaySeen() && list.any { !it.isSent && !it.isRead }) {
                             ensureOverlayScope().launch(Dispatchers.IO) {

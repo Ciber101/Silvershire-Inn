@@ -28,6 +28,23 @@ class SwipeToReply(
 
     override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder) = false
 
+    companion object {
+        /**
+         * The list shows its very end: the last message is laid out and its bottom edge is on
+         * screen. Measured on the last message itself, so it is right for short chats (nothing to
+         * scroll: always at the bottom; the scroll numbers said otherwise there) and for messages
+         * taller than the screen (anywhere above their end is "not at the bottom").
+         */
+        fun atVeryBottom(rv: RecyclerView): Boolean {
+            val n = rv.adapter?.itemCount ?: 0
+            if (n == 0) return true
+            val lm = rv.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager ?: return !rv.canScrollVertically(1)
+            val v = lm.findViewByPosition(n - 1) ?: return false
+            val bottom = lm.getDecoratedBottom(v)
+            return bottom <= rv.height - rv.paddingBottom + (24 * rv.resources.displayMetrics.density).toInt()
+        }
+    }
+
     override fun getSwipeDirs(rv: RecyclerView, vh: RecyclerView.ViewHolder): Int {
         val m = messageAt(vh.bindingAdapterPosition) ?: return 0
         return if (canReply(m)) super.getSwipeDirs(rv, vh) else 0

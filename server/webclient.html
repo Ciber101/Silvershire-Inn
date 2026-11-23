@@ -802,6 +802,10 @@
   .msg > .seal-space { width:calc(var(--mh) + var(--av-msg, 30px) * .3 - 12px); height:calc(var(--mh) + var(--av-msg, 30px) * .2 - 7px); }
   .msg.seal-l > .seal-space { float:left; margin-right:4px; }
   .msg.seal-r > .seal-space { float:right; margin-left:4px; }
+  /* Blocks (time + ticks, files, players, quotes) go below the picture's corner instead of being
+     squeezed beside it (the time was cut off on the left of short messages). Text still flows. */
+  .msg.seal-l > :not(.seal-space):not(span):not(a):not(br):not(b):not(i):not(em):not(strong),
+  .msg.seal-r > :not(.seal-space):not(span):not(a):not(br):not(b):not(i):not(em):not(strong) { clear:both; }
   .msg-av { width:var(--av-msg, 30px); height:var(--av-msg, 30px); flex:0 0 var(--av-msg, 30px); font-size:calc(var(--av-msg, 30px) * .38); cursor:pointer; }
   /* Picture sizes (Settings > Picture sizes) */
   #meBar #meAvatar { width:var(--av-me, 44px); height:var(--av-me, 44px); font-size:calc(var(--av-me, 44px) * .38); }

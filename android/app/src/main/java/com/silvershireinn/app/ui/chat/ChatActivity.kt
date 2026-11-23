@@ -362,10 +362,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         // Show scroll-to-bottom FAB when user has scrolled up more than ~2 items
         binding.rvMessages.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
-                // By pixels, not by rows: any distance from the very bottom shows the arrow. Rows
-                // made it vanish halfway up a tall message and stay after tapping it.
-                val left = rv.computeVerticalScrollRange() - rv.computeVerticalScrollOffset() - rv.computeVerticalScrollExtent()
-                val scrolledUp = adapter.itemCount > 0 && left > (24 * rv.resources.displayMetrics.density)
+                val scrolledUp = !com.silvershireinn.app.ui.chat.SwipeToReply.atVeryBottom(rv)
                 binding.fabScrollBottom.visibility = if (scrolledUp) View.VISIBLE else View.GONE
                 // Back at the bottom -> everything below is seen, clear the red counter
                 if (!scrolledUp && fabUnreadCount > 0) updateFabUnreadBadge(0)
@@ -1488,7 +1485,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                             // image/video bubbles mean "2 items" can be a whole screen,
                             // so scrolled-up users were still yanked down on every update.
                             val atBottom = adapter.itemCount == 0 ||
-                                !binding.rvMessages.canScrollVertically(1)
+                                com.silvershireinn.app.ui.chat.SwipeToReply.atVeryBottom(binding.rvMessages)
                             val newest = list.lastOrNull()
                             val newestIsMine = newest != null && newest.isSent &&
                                 newest.messageId != lastSeenNewestId
