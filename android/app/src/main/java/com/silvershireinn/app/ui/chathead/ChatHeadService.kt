@@ -234,6 +234,16 @@ class ChatHeadService : Service() {
     private var overlayDraftName: String? = null
     private var overlayParams: WindowManager.LayoutParams? = null   // saved so we can re-add after picker
     private var overlayContact: String? = null
+    /** Text being typed in the floating chat, per chat, kept while the window is closed. */
+    private val typedDrafts = HashMap<String, String>()
+
+    /** The floating chat is really in front of someone: shown, screen on and unlocked. */
+    private fun overlaySeen(): Boolean {
+        if (overlayView == null || overlayHiddenForPicker) return false
+        val pm = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+        return (pm?.isInteractive != false) && (km?.isKeyguardLocked != true)
+    }
     private var overlayGroup: Pair<String, String>? = null   // (groupId, groupName) for current overlay
     /** True when the overlay has been temporarily removed from WM to let a picker Activity show. */
     private var overlayHiddenForPicker: Boolean = false
@@ -1320,6 +1330,7 @@ class ChatHeadService : Service() {
         val tvReplyPreview= view.findViewById<android.widget.TextView>(R.id.tvOverlayReplyPreview)
         val btnCancelReply= view.findViewById<android.widget.ImageButton>(R.id.btnOverlayCancelReply)
         val inputField    = view.findViewById<android.widget.EditText>(R.id.etOverlayInput)
+        typedDrafts[contactId]?.let { t -> inputField.setText(t); inputField.setSelection(t.length) }   // what was being typed
 
         var replyToMessage: com.silvershireinn.app.model.Message? = null
 
@@ -1508,7 +1519,7 @@ class ChatHeadService : Service() {
                         // while the user was visibly scrolled up, causing yank-downs.
                         val pinnedToBottom = adapter.itemCount == 0 || !recycler.canScrollVertically(1)
                         // Read receipts only when the newest messages are actually on screen
-                        if (pinnedToBottom && list.any { !it.isSent && !it.isRead }) {
+                        if (pinnedToBottom && overlaySeen() && list.any { !it.isSent && !it.isRead }) {
                             ensureOverlayScope().launch(Dispatchers.IO) {
                                 val unread = messageRepo.markAllReadAndGetUnread(contactId)
                                 if (unread.isEmpty()) return@launch
@@ -1636,6 +1647,7 @@ class ChatHeadService : Service() {
             }
             if (rawText.isBlank()) return
             inputField.setText("")
+            typedDrafts.remove(contactId)
             if (com.silvershireinn.app.utils.PanicLock.matchesLockWord(rawText)) { com.silvershireinn.app.utils.PanicLock.lockNow(this@ChatHeadService); return }
 
             // Prepend reply quote if replying, exactly like ChatActivity.sendMessage()
@@ -2988,6 +3000,11 @@ class ChatHeadService : Service() {
         overlayVideoBgHelper = null
         mediaOverlayView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         mediaOverlayView = null
+        // Keep what was typed (a tap on the head closes the window; the text must not be lost)
+        overlayContact?.let { c ->
+            val t = overlayView?.findViewById<EditText>(R.id.etOverlayInput)?.text?.toString().orEmpty()
+            if (t.isNotBlank()) typedDrafts[c] = t else typedDrafts.remove(c)
+        }
         overlayView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         overlayView    = null
         lastOverlayContact = overlayContact

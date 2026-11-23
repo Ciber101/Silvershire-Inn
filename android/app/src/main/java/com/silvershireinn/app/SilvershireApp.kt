@@ -40,8 +40,16 @@ class SilvershireApp : Application(), coil.ImageLoaderFactory {
         @Volatile var overlayOpen = false
             set(v) { field = v; reportUse() }
 
-        /** In use = app on screen or the floating chat open. This is what "online" means. */
-        val isInUse: Boolean get() = isAppVisible || overlayOpen
+        /** In use = app on screen or the floating chat open, with the screen on and unlocked.
+         *  This is what "online" means (a floating chat left open on a dark phone is not). */
+        val isInUse: Boolean get() = (isAppVisible || overlayOpen) && screenUsable()
+
+        private fun screenUsable(): Boolean = try {
+            val c = instance
+            val pm = c.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager
+            val km = c.getSystemService(android.content.Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+            (pm?.isInteractive != false) && (km?.isKeyguardLocked != true)
+        } catch (_: Throwable) { true }
 
         private var lastReported: Boolean? = null
         private val mainHandler by lazy { android.os.Handler(android.os.Looper.getMainLooper()) }
@@ -72,6 +80,16 @@ class SilvershireApp : Application(), coil.ImageLoaderFactory {
         NotificationHelper.createChannel(this)
         recordAppVersion()
         registerActivityLifecycleCallbacks(VisibilityTracker)
+        // Screen off / on / unlocked: online changes with it
+        try {
+            val f = android.content.IntentFilter().apply {
+                addAction(android.content.Intent.ACTION_SCREEN_OFF); addAction(android.content.Intent.ACTION_SCREEN_ON)
+                addAction(android.content.Intent.ACTION_USER_PRESENT)
+            }
+            registerReceiver(object : android.content.BroadcastReceiver() {
+                override fun onReceive(c: android.content.Context?, i: android.content.Intent?) { reportUse() }
+            }, f)
+        } catch (_: Throwable) {}
         com.silvershireinn.app.utils.OrnateTheme.install(this)
         normalizeStoredTimestampsOnce()
     }
