@@ -377,7 +377,11 @@ class MessageAdapter(
 
         // Reset preview card state
         previewLayout.visibility = View.GONE
-        imageView.visibility     = View.GONE
+        val imageBox = (imageView.parent as? View) ?: imageView      // picture + play mark
+        val playMark = previewLayout.findViewById<View?>(com.silvershireinn.app.R.id.linkPlay)
+        imageBox.visibility = View.GONE
+        playMark?.visibility = View.GONE
+        imageView.setImageDrawable(null)
 
         val url = LinkPreviewHelper.firstUrl(text) ?: return null
 
@@ -396,10 +400,16 @@ class MessageAdapter(
             }
 
             if (preview.imageUrl != null) {
+                // A set size: the picture is hidden until it arrives, and a hidden view has no
+                // size for the loader to wait for (it waited forever, so no thumbnail ever came).
                 imageView.load(preview.imageUrl) {
+                    size(640, 360)
                     listener(
-                        onSuccess = { _, _ -> imageView.visibility = View.VISIBLE },
-                        onError   = { _, _ -> imageView.visibility = View.GONE }
+                        onSuccess = { _, _ ->
+                            imageBox.visibility = View.VISIBLE
+                            playMark?.visibility = if (preview.isVideo) View.VISIBLE else View.GONE
+                        },
+                        onError   = { _, _ -> imageBox.visibility = View.GONE }
                     )
                 }
             }

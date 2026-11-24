@@ -3610,7 +3610,11 @@ class ChatHeadService : Service() {
         val first = reorderSlots.first().first.toFloat()
         val lastEnd = (reorderSlots.last().first + reorderSlots.last().second).toFloat()
         val mine = reorderSlots[reorderFrom]
-        val t = dx.coerceIn(first - mine.first, lastEnd - (mine.first + mine.second))
+        // Its centre may travel from the row's left end to its right end, so it can always pass
+        // the middle of any other head (heads with borders are wider: a wide head dragged right
+        // used to stop exactly on its neighbour's middle and nothing moved).
+        val home = mine.first + mine.second / 2f
+        val t = dx.coerceIn(first - home, lastEnd - home)
         chip.translationX = t
         // the gap opens where the head's centre is now
         val centre = mine.first + t + mine.second / 2f
