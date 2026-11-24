@@ -830,6 +830,20 @@
   .msg a { color:#6eb4ff; text-decoration:underline; overflow-wrap:anywhere; }
 
   .apk-dl-wrap { margin-top:10px; }
+  /* Link previews */
+  .lp-slot:empty { display:none; }
+  .lp-card { display:block; margin-top:8px; width:min(340px, 100%); border-radius:12px; overflow:hidden; text-decoration:none !important;
+             color:inherit; background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.10); }
+  .lp-card:hover { border-color:rgba(230,194,90,.45); }
+  .lp-img { position:relative; line-height:0; background:#101013; }
+  .lp-img img { display:block; width:100%; aspect-ratio:16 / 9; object-fit:cover; }
+  .lp-play { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:52px; height:52px; border-radius:50%;
+             background:rgba(0,0,0,.62); display:flex; align-items:center; justify-content:center; }
+  .lp-play .ic { width:26px; height:26px; }
+  .lp-text { padding:8px 11px 9px; line-height:1.3; }
+  .lp-site { font-size:11.5px; opacity:.65; }
+  .lp-title { font-weight:600; font-size:14px; margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .lp-desc { font-size:12.5px; opacity:.75; margin-top:3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .apk-dl-btn {
     display:inline-flex; align-items:center; justify-content:center;
     padding:10px 16px; border-radius:10px; text-decoration:none !important;
@@ -3928,6 +3942,41 @@ function receiptUpTo(c) {
 /* Turn http(s)/www URLs in message text into safe, clickable links.
    Tokenises the RAW text: non-URL parts are HTML-escaped; URLs are restricted to
    http/https (never javascript: etc.) and attribute-escaped so they can't break out. */
+/* ── Link previews: picture, site and title under a link (the server reads the page) ── */
+function firstLinkUrl(raw) {
+  const re = /\b(?:(?:https?:\/\/|www\.)[^\s]+|(?:[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+(?:com|org|net|edu|gov|io|co|us|uk|dev|app|info|biz|me|tv|cc|ai|gg|xyz)(?:\/[^\s]*)?)/i;
+  const m = re.exec(String(raw || ''));
+  if (!m) return null;
+  let url = m[0].replace(/[)\]}>.,!?;:'"]+$/, '');
+  return /^https?:\/\//i.test(url) ? url : 'https://' + url.replace(/^\/\//, '');
+}
+const _lpMem = new Map();      // link -> { p: Promise, done, data }
+function _lpQS() { const q = authQS(); return q ? '&' + q.slice(1) : ''; }
+function lpCardHtml(d) {
+  const img = d.image
+    ? `<div class="lp-img${d.video ? ' lp-vid' : ''}"><img src="${esc(httpBase() + '/api/link-preview/img?u=' + encodeURIComponent(d.image) + _lpQS())}" alt="" onerror="this.parentNode.remove()">${d.video ? `<span class="lp-play">${ic('play')}</span>` : ''}</div>`
+    : '';
+  const txt = (d.title || d.site)
+    ? `<div class="lp-text">${d.site ? `<div class="lp-site">${esc(d.site)}</div>` : ''}${d.title ? `<div class="lp-title">${esc(d.title)}</div>` : ''}${d.description ? `<div class="lp-desc">${esc(d.description)}</div>` : ''}</div>`
+    : '';
+  return `<a class="lp-card" href="${esc(d.url)}" target="_blank" rel="noopener noreferrer">${img}${txt}</a>`;
+}
+function fillLinkSlot(el) {
+  const slot = el.querySelector('.lp-slot');
+  if (!slot) return;
+  const u = slot.dataset.lp;
+  let rec = _lpMem.get(u);
+  if (rec && rec.done) { if (rec.data) slot.innerHTML = lpCardHtml(rec.data); return; }
+  if (!rec) {
+    rec = {};
+    rec.p = fetch(`${httpBase()}/api/link-preview?u=${encodeURIComponent(u)}${_lpQS()}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null).then(j => (j && j.ok && j.preview) ? j.preview : null).catch(() => null)
+      .then(d => { rec.done = true; rec.data = d; return d; });
+    _lpMem.set(u, rec);
+  }
+  rec.p.then(d => { if (d && slot.isConnected !== false) { slot.innerHTML = lpCardHtml(d); keepAtBottom(); } });
+}
+
 function linkifyText(raw) {
   const re = /\b(?:(?:https?:\/\/|www\.)[^\s]+|(?:[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+(?:com|org|net|edu|gov|io|co|us|uk|dev|app|info|biz|me|tv|cc|ai|gg|xyz)(?:\/[^\s]*)?)/gi;
   let out = '', last = 0, m;
@@ -4829,6 +4878,7 @@ function renderMessages() {
     cont.insertBefore(n, cur);
   }
   hydrateEncMedia(cont);
+  watchMsgSizes(cont);
   // Auto-scroll ONLY on first render of this chat, or when the user was
   // already at the bottom. Never yank the view while they're scrolled up.
   if (!state.scrolledOnce[c]) {
@@ -4837,6 +4887,7 @@ function renderMessages() {
   } else if (wasAtBottom) {
     scrollToBottom(false);
   } else {
+    _stickBottom = false;
     // Preserve the reading position. Messages are appended at the bottom, so keeping
     // scrollTop keeps the same messages in view - without this, clearing innerHTML jumps
     // the view to the top on every render (new message, read receipt, delivery ack…).
@@ -4976,12 +5027,17 @@ function buildMsgEl(m) {
     }
     if (apkNotice) {
       body += `<div class="apk-dl-wrap"><a class="apk-dl-btn" href="${esc(androidApkUrl())}" download="silvershire-inn.apk">Download</a></div>`;
+    } else {
+      // a link: its picture and title below it (filled in when the server has read the page)
+      const lu = firstLinkUrl(qm && text.startsWith('> ') ? qm[2] : text);
+      if (lu) body += `<div class="lp-slot" data-lp="${esc(lu)}"></div>`;
     }
   }
   const ticks = m.sent ? (m.read ? `<span class="ticks read">\u2713\u2713</span>` : m.delivered ? `<span class="ticks delivered"><span class="c1">\u2713</span><span class="c2">\u2713</span></span>` : m.serverAck ? `<span class="ticks server">\u2713</span>` : `<span class="ticks">\u2713</span>`) : '';
   const sender = (m.group && !m.sent) ? `<div class="sender">${esc(displayName(m.from))}</div>` : '';
   const failed = m.failed ? `<button type="button" class="retry-send" data-retry="${esc(m.messageId)}">Not sent. Retry</button>` : '';
   el.innerHTML = `${sender}${body}<div class="meta">${failed}${fmtTime(m.ts)} ${m.failed ? '' : ticks}</div>`;
+  fillLinkSlot(el);
   el.oncontextmenu = (e) => { e.preventDefault(); showCtxMenu(e, m); };
   attachReplySwipe(el, m);
   return el;
@@ -5021,9 +5077,34 @@ function attachReplySwipe(el, m) {
 
 function scrollToBottom(smooth) {
   const cont = document.getElementById('messages');
+  _stickBottom = true;
   cont.scrollTo({ top: cont.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
   setFabUnread(0);
 }
+/* Opened at the bottom, the chat STAYS at the bottom while pictures, previews and borders load
+   in and make it taller (it used to open a little scrolled up after a refresh). Scrolling up
+   yourself lets go of it. */
+let _stickBottom = true;
+function keepAtBottom() {
+  if (!_stickBottom) return;
+  const cont = document.getElementById('messages');
+  if (cont) cont.scrollTop = cont.scrollHeight;
+}
+const _msgResize = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver(() => keepAtBottom()) : null;
+const _msgObserved = new WeakSet();
+function watchMsgSizes(cont) {
+  if (!_msgResize) return;
+  for (const n of cont.children) if (!_msgObserved.has(n)) { _msgObserved.add(n); _msgResize.observe(n); }
+}
+document.getElementById('messages').addEventListener('load', () => keepAtBottom(), true);
+document.getElementById('messages').addEventListener('loadedmetadata', () => keepAtBottom(), true);
+let _lastMsgScrollTop = 0;
+document.getElementById('messages').addEventListener('scroll', function () {
+  const dist = this.scrollHeight - this.scrollTop - this.clientHeight;
+  if (dist < 4) _stickBottom = true;
+  else if (this.scrollTop < _lastMsgScrollTop - 2) _stickBottom = false;     // the person scrolled up
+  _lastMsgScrollTop = this.scrollTop;
+}, { passive: true });
 
 function toggleSearch() {
   const bar = document.getElementById('searchBar');

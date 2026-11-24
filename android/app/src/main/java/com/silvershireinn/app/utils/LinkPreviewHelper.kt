@@ -79,6 +79,24 @@ object LinkPreviewHelper {
         // Mark as attempted so we don't hammer the server on failures
         cache[url] = EMPTY
 
+        // YouTube: its own thumbnail and title (the watch page often has no preview tags for us)
+        Regex("""(?:youtube\.com/(?:watch\?(?:.*&)?v=|shorts/|embed/|live/)|youtu\.be/)([A-Za-z0-9_-]{6,15})""", RegexOption.IGNORE_CASE)
+            .find(url)?.groupValues?.getOrNull(1)?.let { id ->
+                var title = "YouTube video"; var author = ""
+                try {
+                    client.newCall(Request.Builder()
+                        .url("https://www.youtube.com/oembed?format=json&url=" + java.net.URLEncoder.encode("https://www.youtube.com/watch?v=$id", "UTF-8"))
+                        .build()).execute().use { r ->
+                        if (r.isSuccessful) {
+                            val j = org.json.JSONObject(r.body?.string() ?: "{}")
+                            title = j.optString("title").ifBlank { title }; author = j.optString("author_name")
+                        }
+                    }
+                } catch (_: Exception) {}
+                val p = LinkPreview(url, title, author, "https://i.ytimg.com/vi/$id/hqdefault.jpg", "YouTube", true)
+                cache[url] = p
+                return@withContext p
+            }
         try {
             // GET directly (many sites reject HEAD), stop if it isn't a web page, and read at
             // most 256 KB: the tags we need are in <head>; whole pages used to be loaded.

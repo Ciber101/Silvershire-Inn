@@ -119,7 +119,7 @@ object ProfileFrames {
         val framed = !(id == "none" || id.startsWith("gen:none"))
         reserveRoom(slot, avatar, framed, reserve)
         if (!framed) {
-            if (old != null) { old.host.overlay.remove(old); avatar.setTag(R_FLOAT, null); old.host.invalidate() }
+            if (old != null) { old.detach(); old.host.overlay.remove(old); avatar.setTag(R_FLOAT, null); old.host.invalidate() }
             avatar.scaleX = 1f; avatar.scaleY = 1f
             dot?.alpha = 1f
             return 0
@@ -128,7 +128,7 @@ object ProfileFrames {
         val shape = shapeName(AvatarShapeHelper.forUser(user))
         val room = (slot.getTag(R_ROOM) as? Int) ?: 0
         if (old != null && old.id == id && old.shape == shape && old.host === host) { old.dot = dot; host.invalidate(); return room }
-        if (old != null) old.host.overlay.remove(old)
+        if (old != null) { old.detach(); old.host.overlay.remove(old) }
         val f = FloatingFrame(avatar.context.applicationContext, id, shape, avatar, slot, host)
         f.dot = dot
         host.overlay.add(f)
@@ -167,34 +167,55 @@ object ProfileFrames {
         private val tmp = Rect()
         /** Online dot: drawn on the picture's rim, ABOVE the border (it used to hide under it). */
         var dot: View? = null
-        init { setBounds(-4000, -4000, 4000, 4000) }   // invalidation area: anywhere near the host
-        override fun draw(c: Canvas) {
-            val v = ref.get() ?: return
-            val slot = slotRef.get() ?: return
-            if (v.getTag(R_FLOAT) !== this || slot.parent !== host || v.width == 0) return
-            if (v.visibility != View.VISIBLE || slot.visibility != View.VISIBLE) return
+        // Worked out by measure(): the picture's centre, full border size and the fit
+        private var gx = 0f; private var gy = 0f; private var gFull = 0f; private var gK = 1f; private var gA = 0
+        /** Right after layout and BEFORE anything is drawn: the picture gets its fitted size, so it
+         *  never shows one frame too big (the quick blink when a list or the floating chat opened). */
+        private val preDraw = android.view.ViewTreeObserver.OnPreDrawListener {
+            try {
+                val v = ref.get()
+                if (v != null && measure() && kotlin.math.abs(v.scaleX - gK) > 0.01f) { v.scaleX = gK; v.scaleY = gK }
+            } catch (_: Throwable) {}
+            true
+        }
+        init {
+            setBounds(-4000, -4000, 4000, 4000)    // invalidation area: anywhere near the host
+            try { host.viewTreeObserver.addOnPreDrawListener(preDraw) } catch (_: Throwable) {}
+        }
+        /** Taken off its picture: stop following it. */
+        fun detach() { try { host.viewTreeObserver.removeOnPreDrawListener(preDraw) } catch (_: Throwable) {} }
+
+        /** Asks for the border picture (already in memory: right away, no frame without it). */
+        private fun request(s: Int) {
+            if (s == asked) return
+            asked = s
+            FrameRenderer.get(app, id, shape, s, "full") { b ->
+                if (b != null && asked == s) {
+                    val first = bmp == null
+                    bmp = b; drawn = drawnArea(b)
+                    // where the border's ring ends: the bubble cut keeps one exact gap from it
+                    ref.get()?.let { av -> av.setTag(com.silvershireinn.app.R.id.seal_ring, ringOuter(b)); (av.parent as? ViewGroup)?.let { p -> for (i in 0 until p.childCount) p.getChildAt(i).invalidate() } }
+                    if (first) ref.get()?.let { av -> if (measure() && kotlin.math.abs(av.scaleX - gK) > 0.01f) { av.scaleX = gK; av.scaleY = gK } }
+                    host.invalidate()
+                }
+            }
+        }
+
+        /** Where the picture is and how much it and its border shrink to fit the room. */
+        private fun measure(): Boolean {
+            val v = ref.get() ?: return false
+            val slot = slotRef.get() ?: return false
+            if (v.getTag(R_FLOAT) !== this || slot.parent !== host || v.width == 0) return false
             val a = minOf(v.width, v.height)
             val full = (a / PIC)                                   // border size at full scale
             tmp.set(0, 0, v.width, v.height)
-            try { host.offsetDescendantRectToMyCoords(v, tmp) } catch (_: Exception) { return }
+            try { host.offsetDescendantRectToMyCoords(v, tmp) } catch (_: Exception) { return false }
             // moved pictures (stacked heads, dragged chips) carry their border along
             val tx = v.translationX + (if (slot !== v) slot.translationX else 0f)
             val ty = v.translationY + (if (slot !== v) slot.translationY else 0f)
             val cx = tmp.exactCenterX() + tx; val cy = tmp.exactCenterY() + ty
-            val s = bucket(full.toInt()).coerceAtLeast(128)
-            if (s != asked) {
-                asked = s
-                FrameRenderer.get(app, id, shape, s, "full") { b ->
-                    if (b != null && asked == s) {
-                        bmp = b; drawn = drawnArea(b)
-                        // where the border's ring ends: the bubble cut keeps one exact gap from it
-                        ref.get()?.let { av -> av.setTag(com.silvershireinn.app.R.id.seal_ring, ringOuter(b)); (av.parent as? ViewGroup)?.let { p -> for (i in 0 until p.childCount) p.getChildAt(i).invalidate() } }
-                        host.invalidate()
-                    }
-                }
-            }
-            val b = bmp ?: return
-            val d = drawn ?: floatArrayOf(0f, 0f, 1f, 1f)
+            request(bucket(full.toInt()).coerceAtLeast(128))
+            val d = drawn ?: return false
             // the room: the slot plus its reserved margins, inside the row
             val m = (slot.getTag(R_ROOM) as? Int) ?: 0
             val tol = 2f * v.resources.displayMetrics.density
@@ -208,14 +229,24 @@ object ProfileFrames {
             if (nr > 0) k = minOf(k, (right - cx) / nr)
             if (nt > 0) k = minOf(k, (cy - top) / nt)
             if (nb > 0) k = minOf(k, (bottom - cy) / nb)
-            k = k.coerceIn(0.3f, 1f)
+            gx = cx; gy = cy; gFull = full; gK = k.coerceIn(0.3f, 1f); gA = a
+            return true
+        }
+
+        override fun draw(c: Canvas) {
+            val v = ref.get() ?: return
+            val slot = slotRef.get() ?: return
+            if (v.visibility != View.VISIBLE || slot.visibility != View.VISIBLE) return
+            if (!measure()) return
+            val b = bmp ?: return
+            val k = gK; val cx = gx; val cy = gy; val a = gA
             if (kotlin.math.abs(v.scaleX - k) > 0.01f) {
                 v.post {
                     v.scaleX = k; v.scaleY = k                    // picture shrinks with its border
                     (v.parent as? ViewGroup)?.let { p -> for (i in 0 until p.childCount) p.getChildAt(i).invalidate() }   // bubble cuts follow it
                 }
             }
-            val size = full * k
+            val size = gFull * k
             dst.set((cx - size / 2).toInt(), (cy - size / 2).toInt(), (cx + size / 2).toInt(), (cy + size / 2).toInt())
             paint.alpha = (v.alpha * 255).toInt()
             c.drawBitmap(b, null, dst, paint)

@@ -77,6 +77,7 @@ class SilvershireApp : Application(), coil.ImageLoaderFactory {
         CryptoManager.init(this)
         SQLiteDatabase.loadLibs(this)
         database = AppDatabase.getInstance(this)
+        com.silvershireinn.app.utils.VideoThumbs.warmPictures(this)     // real pictures from the first frame
         NotificationHelper.createChannel(this)
         recordAppVersion()
         registerActivityLifecycleCallbacks(VisibilityTracker)

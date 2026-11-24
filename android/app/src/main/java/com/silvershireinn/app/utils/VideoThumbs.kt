@@ -169,8 +169,41 @@ object VideoThumbs {
      * cached by path + modified time). Use instead of BitmapFactory.decodeFile for avatars:
      * a big profile photo decoded at full size can use 50+ MB.
      */
-    private val small = object : LruCache<String, Bitmap>(6 * 1024) {
+    private val small = object : LruCache<String, Bitmap>(16 * 1024) {
         override fun sizeOf(key: String, value: Bitmap): Int = (value.byteCount / 1024).coerceAtLeast(1)
+    }
+
+    /** Already decoded (memory only, never touches the disk). */
+    fun cachedSmall(path: String?, maxDim: Int = 256): Bitmap? {
+        if (path.isNullOrBlank()) return null
+        val f = File(path)
+        return small.get("$path@${f.lastModified()}#$maxDim")
+    }
+
+    /** Chats list pictures: one size step for the list's picture size. */
+    fun listDim(ctx: android.content.Context): Int =
+        if (com.silvershireinn.app.utils.PreferenceManager.listAvatarSize * ctx.resources.displayMetrics.density <= 256f) 256 else 512
+
+    /**
+     * Decodes everyone's picture (and video first frames) in the background as the app starts,
+     * so the Chats list shows the real pictures from its very first frame (they used to come in
+     * a moment later over the coloured circles).
+     */
+    fun warmPictures(ctx: android.content.Context) {
+        val app = ctx.applicationContext
+        Thread {
+            try {
+                val dim = listDim(app)
+                val files = (java.io.File(app.filesDir, "contact_pics").listFiles()?.toList() ?: emptyList()) +
+                    listOfNotNull(com.silvershireinn.app.utils.ProfileMediaHelper.findOwnProfilePic(app))
+                for (f in files) {
+                    if (!f.isFile) continue
+                    val p = f.absolutePath
+                    if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(p)) com.silvershireinn.app.utils.ProfileMediaHelper.videoFrameBitmap(p)
+                    else decodeSmall(p, dim)
+                }
+            } catch (_: Throwable) {}
+        }.apply { isDaemon = true; priority = Thread.NORM_PRIORITY }.start()
     }
 
     fun decodeSmall(path: String?, maxDim: Int = 256): Bitmap? {

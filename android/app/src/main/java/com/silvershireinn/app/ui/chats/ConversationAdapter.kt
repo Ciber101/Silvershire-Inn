@@ -96,6 +96,8 @@ class ConversationAdapter(
             if (!isGroup && picFile?.exists() == true) {
                 ivContactPic.visibility = View.VISIBLE
                 tvInitials.visibility   = View.GONE
+                // Never the bright default circle behind a picture that is still coming
+                avatarCircle.setCardBackgroundColor(0xFF26262B.toInt())
                 val path = picFile.absolutePath
                 ivContactPic.tag = path
                 if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(path)) {
@@ -120,11 +122,15 @@ class ConversationAdapter(
                     holder.video.play(path, ivContactPic)
                 } else {
                     holder.video.clear()
-                    // Keyed by modified time: a friend's NEW picture (same file name) used to
-                    // keep showing the old one from the image cache until the app restarted.
-                    ivContactPic.load(picFile) {
+                    // Shown in this same frame: decoded at start-up (warmPictures) or right here,
+                    // small and quick. Keyed by modified time, so a NEW picture shows at once.
+                    val dim = com.silvershireinn.app.utils.VideoThumbs.listDim(ivContactPic.context)
+                    val bmp = com.silvershireinn.app.utils.VideoThumbs.cachedSmall(path, dim)
+                        ?: com.silvershireinn.app.utils.VideoThumbs.decodeSmall(path, dim)
+                    if (bmp != null) ivContactPic.setImageBitmap(bmp)
+                    else ivContactPic.load(picFile) {
                         memoryCacheKey("conv_${path}_${picFile.lastModified()}")
-                        size(144)
+                        size(dim)
                     }
                 }
             } else {

@@ -74,12 +74,15 @@ class ContactAdapter(
             if (picFile != null && picFile.exists()) {
                 ivContactPic.visibility = View.VISIBLE
                 tvInitials.visibility   = View.GONE
+                avatarCircle.setCardBackgroundColor(0xFF26262B.toInt())     // no bright circle while it loads
                 val path = picFile.absolutePath
                 ivContactPic.tag = path
                 if (com.silvershireinn.app.utils.ProfileMediaHelper.isVideoPath(path)) {
-                    // First frame decoded off the main thread (it stuttered while scrolling).
-                    ivContactPic.setImageDrawable(null)
-                    com.silvershireinn.app.SilvershireApp.appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    // First frame decoded off the main thread (it stuttered while scrolling);
+                    // already decoded (at start-up): shown at once.
+                    val cachedFrame = com.silvershireinn.app.utils.ProfileMediaHelper.cachedVideoFrame(path)
+                    ivContactPic.setImageBitmap(cachedFrame)
+                    if (cachedFrame == null) com.silvershireinn.app.SilvershireApp.appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         val frame = com.silvershireinn.app.utils.ProfileMediaHelper.videoFrameBitmap(path)
                         ivContactPic.post {
                             if (ivContactPic.tag != path) return@post
@@ -96,7 +99,11 @@ class ContactAdapter(
                 } else {
                     holder.video.clear()
                     // Cache key includes the file time so a new picture shows right away.
-                    ivContactPic.load(picFile) { memoryCacheKey("contact_${path}_${picFile.lastModified()}"); size(144) }
+                    val dim = com.silvershireinn.app.utils.VideoThumbs.listDim(ivContactPic.context)
+                    val bmp = com.silvershireinn.app.utils.VideoThumbs.cachedSmall(path, dim)
+                        ?: com.silvershireinn.app.utils.VideoThumbs.decodeSmall(path, dim)
+                    if (bmp != null) ivContactPic.setImageBitmap(bmp)
+                    else ivContactPic.load(picFile) { memoryCacheKey("contact_${path}_${picFile.lastModified()}"); size(dim) }
                 }
             } else {
                 holder.video.clear()

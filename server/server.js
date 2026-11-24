@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 21,
-  versionName: '1.0.20',
+  versionCode: 22,
+  versionName: '1.0.21',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -1199,6 +1199,133 @@ function uploadIndexAll() { return Array.from(uploadIndexLoad().values()); }
 // ============================================================
 //  HTTP SERVER -------- file upload / download / list
 // ============================================================
+// LINK PREVIEWS for the web client (a page can't read other sites itself). The server reads
+// just the top of the linked page for its title and picture, and passes the picture through.
+// Never reaches private / local addresses (checked on every connection and redirect).
+// ============================================================
+const _lpDns = require('dns');
+const _lpNet = require('net');
+const _lpHttps = require('https');
+const _lpCache = new Map();          // url -> { t, data }  (data null = nothing to show)
+const _lpImgOk = new Map();          // picture urls handed out by a preview -> time
+const LP_TTL = 12 * 60 * 60 * 1000, LP_NEG_TTL = 10 * 60 * 1000;
+
+function _lpPrivate(ip) {
+  if (_lpNet.isIPv4(ip)) {
+    const [a, b] = ip.split('.').map(Number);
+    return a === 10 || a === 127 || a === 0 || a >= 224 || (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) ||
+      (a === 198 && (b === 18 || b === 19));
+  }
+  const l = String(ip).toLowerCase();
+  const m = l.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (m) return _lpPrivate(m[1]);
+  return l === '::1' || l === '::' || l.startsWith('fc') || l.startsWith('fd') || l.startsWith('fe8') ||
+    l.startsWith('fe9') || l.startsWith('fea') || l.startsWith('feb') || l.startsWith('ff');
+}
+function _lpLookup(host, opts, cb) {
+  if (typeof opts === 'function') { cb = opts; opts = {}; }
+  _lpDns.lookup(host, { all: true }, (err, addrs) => {
+    if (err) return cb(err);
+    if (!addrs.length || addrs.some(a => _lpPrivate(a.address))) return cb(new Error('blocked address'));
+    if (opts && opts.all) return cb(null, addrs);
+    cb(null, addrs[0].address, addrs[0].family);
+  });
+}
+function _lpUrlOk(u) {
+  try {
+    const x = new URL(u);
+    if (x.protocol !== 'https:' && x.protocol !== 'http:') return null;
+    if (x.username || x.password) return null;
+    if (x.port && x.port !== '80' && x.port !== '443') return null;
+    if (_lpNet.isIP(x.hostname.replace(/^\[|\]$/g, '')) && _lpPrivate(x.hostname.replace(/^\[|\]$/g, ''))) return null;
+    return x;
+  } catch (_) { return null; }
+}
+/** GET [u] (redirects followed, each checked), at most [max] bytes. */
+function _lpGet(u, max, accept, hops = 4) {
+  return new Promise((resolve, reject) => {
+    const x = _lpUrlOk(u);
+    if (!x) return reject(new Error('bad url'));
+    const mod = x.protocol === 'https:' ? _lpHttps : http;
+    const req = mod.get(x, {
+      lookup: _lpLookup, timeout: 7000,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SilvershireLinkPreview/1.0)', 'Accept': accept, 'Accept-Language': 'en' }
+    }, (r) => {
+      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
+        r.resume();
+        if (hops <= 0) return reject(new Error('too many redirects'));
+        let next; try { next = new URL(r.headers.location, x).toString(); } catch (_) { return reject(new Error('bad redirect')); }
+        return resolve(_lpGet(next, max, accept, hops - 1));
+      }
+      if (r.statusCode !== 200) { r.resume(); return reject(new Error('status ' + r.statusCode)); }
+      const chunks = []; let n = 0;
+      r.on('data', (c) => {
+        n += c.length; chunks.push(c);
+        if (n >= max) { r.destroy(); resolve({ buf: Buffer.concat(chunks).subarray(0, max), type: String(r.headers['content-type'] || ''), url: x.toString(), cut: true }); }
+      });
+      r.on('end', () => resolve({ buf: Buffer.concat(chunks), type: String(r.headers['content-type'] || ''), url: x.toString() }));
+      r.on('error', reject);
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+  });
+}
+function _lpDecode(s) {
+  return String(s || '').replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+}
+function _lpMeta(html, key) {
+  const k = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const a = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${k}["'][^>]*content=["']([^"']*)["']`, 'i'));
+  const b = html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${k}["']`, 'i'));
+  const v = (a && a[1]) || (b && b[1]) || '';
+  return v.trim() ? _lpDecode(v) : '';
+}
+function _lpYouTubeId(u) {
+  const m = String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,15})/i);
+  return m ? m[1] : null;
+}
+async function linkPreview(u) {
+  const hit = _lpCache.get(u);
+  if (hit && Date.now() - hit.t < (hit.data ? LP_TTL : LP_NEG_TTL)) return hit.data;
+  let data = null;
+  try {
+    const yt = _lpYouTubeId(u);
+    if (yt) {
+      let title = '', site = 'YouTube', author = '';
+      try {
+        const o = await _lpGet('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + yt), 65536, 'application/json');
+        const j = JSON.parse(o.buf.toString('utf8'));
+        title = String(j.title || ''); author = String(j.author_name || '');
+      } catch (_) {}
+      data = { url: u, title: title || 'YouTube video', description: author, image: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, site, video: true };
+    } else {
+      const r = await _lpGet(u, 393216, 'text/html,application/xhtml+xml');
+      const type = r.type.toLowerCase();
+      if (type.startsWith('image/')) {
+        data = { url: u, title: '', description: '', image: u, site: new URL(r.url).hostname.replace(/^www\./, ''), picture: true };
+      } else if (type.includes('html')) {
+        const html = r.buf.toString('utf8');
+        const tm = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+        const title = _lpMeta(html, 'og:title') || _lpMeta(html, 'twitter:title') || (tm ? _lpDecode(tm[1]) : '');
+        const description = _lpMeta(html, 'og:description') || _lpMeta(html, 'twitter:description') || _lpMeta(html, 'description');
+        let image = _lpMeta(html, 'og:image') || _lpMeta(html, 'og:image:url') || _lpMeta(html, 'twitter:image') || _lpMeta(html, 'twitter:image:src');
+        if (image) { try { image = new URL(image, r.url).toString(); } catch (_) { image = ''; } }
+        const site = _lpMeta(html, 'og:site_name') || new URL(r.url).hostname.replace(/^www\./, '');
+        if (title || image) data = { url: u, title: title.slice(0, 200), description: description.slice(0, 300), image: image || '', site: site.slice(0, 80) };
+      }
+    }
+  } catch (_) { data = null; }
+  if (data && data.image) _lpImgOk.set(data.image, Date.now());
+  _lpCache.set(u, { t: Date.now(), data });
+  if (_lpCache.size > 600) _lpCache.delete(_lpCache.keys().next().value);
+  if (_lpImgOk.size > 1200) _lpImgOk.delete(_lpImgOk.keys().next().value);
+  return data;
+}
+
+// ============================================================
 const httpServer = http.createServer((req, res) => {
   const ip  = req.socket.remoteAddress;
 
@@ -1407,6 +1534,30 @@ a.btn{display:inline-block;margin-top:18px;padding:14px 28px;background:#A8A9AD;
         jsonResponse(res, 200, { ok: true });
       } catch (e) { jsonResponse(res, 500, { error: 'write failed' }); }
     });
+    return;
+  }
+
+  // ?? GET /api/link-preview?u=<link>  and  /api/link-preview/img?u=<picture>  (signed in) ??
+  if (req.method === 'GET' && (base === '/api/link-preview' || base === '/api/link-preview/img')) {
+    const auth = httpAuth(req, qs);
+    if (!auth) { jsonResponse(res, 401, { error: 'Unauthorized' }); return; }
+    const u = String(qs.u || '').slice(0, 2048);
+    if (!_lpUrlOk(u)) { jsonResponse(res, 400, { error: 'bad url' }); return; }
+    if (base === '/api/link-preview') {
+      linkPreview(u).then((data) => {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'private, max-age=3600' });
+        res.end(JSON.stringify({ ok: !!data, preview: data }));
+      }).catch(() => jsonResponse(res, 200, { ok: false }));
+      return;
+    }
+    // only pictures a preview pointed at (not a way to fetch anything at all)
+    if (!_lpImgOk.has(u)) { jsonResponse(res, 404, { error: 'unknown picture' }); return; }
+    _lpGet(u, 4 * 1024 * 1024, 'image/*').then((r) => {
+      const type = r.type.split(';')[0].trim().toLowerCase();
+      if (!type.startsWith('image/') || type.includes('svg') || r.cut) { jsonResponse(res, 415, { error: 'not a picture' }); return; }
+      res.writeHead(200, { 'Content-Type': type, 'Content-Length': r.buf.length, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+      res.end(r.buf);
+    }).catch(() => jsonResponse(res, 502, { error: 'picture unavailable' }));
     return;
   }
 

@@ -3454,8 +3454,13 @@ class ChatHeadService : Service() {
         val ghostSize = (48 * dp).toInt()
         val main = Handler(Looper.getMainLooper())
         // Held still for a moment: ready to be moved along the row even when the row scrolls
+        fun rowScrolls(v: View): Boolean {
+            val scroll = (v.parent as? View)?.parent as? View ?: return false
+            return scroll.canScrollHorizontally(1) || scroll.canScrollHorizontally(-1)
+        }
         val hold = Runnable {
             holdReady = true
+            view.parent?.requestDisallowInterceptTouchEvent(true)     // the row stops scrolling: move this head
             // lifted a little (its border follows; scaling would fight the border's own fit)
             view.animate().translationY(-4 * dp).setDuration(120).setUpdateListener { (view.parent as? View)?.invalidate() }.start()
             try { view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS) } catch (_: Throwable) {}
@@ -3470,8 +3475,10 @@ class ChatHeadService : Service() {
                     reordering = false
                     holdReady = false
                     main.postDelayed(hold, 280)
-                    // Allow HorizontalScrollView to intercept until we decide on the drag
-                    v.parent?.requestDisallowInterceptTouchEvent(false)
+                    // A row that fits never scrolls: the touch is all this head's (the row used to
+                    // grab sideways moves, so the heads could not be dragged and taps got lost).
+                    // A long row may scroll until the head is held for a moment.
+                    v.parent?.requestDisallowInterceptTouchEvent(!rowScrolls(v))
                     true
                 }
                 android.view.MotionEvent.ACTION_MOVE -> {
@@ -3479,12 +3486,11 @@ class ChatHeadService : Service() {
                     val dx = ev.rawX - downRawX
                     val dy = ev.rawY - downRawY
                     if (reordering) { moveReorder(v, dx); return@setOnTouchListener true }
-                    if (!dragged && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) {
+                    val sideways = kotlin.math.abs(dx) >= kotlin.math.abs(dy)
+                    if (!dragged && ((sideways && kotlin.math.abs(dx) > 8 * dp) || kotlin.math.abs(dy) > slop)) {
                         main.removeCallbacks(hold)
-                        if (kotlin.math.abs(dx) >= kotlin.math.abs(dy)) {
-                            val scroll = (v.parent as? View)?.parent as? View
-                            val scrolls = scroll != null && (scroll.canScrollHorizontally(1) || scroll.canScrollHorizontally(-1))
-                            if (scrolls && !holdReady) {
+                        if (sideways) {
+                            if (rowScrolls(v) && !holdReady) {
                                 // A long row: a quick swipe scrolls it (hold a head first to move it)
                                 yieldedToScroll = true
                                 v.parent?.requestDisallowInterceptTouchEvent(false)
