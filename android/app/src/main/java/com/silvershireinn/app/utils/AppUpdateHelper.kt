@@ -17,6 +17,7 @@ import com.silvershireinn.app.R
 import com.silvershireinn.app.repository.FileRepository
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -137,6 +138,16 @@ object AppUpdateHelper {
             if (started || p != null) {
                 started = started || p != null
                 when {
+                    p == null && lastEnd == "uptodate" -> {
+                        started = false
+                        bar.visibility = View.GONE
+                        tvProgress.visibility = View.VISIBLE
+                        tvProgress.text = "You already have the newest version."
+                        btnDownload.isEnabled = false; btnDownload.text = "Up to date"
+                        btnLater.text = "Close"
+                        bar.postDelayed({ try { dialog.dismiss() } catch (_: Exception) {} }, 1800)
+                    }
+                    p == null && lastEnd == "browser" -> { try { dialog.dismiss() } catch (_: Exception) {} }
                     p == null -> {                       // failed / stopped: offer it again
                         started = false
                         bar.visibility = View.GONE
@@ -175,8 +186,6 @@ object AppUpdateHelper {
             tappedFrom("dialog")
             listener(0)
             openDownload(activity, url)
-            // fell back to the browser (no in-app download): nothing to show here
-            if (progress == null && activeDownloadId < 0) dialog.dismiss()
         }
         btnLater.setOnClickListener {
             if (!started) {
@@ -191,6 +200,35 @@ object AppUpdateHelper {
     /** Update windows following the download (main thread). */
     private val progressListeners = java.util.concurrent.CopyOnWriteArrayList<(Int?) -> Unit>()
 
+    // ── Which version this phone runs ──
+    fun installedCode(ctx: Context): Int = try {
+        val info = ctx.packageManager.getPackageInfo(ctx.packageName, 0)
+        if (android.os.Build.VERSION.SDK_INT >= 28) info.longVersionCode.toInt() else @Suppress("DEPRECATION") info.versionCode
+    } catch (_: Exception) { 0 }
+    fun installedName(ctx: Context): String = try { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "" } catch (_: Exception) { "" }
+
+    /** "1.0.76" from an update message ("... update available (v1.0.76)"), or null. */
+    fun versionIn(text: String?): String? {
+        if (text.isNullOrBlank()) return null
+        return Regex("""\bv(\d+(?:\.\d+){1,3})\b""").find(text)?.groupValues?.get(1)
+    }
+
+    /** True when this phone already runs [name] or something newer. */
+    fun hasVersion(ctx: Context, name: String?): Boolean {
+        if (name.isNullOrBlank()) return false
+        val a = installedName(ctx).split('.').map { it.filter(Char::isDigit).toIntOrNull() ?: 0 }
+        val b = name.split('.').map { it.toIntOrNull() ?: 0 }
+        for (i in 0 until maxOf(a.size, b.size)) {
+            val x = a.getOrElse(i) { 0 }; val y = b.getOrElse(i) { 0 }
+            if (x != y) return x > y
+        }
+        return true
+    }
+
+    /** Why the last download attempt ended without a download ("uptodate", "browser"), or null. */
+    @Volatile var lastEnd: String? = null
+        private set
+
     /** Open the download URL directly (e.g. from Silvershire Updates DM). */
     fun openDownload(context: Context, urlHint: String? = null) {
         val url = when {
@@ -201,9 +239,29 @@ object AppUpdateHelper {
             }
             else -> FileRepository.publicHttpBase() + "/download/silvershire-inn.apk"
         }
-        // In-app download with the system progress notification, then the installer opens by
-        // itself. (It used to hand the link to the browser and leave you to find the file.)
-        if (!downloadAndInstall(context, url)) openInBrowser(context, url)
+        // First: is there anything newer than this phone already has? The link always gives the
+        // newest app, so downloading the version you already run was a waste (and an install
+        // screen for nothing).
+        if (activeDownloadId >= 0) { Toast.makeText(context, "Update is already downloading", Toast.LENGTH_SHORT).show(); return }
+        lastEnd = null
+        setProgress(0)
+        val app = context.applicationContext
+        com.silvershireinn.app.SilvershireApp.appScope.launch {
+            val server = FileRepository.fetchAppVersion()
+            val mine = installedCode(app)
+            withContext(Dispatchers.Main) {
+                if (server != null && server.versionCode > 0 && mine >= server.versionCode) {
+                    lastEnd = "uptodate"
+                    setProgress(null)
+                    val v = installedName(app).ifBlank { server.versionName }
+                    Toast.makeText(app, "You already have the newest version${if (v.isNotBlank()) " ($v)" else ""}", Toast.LENGTH_LONG).show()
+                    return@withContext
+                }
+                // In-app download with the system progress notification, then the installer opens by
+                // itself. (It used to hand the link to the browser and leave you to find the file.)
+                if (!downloadAndInstall(context, url)) { lastEnd = "browser"; setProgress(null); openInBrowser(context, url) }
+            }
+        }
     }
 
     private fun openInBrowser(context: Context, url: String) {
@@ -226,6 +284,9 @@ object AppUpdateHelper {
     private val main = android.os.Handler(android.os.Looper.getMainLooper())
     /** The update message whose button started the download running now. */
     @Volatile private var activeKey: String? = null
+
+    /** This button no longer follows the download (an update this phone already has). */
+    fun untrack(b: android.widget.TextView) { buttons.remove(b) }
 
     /** A Download button on screen for update message [key]: it shows the download's state. */
     fun track(b: android.widget.TextView, key: String) { buttons[b] = key; paint(b) }

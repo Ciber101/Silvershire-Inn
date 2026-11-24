@@ -45,6 +45,8 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val url = intent?.getStringExtra("url") ?: return
             if (isFinishing || isDestroyed) return
+            // Not for a version this phone already runs
+            if (AppUpdateHelper.hasVersion(this@MainActivity, AppUpdateHelper.versionIn(intent.getStringExtra("text")))) return
             // The same update window as at start-up, with the download's progress in it
             AppUpdateHelper.showUpdateDialog(this@MainActivity, url)
         }

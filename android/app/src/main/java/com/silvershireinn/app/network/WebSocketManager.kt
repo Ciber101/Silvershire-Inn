@@ -139,6 +139,8 @@ object WebSocketManager {
                             com.silvershireinn.app.utils.PreferenceManager.httpToken.takeIf { it.isNotBlank() }?.let { put("httpToken", it) }
                             // Only show as online while the app is actually in use.
                             put("active", com.silvershireinn.app.SilvershireApp.isInUse)
+                            // Which app version this phone runs: an older one is told about the update
+                            put("appVersion", com.silvershireinn.app.utils.AppUpdateHelper.installedCode(com.silvershireinn.app.SilvershireApp.instance))
                         }.toString())
                     }
                 }

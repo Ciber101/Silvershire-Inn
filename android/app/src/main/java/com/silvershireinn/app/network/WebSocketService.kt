@@ -773,7 +773,12 @@ class WebSocketService : Service() {
                         }
                     } else {
                         var textPayload = payload
-                        if (from == "Silvershire Updates" && textPayload.contains("/download")) {
+                        // An update this phone already runs: kept in the chat, but no alert, no
+                        // floating head and no "update available" window
+                        val haveIt = from == "Silvershire Updates" && textPayload.contains("/download") &&
+                            com.silvershireinn.app.utils.AppUpdateHelper.hasVersion(this@WebSocketService,
+                                com.silvershireinn.app.utils.AppUpdateHelper.versionIn(textPayload))
+                        if (from == "Silvershire Updates" && textPayload.contains("/download") && !haveIt) {
                             val base = FileRepository.publicHttpBase()
                             textPayload = textPayload
                                 .replace("/download/silvershire-inn.apk", "$base/download/silvershire-inn.apk")
@@ -801,7 +806,7 @@ class WebSocketService : Service() {
                         val viewingChat = com.silvershireinn.app.ui.chat.ChatActivity.activeChatContact == from
                         // App in foreground on a DIFFERENT screen still gets a notif.
                         // Only suppress when this exact conversation is on screen.
-                        val suppressNotif = viewingChat || (overlayOpen && overlayAtBottom)
+                        val suppressNotif = viewingChat || (overlayOpen && overlayAtBottom) || haveIt
                         if (!suppressNotif) {
                             NotificationHelper.showMessageNotification(this@WebSocketService, from, preview)
                         }
@@ -810,7 +815,9 @@ class WebSocketService : Service() {
                         // - Overlay open + at bottom: suppress (user can see the message)
                         // - Overlay open + scrolled up: show badge so user knows something arrived
                         val atBottom = com.silvershireinn.app.ui.chathead.ChatHeadService.overlayAtBottom
-                        if (PreferenceManager.chatHeads && canDrawOverlay() &&
+                        if (haveIt) {
+                            // already installed: no floating head for it
+                        } else if (PreferenceManager.chatHeads && canDrawOverlay() &&
                             com.silvershireinn.app.ui.chat.ChatActivity.activeChatContact != from) {
                             ChatHeadService.show(this@WebSocketService, from, preview)
                         } else if (overlayOpen && !atBottom) {

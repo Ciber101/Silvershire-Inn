@@ -898,7 +898,19 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                         com.silvershireinn.app.utils.AppUpdateHelper.tappedFrom(msg.messageId)
                         onApkDownload(msg)
                     }
-                    com.silvershireinn.app.utils.AppUpdateHelper.track(binding.btnApkDownload, msg.messageId)   // "Downloading... 42%" on this one only
+                    val ctx = binding.btnApkDownload.context
+                    if (com.silvershireinn.app.utils.AppUpdateHelper.hasVersion(ctx, com.silvershireinn.app.utils.AppUpdateHelper.versionIn(msg.encryptedPayload))) {
+                        // This phone already runs this version (or newer): nothing to download
+                        com.silvershireinn.app.utils.AppUpdateHelper.untrack(binding.btnApkDownload)
+                        binding.btnApkDownload.text = "Installed"
+                        binding.btnApkDownload.isEnabled = false
+                        binding.btnApkDownload.alpha = 0.5f
+                        binding.btnApkDownload.setOnClickListener(null)
+                    } else {
+                        binding.btnApkDownload.text = "Download"
+                        binding.btnApkDownload.alpha = 1f
+                        com.silvershireinn.app.utils.AppUpdateHelper.track(binding.btnApkDownload, msg.messageId)   // "Downloading... 42%" on this one only
+                    }
                 } else {
                     binding.btnApkDownload.visibility = View.GONE
                     binding.btnApkDownload.setOnClickListener(null)

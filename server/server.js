@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 27,
-  versionName: '1.0.26',
+  versionCode: 28,
+  versionName: '1.0.27',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -538,7 +538,46 @@ function versionNotes() {
   return APP_VERSION.notes || '';
 }
 
-function publishUpdateNotice(customText) {
+/** Sends the update message to one person (saved in their chat with Silvershire Updates, and
+ *  pushed to their devices now if they are online, otherwise when they connect). */
+function sendUpdateNoticeTo(u, payload, messageId, ts) {
+  if (!friends[u]) friends[u] = [];
+  if (!friends[u].includes(UPDATES_USER)) friends[u].push(UPDATES_USER);
+  if (!friends[UPDATES_USER]) friends[UPDATES_USER] = [];
+  if (!friends[UPDATES_USER].includes(u)) friends[UPDATES_USER].push(u);
+  const hist = loadHistory(UPDATES_USER, u);
+  hist.push({ from: UPDATES_USER, to: u, payload, messageId, timestamp: ts });
+  saveHistory(UPDATES_USER, u, hist);
+  sendToUser(u, { type: 'private_message', from: UPDATES_USER, payload, messageId, timestamp: ts });
+  if (users[u]) users[u].lastUpdateNotice = APP_VERSION.versionCode;
+}
+function updatesBlockedBy(u) {
+  const removed = (users[u] && Array.isArray(users[u].removedContacts) && users[u].removedContacts.includes(UPDATES_USER));
+  const blocked = (users[u] && Array.isArray(users[u].blockedUsers) && users[u].blockedUsers.includes(UPDATES_USER));
+  return removed || blocked;
+}
+function updateNoticeText() {
+  return [
+    'Android app update available (v' + APP_VERSION.versionName + ').',
+    '',
+    "What's new:",
+    versionNotes() || '- Bug fixes and improvements',
+    '',
+    'Tap Download to install. /download/silvershire-inn.apk'
+  ].join('\n');
+}
+/** A phone signed in with an older app than the published one and was never told about this
+ *  version (new account, offline for a while, a missed notice): tell it now. */
+function updateNoticeForOld(u, ver) {
+  if (AtRest.locked() || !users[u] || !(ver > 0) || ver >= APP_VERSION.versionCode) return;
+  if (!fs.existsSync(path.join(DOWNLOAD_DIR, 'silvershire-inn.apk'))) return;
+  if ((users[u].lastUpdateNotice || 0) >= APP_VERSION.versionCode || updatesBlockedBy(u)) return;
+  sendUpdateNoticeTo(u, updateNoticeText(), crypto.randomBytes(8).toString('hex') + '_' + u, new Date().toISOString());
+  saveJSON(FRIENDS_FILE, friends); saveJSON(USERS_FILE, users);
+  console.log('[UPDATES] ' + u + ' is on app ' + ver + ': sent the notice for ' + APP_VERSION.versionName);
+}
+
+function publishUpdateNotice(customText, force) {
   ensureUpdatesUser();
   const defaultNotes = [
     'Android app update available (v' + APP_VERSION.versionName + ').',
@@ -551,24 +590,21 @@ function publishUpdateNotice(customText) {
   const payload = customText || defaultNotes;
   const midBase = crypto.randomBytes(8).toString('hex');
   const ts = new Date().toISOString();
+  let sent = 0;
   for (const u of Object.keys(users)) {
-    if (u === UPDATES_USER) continue;
+    if (u === UPDATES_USER || (users[u] && users[u].system)) continue;
     // Blockable: if the user removed/blocked the Updates bot, skip DMing them.
-    const removed = (users[u] && Array.isArray(users[u].removedContacts) && users[u].removedContacts.includes(UPDATES_USER));
-    const blocked = (users[u] && Array.isArray(users[u].blockedUsers) && users[u].blockedUsers.includes(UPDATES_USER));
-    if (removed || blocked) continue;
-    if (!friends[u]) friends[u] = [];
-    if (!friends[u].includes(UPDATES_USER)) friends[u].push(UPDATES_USER);
-    if (!friends[UPDATES_USER]) friends[UPDATES_USER] = [];
-    if (!friends[UPDATES_USER].includes(u)) friends[UPDATES_USER].push(u);
-    const hist = loadHistory(UPDATES_USER, u);
-    const messageId = midBase + '_' + u;
-    hist.push({ from: UPDATES_USER, to: u, payload, messageId, timestamp: ts });
-    saveHistory(UPDATES_USER, u, hist);
-    sendToUser(u, { type: 'private_message', from: UPDATES_USER, payload, messageId, timestamp: ts });
+    if (updatesBlockedBy(u)) continue;
+    // Already told about this version (signed in on an older app since), or their phone
+    // already runs it: nothing to announce. A custom message (admin panel) always goes.
+    if (!customText && !force && (users[u].lastUpdateNotice || 0) >= APP_VERSION.versionCode) continue;
+    if (!customText && (users[u].appVersion || 0) >= APP_VERSION.versionCode) continue;
+    sendUpdateNoticeTo(u, payload, midBase + '_' + u, ts);
+    sent++;
   }
   saveJSON(FRIENDS_FILE, friends);
-  console.log('[UPDATES] notice sent to', Object.keys(users).length - 1, 'users');
+  saveJSON(USERS_FILE, users);
+  console.log('[UPDATES] notice sent to', sent, 'users');
 }
 
 function saveJSON(file, data) {
@@ -703,7 +739,7 @@ function autoUpdateNotice() {
       // Already announced, but without the notes written for it since: send them once
       if (notes && secrets.lastNoticeNotes !== APP_VERSION.versionName && (secrets.lastNoticeVersion || 0) === APP_VERSION.versionCode) {
         secrets.lastNoticeNotes = APP_VERSION.versionName; saveSecrets();
-        publishUpdateNotice();
+        publishUpdateNotice(undefined, true);
         console.log('[UPDATES] Notes for ' + APP_VERSION.versionName + ' sent');
       }
       return;
@@ -2438,6 +2474,11 @@ wss.on('connection', (ws, req) => {
 
         console.log(`[LOGIN] ${username} (RSA verified)`);
         if (users[username] && !users[username].signupName) users[username].signupName = username;
+        // The phone app says which version it runs: an older one hears about the update
+        const appVer = Math.max(0, Math.floor(Number(loginMsg && loginMsg.appVersion) || 0));
+        if (appVer > 0 && users[username] && users[username].appVersion !== appVer) {
+          users[username].appVersion = appVer; saveJSON(USERS_FILE, users);
+        }
         if (ws.upgradeReq) learnPublicOrigin(ws.upgradeReq);
         send(ws, { type: 'login_ok', name: username, settings: users[username]?.settings || null, shareUrl: shareLink(),
                    httpToken: mintHttpToken(username, ws.prevHttpToken),
@@ -2456,6 +2497,7 @@ wss.on('connection', (ws, req) => {
           console.log(`[PANIC] ${username} signed in while locked`);
           break;
         }
+        if (appVer > 0) { const who = username; setTimeout(() => { try { updateNoticeForOld(who, appVer); } catch (e) { console.error('[UPDATES] login notice', e.message); } }, 2500); }
 
         const removedContacts = users[username]?.removedContacts || [];
         const myFriends = (friends[username] || []).filter(f => f !== username && !removedContacts.includes(f));
