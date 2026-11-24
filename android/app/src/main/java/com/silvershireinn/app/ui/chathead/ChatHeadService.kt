@@ -105,6 +105,13 @@ class ChatHeadService : Service() {
         const val EXTRA_PICKER_URI              = "picker_uri"
         const val EXTRA_PICKER_TEXT             = "picker_text"
         const val EXTRA_MANUAL                  = "manual"
+        const val ACTION_RESTORE_AFTER_VIEWER   = "com.silvershireinn.RESTORE_AFTER_VIEWER"
+
+        /** The full media viewer (opened from the floating chat) closed: bring the chat back. */
+        fun restoreAfterViewer(context: Context) {
+            if (instance == null) return
+            safeStart(context, Intent(context, ChatHeadService::class.java).apply { action = ACTION_RESTORE_AFTER_VIEWER })
+        }
 
         /** Chat settings > Open chat head: a head for this chat, no unread count. */
         fun openManually(context: Context, id: String, groupName: String? = null) {
@@ -375,6 +382,19 @@ class ChatHeadService : Service() {
             }
             ACTION_PICKER_RESULT -> {
                 handlePickerResult(intent)
+            }
+            ACTION_RESTORE_AFTER_VIEWER -> {
+                restoreOverlayIfNeeded()
+                minimizeApp()
+                // A photo edited in the viewer to send here: it becomes the floating chat's draft
+                overlayContact?.let { c ->
+                    com.silvershireinn.app.ui.media.EditedMedia.take(c)?.let { f ->
+                        try {
+                            val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.provider", f)
+                            setOverlayDraft(uri, "image/jpeg", f.name)
+                        } catch (_: Throwable) {}
+                    }
+                }
             }
         }
         return START_NOT_STICKY
@@ -1353,8 +1373,18 @@ class ChatHeadService : Service() {
                 // so the chat stays open and the image/video appears on top.
                 val fileId = msg.attachmentId ?: return@MessageAdapter
                 val url    = try { MediaAuth.fileUrl(fileId) } catch (_: Exception) { "" }
-                showInOverlayMedia(fileId, msg.attachmentName ?: "file",
-                    msg.attachmentMime ?: "*/*", url)
+                val mime   = msg.attachmentMime ?: "*/*"
+                if (mime.startsWith("image/") || mime.startsWith("video/")) {
+                    // The full viewer (zoom, swipe through, edit, share, save...), then back here
+                    hideOverlayTemporarily(alsoBubble = true)
+                    try {
+                        com.silvershireinn.app.ui.media.MediaViewerActivity.start(this, fileId, msg.attachmentName ?: "media", mime, url,
+                            msg.conversationId, fromOverlay = true)
+                    } catch (_: Throwable) {
+                        restoreOverlayIfNeeded()
+                        showInOverlayMedia(fileId, msg.attachmentName ?: "file", mime, url)
+                    }
+                } else showInOverlayMedia(fileId, msg.attachmentName ?: "file", mime, url)
             },
             onLongPress = { msg -> showOverlayContextMenu(msg, contactId, group, displayName, themedCtx, view) },
             onReplyJump = { msg -> overlayJumpToReply(msg, recycler) },

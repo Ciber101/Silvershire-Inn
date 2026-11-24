@@ -604,8 +604,22 @@ class MediaViewerActivity : AppCompatActivity() {
         try { pipParams()?.let { enterPictureInPictureMode(it) } } catch (_: Throwable) { toast("Picture-in-picture is off for this app") }
     }
 
+    /** Back to the floating chat (once), if that is where the viewer was opened from. */
+    private var overlayRestored = false
+    private fun restoreFloatingChat() {
+        if (overlayRestored || !intent.getBooleanExtra(FROM_OVERLAY, false)) return
+        overlayRestored = true
+        com.silvershireinn.app.ui.chathead.ChatHeadService.restoreAfterViewer(applicationContext)
+    }
+
+    override fun finish() {
+        super.finish()
+        restoreFloatingChat()
+    }
+
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        restoreFloatingChat()                       // Home / recents: the floating chat comes back too
         if (Build.VERSION.SDK_INT in Build.VERSION_CODES.O until Build.VERSION_CODES.S && player?.isPlaying == true) enterPip()
     }
 
@@ -758,6 +772,7 @@ class MediaViewerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (isFinishing) restoreFloatingChat()
         handler.removeCallbacksAndMessages(null)
         saveResumePosition()
         playerView?.player = null
@@ -817,15 +832,18 @@ class MediaViewerActivity : AppCompatActivity() {
         const val MIME_TYPE = "mime_type"
         const val MEDIA_URL = "media_url"
         const val CONVERSATION_ID = "conversation_id"
+        /** Opened from the floating chat: it comes back when the viewer closes. */
+        const val FROM_OVERLAY = "from_overlay"
 
         fun start(context: Context, fileId: String, fileName: String, mimeType: String,
-                  mediaUrl: String = "", conversationId: String? = null) {
+                  mediaUrl: String = "", conversationId: String? = null, fromOverlay: Boolean = false) {
             context.startActivity(Intent(context, MediaViewerActivity::class.java).apply {
                 putExtra(FILE_ID, fileId)
                 putExtra(FILE_NAME, fileName)
                 putExtra(MIME_TYPE, mimeType)
                 putExtra(MEDIA_URL, mediaUrl)
                 if (conversationId != null) putExtra(CONVERSATION_ID, conversationId)
+                if (fromOverlay) putExtra(FROM_OVERLAY, true)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
         }
