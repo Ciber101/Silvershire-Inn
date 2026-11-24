@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 24,
-  versionName: '1.0.23',
+  versionCode: 25,
+  versionName: '1.0.24',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -1197,18 +1197,21 @@ function uploadIndexAdd(meta) { uploadIndexLoad().set(meta.fileId, meta); }
 function uploadIndexAll() { return Array.from(uploadIndexLoad().values()); }
 
 // ============================================================
-//  HTTP SERVER -------- file upload / download / list
+//  LINK PREVIEWS (web app and phone app): picture, site and title for a link
 // ============================================================
-// LINK PREVIEWS for the web client (a page can't read other sites itself). The server reads
-// just the top of the linked page for its title and picture, and passes the picture through.
-// Never reaches private / local addresses (checked on every connection and redirect).
-// ============================================================
+// A page can't read other sites itself, so the server reads just the top of the linked page
+// (or the site's own embed service: YouTube, TikTok, X, Reddit, Vimeo) and passes the picture
+// through. Never reaches private / local addresses (checked on every connection and redirect).
 const _lpDns = require('dns');
 const _lpNet = require('net');
 const _lpHttps = require('https');
 const _lpCache = new Map();          // url -> { t, data }  (data null = nothing to show)
 const _lpImgOk = new Map();          // picture urls handed out by a preview -> time
 const LP_TTL = 12 * 60 * 60 * 1000, LP_NEG_TTL = 10 * 60 * 1000;
+// Sites hand their preview tags to link-preview robots (the same ones chat apps use) and
+// often only a login wall to anything else, so the first try says it is one of those.
+const LP_UA_BOT = 'Mozilla/5.0 (compatible; SilvershireLinkPreview/1.1; like facebookexternalhit/1.1 Twitterbot/1.0 TelegramBot)';
+const LP_UA_BROWSER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 function _lpPrivate(ip) {
   if (_lpNet.isIPv4(ip)) {
@@ -1238,55 +1241,211 @@ function _lpUrlOk(u) {
     if (x.protocol !== 'https:' && x.protocol !== 'http:') return null;
     if (x.username || x.password) return null;
     if (x.port && x.port !== '80' && x.port !== '443') return null;
-    if (_lpNet.isIP(x.hostname.replace(/^\[|\]$/g, '')) && _lpPrivate(x.hostname.replace(/^\[|\]$/g, ''))) return null;
+    const h = x.hostname.replace(/^\[|\]$/g, '');
+    if (_lpNet.isIP(h) && _lpPrivate(h)) return null;
     return x;
   } catch (_) { return null; }
 }
-/** GET [u] (redirects followed, each checked), at most [max] bytes. */
-function _lpGet(u, max, accept, hops = 4) {
+/** GET [u] (redirects followed, each checked), at most [max] bytes. opts: ua, accept, head (stop
+ *  after </head>), any (resolve whatever the status, used to find where a short link goes). */
+function _lpGet(u, max, opts = {}, hops = 5) {
   return new Promise((resolve, reject) => {
     const x = _lpUrlOk(u);
     if (!x) return reject(new Error('bad url'));
     const mod = x.protocol === 'https:' ? _lpHttps : http;
     const req = mod.get(x, {
-      lookup: _lpLookup, timeout: 7000,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SilvershireLinkPreview/1.0)', 'Accept': accept, 'Accept-Language': 'en' }
+      lookup: _lpLookup, timeout: 8000,
+      headers: { 'User-Agent': opts.ua || LP_UA_BOT, 'Accept': opts.accept || '*/*', 'Accept-Language': 'en-US,en;q=0.8' }
     }, (r) => {
       if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
         r.resume();
         if (hops <= 0) return reject(new Error('too many redirects'));
         let next; try { next = new URL(r.headers.location, x).toString(); } catch (_) { return reject(new Error('bad redirect')); }
-        return resolve(_lpGet(next, max, accept, hops - 1));
+        return resolve(_lpGet(next, max, opts, hops - 1));
       }
-      if (r.statusCode !== 200) { r.resume(); return reject(new Error('status ' + r.statusCode)); }
-      const chunks = []; let n = 0;
+      if (r.statusCode !== 200 && !opts.any) { r.resume(); return reject(new Error('status ' + r.statusCode)); }
+      const chunks = []; let n = 0, done = false, tail = '';
+      const finish = (cut) => {
+        if (done) return; done = true;
+        resolve({ buf: Buffer.concat(chunks).subarray(0, max), type: String(r.headers['content-type'] || ''), url: x.toString(), status: r.statusCode, cut });
+      };
       r.on('data', (c) => {
+        if (done) return;
         n += c.length; chunks.push(c);
-        if (n >= max) { r.destroy(); resolve({ buf: Buffer.concat(chunks).subarray(0, max), type: String(r.headers['content-type'] || ''), url: x.toString(), cut: true }); }
+        if (n >= max) { finish(true); r.destroy(); return; }
+        if (opts.head) {
+          const s = tail + c.toString('latin1');
+          if (/<\/head>|<body[\s>]/i.test(s)) { finish(false); r.destroy(); return; }
+          tail = s.slice(-16);
+        }
       });
-      r.on('end', () => resolve({ buf: Buffer.concat(chunks), type: String(r.headers['content-type'] || ''), url: x.toString() }));
-      r.on('error', reject);
+      r.on('end', () => finish(false));
+      r.on('error', (e) => { if (!done) reject(e); });
     });
     req.on('timeout', () => req.destroy(new Error('timeout')));
     req.on('error', reject);
   });
 }
+async function _lpJson(u, ua) {
+  const r = await _lpGet(u, 1048576, { ua: ua || LP_UA_BOT, accept: 'application/json' });
+  return JSON.parse(r.buf.toString('utf8'));
+}
 function _lpDecode(s) {
-  return String(s || '').replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+  return String(s || '').replace(/&#(\d+);/g, (_, d) => { try { return String.fromCodePoint(+d); } catch (_) { return ''; } })
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch (_) { return ''; } })
+    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 }
-function _lpMeta(html, key) {
-  const k = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const a = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${k}["'][^>]*content=["']([^"']*)["']`, 'i'));
-  const b = html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${k}["']`, 'i'));
-  const v = (a && a[1]) || (b && b[1]) || '';
-  return v.trim() ? _lpDecode(v) : '';
+/** Every <meta> tag's attributes (any order, either kind of quotes). */
+function _lpMetas(html) {
+  const out = [];
+  const tagRe = /<meta\b([^>]*)>/gi; let t;
+  while ((t = tagRe.exec(html))) {
+    const a = {}; const attrRe = /([a-zA-Z_:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g; let m;
+    while ((m = attrRe.exec(t[1]))) a[m[1].toLowerCase()] = m[2] !== undefined ? m[2] : (m[3] !== undefined ? m[3] : m[4]);
+    out.push(a);
+  }
+  return out;
 }
+function _lpPick(metas, ...keys) {
+  for (const k of keys) {
+    for (const a of metas) {
+      const name = (a.property || a.name || a.itemprop || '').toLowerCase();
+      if (name === k && a.content && a.content.trim()) return _lpDecode(a.content);
+    }
+  }
+  return '';
+}
+function _lpHost(u) { try { return new URL(u).hostname.replace(/^www\.|^m\.|^mobile\./, ''); } catch (_) { return ''; } }
 function _lpYouTubeId(u) {
   const m = String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,15})/i);
   return m ? m[1] : null;
 }
+
+/** Site furniture rather than the post's picture (Facebook's blank placeholder, logos). */
+function _lpPlaceholder(img) {
+  return !img || /static\.xx\.fbcdn\.net\/rsrc\.php|\/rsrc\.php\/|redditstatic\.com\/(new-icon|icon)|\/favicon/i.test(img);
+}
+/** Links that are videos by their shape: reels, shorts, watch pages, TikToks. */
+function _lpVideoLink(u) {
+  return /facebook\.com\/(reel|reels|watch|[^/]+\/videos)\b|fb\.watch\/|instagram\.com\/(reel|reels|tv)\/|tiktok\.com\/.*\/video\/|vm\.tiktok\.com|vt\.tiktok\.com|youtube\.com\/shorts\/|v\.redd\.it|twitch\.tv\/videos|streamable\.com\//i.test(String(u || ''));
+}
+/** The picture a Facebook / Instagram page keeps in its data (video thumbnail, post photo). */
+async function _lpFbPicture(u, ua) {
+  try {
+    const r = await _lpGet(u, 3145728, { ua: ua || LP_UA_BOT, accept: 'text/html' });
+    const h = r.buf.toString('utf8');
+    const pats = [
+      /"preferred_thumbnail":\{"image":\{"uri":"(https:[^"]+)"/,
+      /"thumbnailImage":\{"uri":"(https:[^"]+)"/,
+      /"first_frame_thumbnail":"(https:[^"]+)"/,
+      /"previewImage":\{"uri":"(https:[^"]+)"/,
+      /"photo_image":\{"uri":"(https:[^"]+)"/,
+      /"image":\{"uri":"(https:\\\/\\\/scontent[^"]+)","width":\d{3,}/,
+      /"display_url":"(https:[^"]+)"/,
+      /"thumbnail_src":"(https:[^"]+)"/
+    ];
+    for (const re of pats) {
+      const m = h.match(re);
+      if (m) { const img = JSON.parse('"' + m[1] + '"'); if (!_lpPlaceholder(img)) return img; }
+    }
+  } catch (_) {}
+  return '';
+}
+
+/** Page preview tags; tried as a preview robot, then as a browser. */
+async function _lpPage(u) {
+  let best = null;
+  for (const ua of [LP_UA_BOT, LP_UA_BROWSER]) {
+    let r;
+    try { r = await _lpGet(u, 1572864, { ua, accept: 'text/html,application/xhtml+xml,image/*;q=0.8,*/*;q=0.5', head: true }); }
+    catch (_) { continue; }
+    const type = r.type.toLowerCase();
+    if (type.startsWith('image/') && !type.includes('svg')) return { url: u, title: '', description: '', image: r.url, site: _lpHost(r.url), picture: true };
+    if (!type.includes('html')) continue;
+    const html = r.buf.toString('utf8');
+    const metas = _lpMetas(html);
+    const tm = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    const title = _lpPick(metas, 'og:title', 'twitter:title') || (tm ? _lpDecode(tm[1]) : '');
+    const description = _lpPick(metas, 'og:description', 'twitter:description', 'description');
+    let image = _lpPick(metas, 'og:image:secure_url', 'og:image', 'og:image:url', 'twitter:image', 'twitter:image:src', 'image', 'thumbnailurl');
+    if (image) { try { image = new URL(image, r.url).toString(); } catch (_) { image = ''; } }
+    if (_lpPlaceholder(image)) image = '';
+    // Facebook keeps a video's or post's picture inside the page's data, not its preview tags
+    if (!image && /(^|\.)(facebook\.com|fb\.watch|instagram\.com|threads\.net)$/i.test(_lpHost(r.url))) image = await _lpFbPicture(r.url, ua);
+    const site = _lpPick(metas, 'og:site_name', 'application-name') || _lpHost(r.url);
+    const type2 = _lpPick(metas, 'og:type').toLowerCase();
+    const video = type2.startsWith('video') || !!_lpPick(metas, 'og:video', 'og:video:url', 'og:video:secure_url', 'twitter:player') || _lpVideoLink(u) || _lpVideoLink(r.url);
+    const d = { url: u, title: title.slice(0, 200), description: description.slice(0, 300), image: image || '', site: site.slice(0, 80), video };
+    if (d.image) return d;                      // a picture: as good as it gets
+    if (d.title && !best) best = d;             // keep the title, try once more for a picture
+  }
+  return best;
+}
+
+/** X / Twitter posts: through the open embed service the chat apps use (x.com shows robots nothing useful). */
+async function _lpX(u) {
+  const m = String(u).match(/(?:x|twitter|fxtwitter|vxtwitter|fixupx|fixvx)\.com\/([A-Za-z0-9_]{1,20})\/status(?:es)?\/(\d{1,25})/i);
+  if (!m) return null;
+  try {
+    const j = await _lpJson(`https://api.fxtwitter.com/${m[1]}/status/${m[2]}`);
+    const t = j && j.tweet; if (!t) return null;
+    const ph = t.media && t.media.photos && t.media.photos[0];
+    const vi = t.media && t.media.videos && t.media.videos[0];
+    const image = (ph && ph.url) || (vi && vi.thumbnail_url) || (t.media && t.media.mosaic && t.media.mosaic.formats && t.media.mosaic.formats.jpeg) || (t.author && t.author.avatar_url) || '';
+    const who = t.author ? `${t.author.name || ''} (@${t.author.screen_name || m[1]})`.trim() : '@' + m[1];
+    return { url: u, title: who.slice(0, 200), description: String(t.text || '').replace(/\s+/g, ' ').slice(0, 300), image, site: 'X', video: !!vi };
+  } catch (_) { return null; }
+}
+
+/** Reddit posts: the old Reddit page has the real title and picture for robots (the new one only
+ *  a generic card, and the data endpoint is blocked). Share links (/s/...) are followed first. */
+async function _lpReddit(u) {
+  if (!/(^|\.)(reddit\.com|redd\.it)$/i.test(_lpHost(u))) return null;
+  let target = u;
+  if (/\/s\/[A-Za-z0-9]+/.test(u) || /redd\.it\//i.test(u)) {
+    try { const r = await _lpGet(u, 1, { any: true, accept: 'text/html' }); target = r.url; } catch (_) {}
+  }
+  const m = String(target).match(/\/r\/([A-Za-z0-9_]+)\/comments\/([a-z0-9]{4,10})/i);
+  const id = m ? m[2] : (String(target).match(/\/comments\/([a-z0-9]{4,10})/i) || [])[1];
+  if (!id) return null;
+  const sub = m ? 'r/' + m[1] : '';
+  let title = '', image = '', description = '', video = false;
+  try {
+    const r = await _lpGet(`https://old.reddit.com/${sub ? sub + '/' : ''}comments/${id}/`, 1572864, { accept: 'text/html', head: true });
+    const metas = _lpMetas(r.buf.toString('utf8'));
+    title = _lpPick(metas, 'og:title');
+    image = _lpPick(metas, 'og:image', 'twitter:image');
+    description = _lpPick(metas, 'og:description');
+    video = !!_lpPick(metas, 'og:video', 'og:video:url') || /v\.redd\.it/.test(r.buf.toString('latin1'));
+  } catch (_) {}
+  if (/redditstatic\.com/i.test(image)) image = '';            // Reddit's logo, not the post
+  if (!image) image = `https://share.redd.it/preview/post/${id}`;  // Reddit's own picture of the post
+  if (!title) {
+    try { const j = await _lpJson('https://www.reddit.com/oembed?url=' + encodeURIComponent(`https://www.reddit.com/comments/${id}/`)); title = String(j.title || ''); } catch (_) {}
+  }
+  if (!title) return null;
+  return { url: u, title: title.slice(0, 200), description: description.slice(0, 300), image, site: 'Reddit' + (sub ? ' · ' + sub : ''), video };
+}
+
+/** Sites with an open embed service: TikTok, Vimeo, Spotify, SoundCloud... */
+async function _lpOembed(u) {
+  const h = _lpHost(u);
+  let api = null;
+  if (/(^|\.)tiktok\.com$/i.test(h)) api = 'https://www.tiktok.com/oembed?url=';
+  else if (/(^|\.)vimeo\.com$/i.test(h)) api = 'https://vimeo.com/api/oembed.json?width=960&url=';
+  else if (/(^|\.)spotify\.com$/i.test(h)) api = 'https://open.spotify.com/oembed?url=';
+  else if (/(^|\.)soundcloud\.com$/i.test(h)) api = 'https://soundcloud.com/oembed?format=json&url=';
+  if (!api) return null;
+  try {
+    const j = await _lpJson(api + encodeURIComponent(u));
+    if (!j || (!j.title && !j.thumbnail_url)) return null;
+    const site = j.provider_name || h;
+    return { url: u, title: String(j.title || '').slice(0, 200), description: String(j.author_name || '').slice(0, 300),
+      image: j.thumbnail_url || '', site, video: /tiktok|vimeo/i.test(site) || j.type === 'video' || _lpVideoLink(u) };
+  } catch (_) { return null; }
+}
+
 async function linkPreview(u) {
   const hit = _lpCache.get(u);
   if (hit && Date.now() - hit.t < (hit.data ? LP_TTL : LP_NEG_TTL)) return hit.data;
@@ -1294,37 +1453,28 @@ async function linkPreview(u) {
   try {
     const yt = _lpYouTubeId(u);
     if (yt) {
-      let title = '', site = 'YouTube', author = '';
+      let title = '', author = '';
       try {
-        const o = await _lpGet('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + yt), 65536, 'application/json');
-        const j = JSON.parse(o.buf.toString('utf8'));
+        const j = await _lpJson('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + yt));
         title = String(j.title || ''); author = String(j.author_name || '');
       } catch (_) {}
-      data = { url: u, title: title || 'YouTube video', description: author, image: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, site, video: true };
-    } else {
-      const r = await _lpGet(u, 393216, 'text/html,application/xhtml+xml');
-      const type = r.type.toLowerCase();
-      if (type.startsWith('image/')) {
-        data = { url: u, title: '', description: '', image: u, site: new URL(r.url).hostname.replace(/^www\./, ''), picture: true };
-      } else if (type.includes('html')) {
-        const html = r.buf.toString('utf8');
-        const tm = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-        const title = _lpMeta(html, 'og:title') || _lpMeta(html, 'twitter:title') || (tm ? _lpDecode(tm[1]) : '');
-        const description = _lpMeta(html, 'og:description') || _lpMeta(html, 'twitter:description') || _lpMeta(html, 'description');
-        let image = _lpMeta(html, 'og:image') || _lpMeta(html, 'og:image:url') || _lpMeta(html, 'twitter:image') || _lpMeta(html, 'twitter:image:src');
-        if (image) { try { image = new URL(image, r.url).toString(); } catch (_) { image = ''; } }
-        const site = _lpMeta(html, 'og:site_name') || new URL(r.url).hostname.replace(/^www\./, '');
-        if (title || image) data = { url: u, title: title.slice(0, 200), description: description.slice(0, 300), image: image || '', site: site.slice(0, 80) };
-      }
+      data = { url: u, title: title || 'YouTube video', description: author, image: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, site: 'YouTube', video: true };
     }
+    if (!data) data = await _lpX(u);
+    if (!data) data = await _lpReddit(u);
+    if (!data) data = await _lpOembed(u);
+    if (!data) data = await _lpPage(u);
   } catch (_) { data = null; }
-  if (data && data.image) _lpImgOk.set(data.image, Date.now());
+  if (data && data.image) { try { new URL(data.image); _lpImgOk.set(data.image, Date.now()); } catch (_) { data.image = ''; } }
+  if (data && !data.title && !data.image) data = null;
   _lpCache.set(u, { t: Date.now(), data });
   if (_lpCache.size > 600) _lpCache.delete(_lpCache.keys().next().value);
   if (_lpImgOk.size > 1200) _lpImgOk.delete(_lpImgOk.keys().next().value);
   return data;
 }
 
+// ============================================================
+//  HTTP SERVER -------- file upload / download / list
 // ============================================================
 const httpServer = http.createServer((req, res) => {
   const ip  = req.socket.remoteAddress;
@@ -1552,7 +1702,8 @@ a.btn{display:inline-block;margin-top:18px;padding:14px 28px;background:#A8A9AD;
     }
     // only pictures a preview pointed at (not a way to fetch anything at all)
     if (!_lpImgOk.has(u)) { jsonResponse(res, 404, { error: 'unknown picture' }); return; }
-    _lpGet(u, 4 * 1024 * 1024, 'image/*').then((r) => {
+    // no AVIF: older phones can't show it (WebP, JPEG, PNG and GIF work everywhere)
+    _lpGet(u, 6 * 1024 * 1024, { accept: 'image/webp,image/jpeg,image/png,image/gif;q=0.9,*/*;q=0.5' }).then((r) => {
       const type = r.type.split(';')[0].trim().toLowerCase();
       if (!type.startsWith('image/') || type.includes('svg') || r.cut) { jsonResponse(res, 415, { error: 'not a picture' }); return; }
       res.writeHead(200, { 'Content-Type': type, 'Content-Length': r.buf.length, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
@@ -3922,6 +4073,45 @@ setInterval(() => {
     fs.writeFileSync(path.join(__dirname, 'crash-export.txt'), out || '(no crash reports)');
     console.log('[CRASH] exported ' + files.length + ' report(s) to crash-export.txt');
   } catch (e) { console.error('[CRASH] export failed', e.message); }
+}, 3000);
+
+// Developer aid: lp-test.request (one link per line) -> lp-test.txt with what each link's
+// preview comes out as. Touches no user data, so it works locked too.
+const LP_TEST_REQ = path.join(__dirname, 'lp-test.request');
+setInterval(() => {
+  if (!fs.existsSync(LP_TEST_REQ)) return;
+  let links = [];
+  try { links = fs.readFileSync(LP_TEST_REQ, 'utf8').split(/\r?\n/).map(s => s.trim()).filter(Boolean).slice(0, 30); } catch (_) {}
+  try { fs.unlinkSync(LP_TEST_REQ); } catch (_) {}
+  Promise.all(links.map(u => {
+    // "RAW bot|browser <link>": what the site really sends (status, type, meta tags)
+    const raw = u.match(/^RAW (\w+) (\S+)$/);
+    const UAS = { browser: LP_UA_BROWSER, json: 'web:silvershire-link-preview:1.1 (personal chat link previews)', bot: LP_UA_BOT,
+      fb: 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)', tw: 'Twitterbot/1.0',
+      discord: 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)', wa: 'WhatsApp/2.23.20.0', tg: 'TelegramBot (like TwitterBot)' };
+    const gr = u.match(/^GREP (\w+) (\S+) (.+)$/);
+    if (gr) return _lpGet(gr[2], 3145728, { ua: UAS[gr[1]] || LP_UA_BOT, any: true, accept: 'text/html,*/*' })
+      .then(r => { const h = r.buf.toString('utf8'); const re = new RegExp(gr[3], 'g'); const hits = []; let m;
+        while ((m = re.exec(h)) && hits.length < 12) hits.push(h.slice(Math.max(0, m.index - 40), m.index + 260));
+        return { u, d: { status: r.status, bytes: r.buf.length, hits } }; })
+      .catch(e => ({ u, err: e.message }));
+    const io = u.match(/^IMGOF (\S+)$/);
+    if (io) { _lpCache.delete(io[1]); return linkPreview(io[1]).then(d => !d || !d.image ? { u, d: 'no picture' } :
+      _lpGet(d.image, 6 * 1024 * 1024, { accept: 'image/webp,image/jpeg,image/png,image/gif;q=0.9,*/*;q=0.5', any: true }).then(r => ({ u, d: { image: d.image.slice(0, 120), status: r.status, type: r.type, bytes: r.buf.length } })))
+      .catch(e => ({ u, err: e.message })); }
+    const fn = u.match(/^FN (\w+) (\S+)$/);
+    if (fn) { const f = { x: _lpX, reddit: _lpReddit, oembed: _lpOembed, page: _lpPage }[fn[1]]; return (f ? f(fn[2]) : Promise.resolve('no fn')).then(d => ({ u, d })).catch(e => ({ u, err: String(e && e.stack || e) })); }
+    if (raw) return _lpGet(raw[2], 2097152, { ua: UAS[raw[1]] || LP_UA_BOT, any: true, accept: raw[1] === 'json' ? 'application/json' : 'text/html,*/*' })
+      .then(r => { const h = r.buf.toString('utf8'); return { u, d: { status: r.status, type: r.type, final: r.url, bytes: r.buf.length,
+        metas: _lpMetas(h).filter(a => a.content && (a.property || a.name || a.itemprop)).map(a => (a.property || a.name || a.itemprop) + ' = ' + String(a.content).slice(0, 160)).slice(0, 40),
+        start: h.slice(0, 400) } }; })
+      .catch(e => ({ u, err: e.message }));
+    _lpCache.delete(u); return linkPreview(u).then(d => ({ u, d })).catch(e => ({ u, err: e.message }));
+  }))
+    .then(rs => {
+      const out = rs.map(r => '== ' + r.u + '\n' + (r.err ? 'ERROR ' + r.err : JSON.stringify(r.d, null, 1))).join('\n\n');
+      try { fs.writeFileSync(path.join(__dirname, 'lp-test.txt'), out); } catch (_) {}
+    });
 }, 3000);
 
 httpServer.listen(PORT, () => {

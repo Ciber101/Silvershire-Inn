@@ -13,8 +13,8 @@ android {
         minSdk = 24
         targetSdk = 36
         // Raise versionCode / versionName (and APP_VERSION in server/server.js) for every update you publish.
-        versionCode = 24
-        versionName = "1.0.23"
+        versionCode = 25
+        versionName = "1.0.24"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val brandingFile = file("${rootDir}/../server/data/branding/branding.properties")
         var brandedLabel = "Silvershire Inn"

@@ -79,6 +79,15 @@ object LinkPreviewHelper {
         // Mark as attempted so we don't hammer the server on failures
         cache[url] = EMPTY
 
+        // Our server first: it knows the sites that hide their previews from ordinary readers
+        // (Facebook, Instagram, Reddit, X, TikTok...) and is the same one the web app uses, so
+        // both show the same card. The phone reads the page itself only if the server can't.
+        when (val s = fromServer(url)) {
+            null -> {}                                    // server unreachable / locked: read it here
+            EMPTY -> return@withContext null              // looked: nothing (remembered as such)
+            else -> { cache[url] = s; return@withContext s }
+        }
+
         // YouTube: its own thumbnail and title (the watch page often has no preview tags for us)
         Regex("""(?:youtube\.com/(?:watch\?(?:.*&)?v=|shorts/|embed/|live/)|youtu\.be/)([A-Za-z0-9_-]{6,15})""", RegexOption.IGNORE_CASE)
             .find(url)?.groupValues?.getOrNull(1)?.let { id ->
@@ -134,6 +143,30 @@ object LinkPreviewHelper {
             null
         }
     }
+
+    /** The server's preview: a preview, [EMPTY] (it looked, nothing to show) or null (no answer). */
+    private fun fromServer(url: String): LinkPreview? = try {
+        val base = com.silvershireinn.app.network.MediaAuth.httpBase()
+        if (base.isBlank()) null
+        else client.newCall(
+            com.silvershireinn.app.network.MediaAuth.apply(Request.Builder()
+                .url("$base/api/link-preview?u=" + java.net.URLEncoder.encode(url, "UTF-8"))).build()
+        ).execute().use { r ->
+            if (!r.isSuccessful) return@use null
+            val j = org.json.JSONObject(r.body?.string() ?: return@use null)
+            val p = j.optJSONObject("preview")
+            if (!j.optBoolean("ok") || p == null) return@use EMPTY
+            val img = p.optString("image")
+            LinkPreview(
+                url = url,
+                title = p.optString("title"),
+                description = p.optString("description"),
+                imageUrl = if (img.isNotBlank()) "$base/api/link-preview/img?u=" + java.net.URLEncoder.encode(img, "UTF-8") else null,
+                domain = p.optString("site").ifBlank { Uri.parse(url).host?.removePrefix("www.") ?: url },
+                isVideo = p.optBoolean("video")
+            )
+        }
+    } catch (_: Exception) { null }
 
     /** "Tom &amp; Jerry" -> "Tom & Jerry" */
     private fun decodeEntities(t: String): String = try {

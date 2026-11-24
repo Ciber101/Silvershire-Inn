@@ -387,10 +387,11 @@ class MessageAdapter(
 
         return thumbScope.launch {
             val preview = LinkPreviewHelper.fetch(url) ?: return@launch
-            if (preview.title.isBlank()) return@launch
+            if (preview.title.isBlank() && preview.imageUrl == null) return@launch
 
             tvDomain.text = preview.domain
             tvTitle.text  = preview.title
+            tvTitle.visibility = if (preview.title.isBlank()) View.GONE else View.VISIBLE
 
             if (preview.description.isNotBlank()) {
                 tvDesc.text       = preview.description
@@ -404,6 +405,9 @@ class MessageAdapter(
                 // size for the loader to wait for (it waited forever, so no thumbnail ever came).
                 imageView.load(preview.imageUrl) {
                     size(640, 360)
+                    // pictures passed through our server need the same sign-in as everything else
+                    if (preview.imageUrl.startsWith(com.silvershireinn.app.network.MediaAuth.httpBase()))
+                        com.silvershireinn.app.network.MediaAuth.headers().forEach { (k, v) -> addHeader(k, v) }
                     listener(
                         onSuccess = { _, _ ->
                             imageBox.visibility = View.VISIBLE
