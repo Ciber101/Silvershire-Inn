@@ -38,6 +38,28 @@
             android:textSize="14sp"
             android:text="A newer Silvershire Inn APK is available." />
 
+        <!-- Download progress (shown once Download is tapped) -->
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progressUpdate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:visibility="gone"
+            android:max="100"
+            app:indicatorColor="@color/color_gold"
+            app:trackColor="#33FFFFFF"
+            app:trackThickness="6dp"
+            app:trackCornerRadius="3dp" />
+
+        <TextView
+            android:id="@+id/tvUpdateProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/color_text_primary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -9,6 +9,7 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.Window
 import android.widget.TextView
 import android.widget.Toast
@@ -100,7 +101,16 @@ object AppUpdateHelper {
         }
     }
 
-    private fun showThemedDialog(activity: Activity, info: VersionInfo, url: String, message: String) {
+    /** The same update window from anywhere (the "update available" notice in the app). */
+    fun showUpdateDialog(activity: Activity, url: String) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        try {
+            showThemedDialog(activity, null, url,
+                "A newer Silvershire Inn APK is available.\n\nDownload and install when you are ready. Your settings will not be wiped.")
+        } catch (_: Exception) {}
+    }
+
+    private fun showThemedDialog(activity: Activity, info: VersionInfo?, url: String, message: String) {
         val dialog = Dialog(activity)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = LayoutInflater.from(activity).inflate(R.layout.dialog_app_update, null, false)
@@ -115,18 +125,71 @@ object AppUpdateHelper {
         view.findViewById<TextView>(R.id.tvUpdateTitle).text = "Update available"
         view.findViewById<TextView>(R.id.tvUpdateMessage).text = message
 
-        view.findViewById<MaterialButton>(R.id.btnUpdateDownload).setOnClickListener {
-            openDownload(activity, url)
-            if (info.apkMtime > 0L) lastSeenApkMtime = info.apkMtime
-            dialog.dismiss()
+        val btnDownload = view.findViewById<MaterialButton>(R.id.btnUpdateDownload)
+        val btnLater = view.findViewById<MaterialButton>(R.id.btnUpdateLater)
+        val tvMessage = view.findViewById<TextView>(R.id.tvUpdateMessage)
+        val bar = view.findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.progressUpdate)
+        val tvProgress = view.findViewById<TextView>(R.id.tvUpdateProgress)
+        var started = false
+        // The window stays open while the update downloads and shows how far along it is
+        // (it used to close at once with nothing to show the download had begun).
+        val listener: (Int?) -> Unit = { p ->
+            if (started || p != null) {
+                started = started || p != null
+                when {
+                    p == null -> {                       // failed / stopped: offer it again
+                        started = false
+                        bar.visibility = View.GONE
+                        tvProgress.visibility = View.VISIBLE
+                        tvProgress.text = "The download stopped. Try again."
+                        btnDownload.isEnabled = true; btnDownload.text = "Download"
+                        btnLater.text = "Later"
+                    }
+                    p >= 101 -> {
+                        bar.isIndeterminate = false; bar.setProgressCompat(100, true)
+                        tvProgress.text = "Opening the installer..."
+                        bar.postDelayed({ try { dialog.dismiss() } catch (_: Exception) {} }, 700)
+                    }
+                    else -> {
+                        tvMessage.text = "Downloading the update. You can hide this window, it keeps going."
+                        bar.visibility = View.VISIBLE; tvProgress.visibility = View.VISIBLE
+                        btnDownload.isEnabled = false; btnDownload.text = "Downloading"
+                        btnLater.text = "Hide"
+                        if (p <= 0) { if (!bar.isIndeterminate) { bar.visibility = View.INVISIBLE; bar.isIndeterminate = true; bar.visibility = View.VISIBLE }; tvProgress.text = "Starting download..." }
+                        else {
+                            if (bar.isIndeterminate) { bar.visibility = View.INVISIBLE; bar.isIndeterminate = false; bar.visibility = View.VISIBLE }
+                            bar.setProgressCompat(p, true)
+                            tvProgress.text = "Downloading... $p%"
+                        }
+                    }
+                }
+            }
         }
-        view.findViewById<MaterialButton>(R.id.btnUpdateLater).setOnClickListener {
-            if (info.versionCode > 0) setDismissedCode(info.versionCode)
-            if (info.apkMtime > 0L) lastSeenApkMtime = info.apkMtime
+        progressListeners.add(listener)
+        dialog.setOnDismissListener { progressListeners.remove(listener) }
+        // A download already running (tapped in a chat): show it right away
+        progress?.let { listener(it) }
+
+        btnDownload.setOnClickListener {
+            if (info != null && info.apkMtime > 0L) lastSeenApkMtime = info.apkMtime
+            tappedFrom("dialog")
+            listener(0)
+            openDownload(activity, url)
+            // fell back to the browser (no in-app download): nothing to show here
+            if (progress == null && activeDownloadId < 0) dialog.dismiss()
+        }
+        btnLater.setOnClickListener {
+            if (!started) {
+                if (info != null && info.versionCode > 0) setDismissedCode(info.versionCode)
+                if (info != null && info.apkMtime > 0L) lastSeenApkMtime = info.apkMtime
+            }
             dialog.dismiss()
         }
         dialog.show()
     }
+
+    /** Update windows following the download (main thread). */
+    private val progressListeners = java.util.concurrent.CopyOnWriteArrayList<(Int?) -> Unit>()
 
     /** Open the download URL directly (e.g. from Silvershire Updates DM). */
     fun openDownload(context: Context, urlHint: String? = null) {
@@ -188,7 +251,10 @@ object AppUpdateHelper {
     private fun setProgress(p: Int?) {
         progress = p
         if (p == null) activeKey = null
-        main.post { buttons.keys.toList().forEach { try { paint(it) } catch (_: Throwable) {} } }
+        main.post {
+            buttons.keys.toList().forEach { try { paint(it) } catch (_: Throwable) {} }
+            progressListeners.forEach { try { it(p) } catch (_: Throwable) {} }
+        }
     }
 
     /** Polls the download while it runs (the system notification shows it too). */

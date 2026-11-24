@@ -45,12 +45,8 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val url = intent?.getStringExtra("url") ?: return
             if (isFinishing || isDestroyed) return
-            AlertDialog.Builder(this@MainActivity)
-                .setTitle("App update")
-                .setMessage("A new Silvershire Inn APK is available. Open the download page?")
-                .setPositiveButton("Download") { _, _ -> AppUpdateHelper.openDownload(this@MainActivity, url) }
-                .setNegativeButton("Later", null)
-                .show()
+            // The same update window as at start-up, with the download's progress in it
+            AppUpdateHelper.showUpdateDialog(this@MainActivity, url)
         }
     }
 
