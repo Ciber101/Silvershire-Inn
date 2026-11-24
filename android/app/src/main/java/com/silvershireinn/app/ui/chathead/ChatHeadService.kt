@@ -568,7 +568,8 @@ class ChatHeadService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            // GPU drawing: the pictures are hardware bitmaps, which a software-drawn window can't show
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSPARENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -1984,7 +1985,7 @@ class ChatHeadService : Service() {
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             overlayType,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,   // pictures are hardware bitmaps (software drawing crashed)
             PixelFormat.OPAQUE
         ).apply {
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
@@ -2296,7 +2297,7 @@ class ChatHeadService : Service() {
             WindowManager.LayoutParams.MATCH_PARENT,
             overlayType,
             // No FLAG_NOT_FOCUSABLE so the window receives key events (back button)
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,   // pictures are hardware bitmaps (software drawing crashed)
             PixelFormat.OPAQUE
         )
 
@@ -3171,7 +3172,7 @@ class ChatHeadService : Service() {
         }
         val dParams = WindowManager.LayoutParams(size, size, overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             y = (48 * dp).toInt()

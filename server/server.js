@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 15,
-  versionName: '1.0.14',
+  versionCode: 16,
+  versionName: '1.0.15',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -3753,6 +3753,26 @@ setInterval(() => {
   try { saveJSON(USERS_FILE, users); saveJSON(FRIENDS_FILE, friends); saveJSON(PENDING_FILE, pending); saveJSON(GROUPS_FILE, groups); saveJSON(BANNED_FILE, banned); } catch (_) {}
   setTimeout(() => process.exit(99), 500);
 }, 2000);
+// Developer aid: creating crash-export.request next to this file writes the newest app crash
+// reports (normally encrypted in data/crash_reports) as plain text to crash-export.txt, so a
+// crash can be read and fixed. Only while unlocked; the request file is removed afterwards.
+const CRASH_EXPORT_REQ = path.join(__dirname, 'crash-export.request');
+setInterval(() => {
+  if (!fs.existsSync(CRASH_EXPORT_REQ) || AtRest.locked()) return;
+  try { fs.unlinkSync(CRASH_EXPORT_REQ); } catch (_) {}
+  try {
+    const dir = path.join(DATA_DIR, 'crash_reports');
+    const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.txt')).sort().slice(-12) : [];
+    const out = files.map(f => {
+      let body = '';
+      try { body = AtRest.readFile(path.join(dir, f)).toString('utf8'); } catch (e) { body = '(could not read: ' + e.message + ')'; }
+      return '==== ' + f + ' ====\n' + body;
+    }).join('\n\n');
+    fs.writeFileSync(path.join(__dirname, 'crash-export.txt'), out || '(no crash reports)');
+    console.log('[CRASH] exported ' + files.length + ' report(s) to crash-export.txt');
+  } catch (e) { console.error('[CRASH] export failed', e.message); }
+}, 3000);
+
 httpServer.listen(PORT, () => {
   try { if (!AtRest.locked()) ensureUpdatesUser(); } catch (e) { console.error('[UPDATES] ensure failed', e.message); }
   if (AtRest.locked()) console.log('\n   LOCKED: open http://localhost:' + ADMIN_PORT + '/admin/vault (or type the master password here)');
