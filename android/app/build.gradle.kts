@@ -13,8 +13,8 @@ android {
         minSdk = 24
         targetSdk = 36
         // Raise versionCode / versionName (and APP_VERSION in server/server.js) for every update you publish.
-        versionCode = 26
-        versionName = "1.0.25"
+        versionCode = 27
+        versionName = "1.0.26"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val brandingFile = file("${rootDir}/../server/data/branding/branding.properties")
         var brandedLabel = "Silvershire Inn"
@@ -106,6 +106,8 @@ dependencies {
     implementation(libs.androidx.media3.effect)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.viewpager2)
+    // Photo viewer: deep, smooth zoom on big camera photos (only the visible part is decoded, in tiles)
+    implementation("com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0")
     implementation(libs.stream.webrtc)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

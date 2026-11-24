@@ -348,6 +348,61 @@ class MediaViewerActivity : AppCompatActivity() {
                     if (f.tag == item.fileId && b != null) thumb.setImageBitmap(b)
                 }
                 host.tag = "host"
+            } else if (!item.mime.contains("gif", true)) {
+                // Photos: a screen-sized picture at once, then the photo itself in a tiled viewer
+                // that only decodes what is on screen, at the detail the zoom needs. Pinch-zoom on
+                // a big camera photo was laggy with the whole photo as one picture.
+                val preview = ImageView(f.context).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
+                f.addView(preview, FrameLayout.LayoutParams(-1, -1))
+                val tiles = com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView(f.context).apply {
+                    tag = "image"
+                    alpha = 0f
+                    setOrientation(com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.ORIENTATION_USE_EXIF)
+                    setMinimumScaleType(com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
+                    setDoubleTapZoomStyle(com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.ZOOM_FOCUS_FIXED)
+                    setDoubleTapZoomDuration(220)
+                    setMinimumDpi(60)                         // how far it zooms in: very close
+                    setOnClickListener { toggleChrome() }
+                }
+                f.addView(tiles, FrameLayout.LayoutParams(-1, -1))
+                f.addView(spinner, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+                val local = File(cacheDir, "viewer_${item.fileId}${FileRepository.extFor(item.mime, item.name)}")
+                val data: Any = if (local.exists() && local.length() > 0) local else MediaAuth.fileUrl(item.fileId)
+                val dm = resources.displayMetrics
+                preview.load(data) {
+                    MediaAuth.headers().forEach { (k, v) -> addHeader(k, v) }
+                    size(maxOf(dm.widthPixels, dm.heightPixels).coerceAtMost(imageCap))
+                    allowHardware(true)
+                    listener(onSuccess = { _, _ -> spinner.visibility = View.GONE })
+                }
+                tiles.setOnImageEventListener(object : com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.DefaultOnImageEventListener() {
+                    override fun onReady() {
+                        spinner.visibility = View.GONE
+                        tiles.setDoubleTapZoomScale(tiles.minScale * 2.5f)   // double tap: 2.5x, as before
+                        tiles.animate().alpha(1f).setDuration(120).withEndAction { preview.setImageDrawable(null); preview.visibility = View.GONE }.start()
+                    }
+                    override fun onImageLoadError(e: Exception?) {
+                        // A kind of picture the tiled viewer can't open: the zoomable picture instead
+                        if (f.tag != item.fileId) return
+                        f.removeView(tiles); f.removeView(preview)
+                        val iv = ZoomableImageView(f.context)
+                        iv.onSingleTap = { toggleChrome() }
+                        iv.tag = "image"
+                        f.addView(iv, 0, FrameLayout.LayoutParams(-1, -1))
+                        iv.load(data) {
+                            MediaAuth.headers().forEach { (k, v) -> addHeader(k, v) }
+                            size(imageCap); allowHardware(true)
+                            listener(onSuccess = { _, _ -> spinner.visibility = View.GONE })
+                        }
+                    }
+                })
+                lifecycleScope.launch {
+                    val file = if (local.exists() && local.length() > 0) local
+                               else FileRepository.ensureCached(this@MediaViewerActivity, item.fileId, item.mime, item.name)
+                    if (f.tag != item.fileId) return@launch
+                    if (file != null) tiles.setImage(com.davemorrissey.labs.subscaleview.ImageSource.uri(Uri.fromFile(file)))
+                    else if (position == currentIndex && preview.drawable == null) { spinner.visibility = View.GONE; toast("Could not load photo") }
+                }
             } else {
                 val iv = ZoomableImageView(f.context)
                 f.addView(iv, FrameLayout.LayoutParams(-1, -1))
@@ -374,7 +429,11 @@ class MediaViewerActivity : AppCompatActivity() {
         }
 
         override fun onViewRecycled(holder: VH) {
-            holder.frame.findViewWithTag<ImageView>("image")?.dispose()
+            when (val v = holder.frame.findViewWithTag<View>("image")) {
+                is com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView -> v.recycle()
+                is ImageView -> v.dispose()
+            }
+            (holder.frame.getChildAt(0) as? ImageView)?.dispose()
             if (playerHost != null && holder.frame.findViewWithTag<View>("host") === playerHost) detachPlayer()
             holder.frame.removeAllViews()
         }
@@ -386,6 +445,9 @@ class MediaViewerActivity : AppCompatActivity() {
     private fun currentPageZoomed(): Boolean {
         val page = currentPageView() ?: return false
         (page.getChildAt(0) as? ZoomableFrameLayout)?.let { return it.isZoomed }
+        (page.findViewWithTag<View>("image") as? com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView)?.let { t ->
+            return t.isReady && t.scale > t.minScale * 1.05f
+        }
         (page.findViewWithTag<View>("image") as? ZoomableImageView)?.let { iv ->
             val m = iv.copyDisplayMatrix(); val v = FloatArray(9); m.getValues(v)
             val d = iv.drawable ?: return false
