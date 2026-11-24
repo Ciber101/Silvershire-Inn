@@ -108,6 +108,10 @@ class SilvershireApp : Application(), coil.ImageLoaderFactory {
                     .maxSizeBytes(250L * 1024 * 1024).build()
             }
             .allowRgb565(low)
+            // Normal (not "hardware") bitmaps: the same cached pictures are drawn in the floating
+            // chat, whose window Android may draw in software, and a hardware bitmap there crashed
+            // the app (tapping a chat in the floating window froze / closed it).
+            .allowHardware(false)
             .respectCacheHeaders(false)
             // End-to-end encrypted chat pictures: decrypt before decoding.
             .components { add(com.silvershireinn.app.crypto.EncryptedMedia.CoilInterceptor()) }
