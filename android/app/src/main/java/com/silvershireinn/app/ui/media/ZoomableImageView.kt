@@ -131,11 +131,12 @@ class ZoomableImageView @JvmOverloads constructor(
         val endTx  = focusX - factor * (focusX - startTx)
         val endTy  = focusY - factor * (focusY - startTy)
 
-        post(object : Runnable {
-            var step = 0
-            val totalSteps = 12
+        val startMs = android.os.SystemClock.uptimeMillis()
+        val durMs = 220f
+        postOnAnimation(object : Runnable {
             override fun run() {
-                if (step >= totalSteps) {
+                val t = ((android.os.SystemClock.uptimeMillis() - startMs) / durMs).coerceIn(0f, 1f)
+                if (t >= 1f) {
                     // final snap
                     mMatrix.getValues(vals)
                     vals[Matrix.MSCALE_X] = targetScale
@@ -146,8 +147,7 @@ class ZoomableImageView @JvmOverloads constructor(
                     clamp()
                     return
                 }
-                val t = step.toFloat() / totalSteps
-                val ease = 1f - (1f - t) * (1f - t)  // ease-out quad
+                val ease = 1f - (1f - t) * (1f - t)  // ease-out quad, timed (smooth at 60 or 120 Hz)
                 val s = startScale + (targetScale - startScale) * ease
                 val tx = startTx + (endTx - startTx) * ease
                 val ty = startTy + (endTy - startTy) * ease
@@ -158,8 +158,7 @@ class ZoomableImageView @JvmOverloads constructor(
                 vals[Matrix.MTRANS_Y] = ty
                 mMatrix.setValues(vals)
                 imageMatrix = mMatrix
-                step++
-                postDelayed(this, 16)
+                postOnAnimation(this)          // in step with the screen's refresh (not a fixed 16 ms)
             }
         })
     }
@@ -247,7 +246,7 @@ class ZoomableImageView @JvmOverloads constructor(
             val dy = ny - ty()
             mMatrix.postTranslate(dx, dy)
             clamp()
-            postDelayed(this, 16)
+            postOnAnimation(this)
         }
     }
 

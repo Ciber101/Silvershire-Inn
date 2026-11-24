@@ -112,7 +112,8 @@ class MediaViewerActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private val hideChrome = Runnable { if (player?.isPlaying == true) setChrome(false) }
     private val tick = object : Runnable {
-        override fun run() { updateProgress(); handler.postDelayed(this, 250) }
+        // Only while a video plays (it ran 4 times a second for as long as the viewer existed)
+        override fun run() { updateProgress(); if (player?.isPlaying == true) handler.postDelayed(this, 250) }
     }
     private val resumePrefs by lazy { getSharedPreferences("video_resume", MODE_PRIVATE) }
     private lateinit var btnEdit: ImageButton
@@ -157,7 +158,7 @@ class MediaViewerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // The screen stays on only while a video plays (it stayed on for photos too)
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
         buildUi()
@@ -358,6 +359,11 @@ class MediaViewerActivity : AppCompatActivity() {
                 iv.load(data) {
                     MediaAuth.headers().forEach { (k, v) -> addHeader(k, v) }
                     size(imageCap)
+                    // The full-size photo lives on the graphics chip: zooming and panning just move
+                    // it (a normal bitmap this big made pinch-zoom lag, worse on a warm phone).
+                    // Safe here: this screen is always GPU drawn (the app-wide "no GPU pictures"
+                    // rule is for the floating chat's windows).
+                    allowHardware(true)
                     crossfade(150)
                     listener(
                         onSuccess = { _, _ -> spinner.visibility = View.GONE },
@@ -428,6 +434,9 @@ class MediaViewerActivity : AppCompatActivity() {
         player = p
         p.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                handler.removeCallbacks(tick); handler.post(tick)
                 btnPlay.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
                 if (isPlaying) scheduleHide() else { handler.removeCallbacks(hideChrome); if (!inPip) setChrome(true) }
                 updatePipParams()

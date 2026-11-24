@@ -568,6 +568,7 @@ class ChatHeadService : Service() {
         if (bubbleView == null) createBubble()
         updateBubble()
         refreshSwitcherIfOpen()
+        bubbleVideoHelpers.values.forEach { it.wake() }      // new message: the heads move again for a moment
     }
 
     private fun createBubble() {
@@ -771,6 +772,9 @@ class ChatHeadService : Service() {
     private fun bubbleVideoHelper(slot: AvatarSlot, vv: TextureView): MutedLoopVideoHelper {
         bubbleVideoHelpers[slot]?.let { return it }
         val h = MutedLoopVideoHelper(this, vv)
+        // The floating heads sit on screen over every other app for hours: a moving picture there
+        // plays a few seconds when something new arrives, then holds still (it played nonstop).
+        h.playForMs = 8_000L
         bubbleVideoHelpers[slot] = h
         return h
     }

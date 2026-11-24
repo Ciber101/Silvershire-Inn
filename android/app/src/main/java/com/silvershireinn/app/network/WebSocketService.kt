@@ -1652,7 +1652,10 @@ class WebSocketService : Service() {
     private fun startPendingFlushLoop() {
         scope.launch {
             while (isActive) {
-                delay(10_000L)
+                // Every 10 s while a message is waiting to go out; once a minute otherwise
+                // (it checked the database every 10 s all day long).
+                val waiting = try { SilvershireApp.database.messageDao().getPendingOutgoing().isNotEmpty() } catch (_: Exception) { false }
+                delay(if (waiting) 10_000L else 60_000L)
                 try { flushPendingOutgoing(minAgeMs = 8_000L) } catch (_: Exception) {}
             }
         }

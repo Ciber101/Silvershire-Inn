@@ -88,7 +88,13 @@ class SilvershireApp : Application(), coil.ImageLoaderFactory {
                 addAction(android.content.Intent.ACTION_USER_PRESENT)
             }
             registerReceiver(object : android.content.BroadcastReceiver() {
-                override fun onReceive(c: android.content.Context?, i: android.content.Intent?) { reportUse() }
+                override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
+                    reportUse()
+                    // Screen off: every moving picture stops decoding (they kept playing, unseen)
+                    val on = i?.action != android.content.Intent.ACTION_SCREEN_OFF
+                    com.silvershireinn.app.utils.MutedLoopVideoHelper.setScreenOn(on)
+                    if (on) com.silvershireinn.app.utils.AvatarLoop.kick()
+                }
             }, f)
         } catch (_: Throwable) {}
         com.silvershireinn.app.utils.OrnateTheme.install(this)
@@ -133,7 +139,7 @@ class SilvershireApp : Application(), coil.ImageLoaderFactory {
             if (!counts(a)) return
             val wasHidden = startedActivities == 0
             startedActivities++
-            if (wasHidden) { onAppForegrounded?.invoke(); reportUse() }
+            if (wasHidden) { onAppForegrounded?.invoke(); reportUse(); com.silvershireinn.app.utils.AvatarLoop.kick() }
             com.silvershireinn.app.utils.PanicVoice.refresh(a)
         }
         override fun onActivityStopped(a: Activity) {

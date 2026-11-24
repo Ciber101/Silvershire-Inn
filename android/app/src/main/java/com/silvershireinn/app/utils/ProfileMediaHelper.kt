@@ -144,7 +144,40 @@ class MutedLoopVideoHelper(
     /** True once the video's own frames are showing. */
     val showingVideo: Boolean get() = mediaPlayer != null && !awaitingFrame && textureView.visibility == View.VISIBLE
 
+    // ── Power: a moving picture only decodes while someone can see it ──
+    private var prepared = false
+    /** >0: play this long, then hold still on the current frame until [wake] (floating heads). */
+    var playForMs: Long = 0L
+    private var settled = false
+    private val settle = Runnable { settled = true; applyRunState() }
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
+    private val visListener = android.view.ViewTreeObserver.OnWindowVisibilityChangeListener { applyRunState() }
+
+    private fun shouldPlay(): Boolean =
+        screenOn && !settled && textureView.isAttachedToWindow && textureView.windowVisibility == View.VISIBLE
+
+    /** Start or pause to match: screen on, its window showing, its play time not used up. */
+    fun applyRunState() {
+        val mp = mediaPlayer ?: return
+        if (!prepared) return
+        try {
+            if (shouldPlay()) {
+                if (!mp.isPlaying) mp.start()
+                if (playForMs > 0) { main.removeCallbacks(settle); main.postDelayed(settle, playForMs) }
+            } else if (mp.isPlaying) { mp.pause(); main.removeCallbacks(settle) }
+        } catch (_: Throwable) {}
+    }
+
+    /** Something new happened (a message came in): move again for a while. */
+    fun wake() { settled = false; main.post { applyRunState() } }
+
     init {
+        synchronized(live) { live.add(this) }
+        textureView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) { try { v.viewTreeObserver.addOnWindowVisibilityChangeListener(visListener) } catch (_: Throwable) {}; applyRunState() }
+            override fun onViewDetachedFromWindow(v: View) { try { v.viewTreeObserver.removeOnWindowVisibilityChangeListener(visListener) } catch (_: Throwable) {} }
+        })
+        if (textureView.isAttachedToWindow) try { textureView.viewTreeObserver.addOnWindowVisibilityChangeListener(visListener) } catch (_: Throwable) {}
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
             override fun onSurfaceTextureAvailable(st: android.graphics.SurfaceTexture, w: Int, h: Int) {
                 surfaceReady = true
@@ -254,8 +287,11 @@ class MutedLoopVideoHelper(
                         stop()
                         return@setOnPreparedListener
                     }
-                    p.start()
+                    prepared = true
                     textureView.visibility = View.VISIBLE
+                    // Only decodes when it can be seen (screen on, window showing); otherwise the
+                    // still stays and it starts the moment it is seen.
+                    if (shouldPlay()) { p.start(); if (playForMs > 0) { main.removeCallbacks(settle); main.postDelayed(settle, playForMs) } }
                     awaitingFrame = true    // a still on top stays there until the first frame
                     val cover = coverImage
                     if (cover == null || cover.drawable == null || cover.visibility != View.VISIBLE) textureView.bringToFront()
@@ -278,11 +314,27 @@ class MutedLoopVideoHelper(
         val mp = mediaPlayer
         mediaPlayer = null
         awaitingFrame = false
+        prepared = false
+        main.removeCallbacks(settle)
         try { mp?.stop() } catch (_: Exception) {}
         try { mp?.reset() } catch (_: Exception) {}
         try { mp?.release() } catch (_: Exception) {}
         try { surface?.release() } catch (_: Exception) {}
         surface = null
+    }
+
+    companion object {
+        private val live = java.util.Collections.newSetFromMap(java.util.WeakHashMap<MutedLoopVideoHelper, Boolean>())
+        @Volatile var screenOn = true
+            private set
+        /** Screen on / off: every moving picture starts / stops with it. */
+        fun setScreenOn(on: Boolean) {
+            screenOn = on
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                val all = synchronized(live) { live.toList() }
+                all.forEach { it.applyRunState() }
+            }
+        }
     }
 
     fun release() {

@@ -37,17 +37,26 @@ object AvatarLoop {
         override fun run() {
             val now = android.os.SystemClock.uptimeMillis()
             var any = false
+            var waiting = false
             val it = views.entries.iterator()
             while (it.hasNext()) {
                 val (iv, key) = it.next().let { e -> e.key to e.value }
                 if (iv == null || iv.tag != key.substringBeforeLast('|')) { it.remove(); continue }
-                if (!iv.isAttachedToWindow) continue
-                val loop = synchronized(loops) { loops[key] } ?: continue
+                // Only what is really on screen moves (screen on, its window showing)
+                if (!MutedLoopVideoHelper.screenOn || !iv.isAttachedToWindow || iv.windowVisibility != android.view.View.VISIBLE || !iv.isShown) continue
+                val loop = synchronized(loops) { loops[key] }
+                if (loop == null) { waiting = true; continue }
                 any = true
                 val f = loop.frames[((now / loop.frameMs) % loop.frames.size).toInt()]
                 iv.setImageBitmap(f)
             }
-            if (any || views.isNotEmpty()) main.postDelayed(this, 1000L / FPS) else ticking = false
+            // Nothing on screen: stop (it used to tick 12 times a second forever, even with the
+            // app closed and the screen off). It starts again when the app or a picture shows.
+            when {
+                any -> main.postDelayed(this, 1000L / FPS)
+                waiting -> main.postDelayed(this, 250L)           // a loop is still being made
+                else -> ticking = false
+            }
         }
     }
 
@@ -63,6 +72,9 @@ object AvatarLoop {
         if (!ticking) { ticking = true; main.post(tick) }
         if (ready == null && building.add(key)) pool.execute { build(path, key) }
     }
+
+    /** The app or screen came back: start moving the pictures on screen again. */
+    fun kick() { main.post { if (!ticking && views.isNotEmpty()) { ticking = true; main.post(tick) } } }
 
     /** The view shows something else now. */
     fun unbind(iv: ImageView) { views.remove(iv) }
