@@ -155,6 +155,58 @@ object AppUpdateHelper {
 
     @Volatile private var activeDownloadId = -1L
 
+    // ── Progress shown on every Download button (chat and floating chat) ──
+    /** null = nothing going on, 0..100 = downloading (%), 101 = opening the installer. */
+    @Volatile var progress: Int? = null
+        private set
+    private val buttons = java.util.WeakHashMap<android.widget.TextView, Boolean>()
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** A Download button on screen: it shows the download's progress from now on. */
+    fun track(b: android.widget.TextView) { buttons[b] = true; paint(b) }
+
+    private fun paint(b: android.widget.TextView) {
+        val p = progress
+        b.text = when {
+            p == null -> "Download"
+            p >= 101 -> "Opening the installer..."
+            p <= 0 -> "Starting download..."
+            else -> "Downloading... $p%"
+        }
+        b.isEnabled = p == null
+        b.alpha = if (p == null) 1f else 0.85f
+    }
+
+    private fun setProgress(p: Int?) {
+        progress = p
+        main.post { buttons.keys.toList().forEach { try { paint(it) } catch (_: Throwable) {} } }
+    }
+
+    /** Polls the download while it runs (the system notification shows it too). */
+    private fun watch(dm: android.app.DownloadManager, id: Long) {
+        main.postDelayed(object : Runnable {
+            override fun run() {
+                if (activeDownloadId != id) return
+                try {
+                    dm.query(android.app.DownloadManager.Query().setFilterById(id))?.use { c ->
+                        if (c.moveToFirst()) {
+                            val got = c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                            val total = c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                            val st = c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS))
+                            if (st == android.app.DownloadManager.STATUS_FAILED) {
+                                activeDownloadId = -1L; setProgress(null)
+                                Toast.makeText(com.silvershireinn.app.SilvershireApp.instance, "Update download failed. Try again.", Toast.LENGTH_LONG).show()
+                                return
+                            }
+                            if (total > 0) setProgress(((got * 100) / total).toInt().coerceIn(0, 100))
+                        }
+                    }
+                } catch (_: Throwable) {}
+                main.postDelayed(this, 300)
+            }
+        }, 300)
+    }
+
     private fun downloadAndInstall(context: Context, url: String): Boolean {
         return try {
             val app = context.applicationContext
@@ -174,6 +226,8 @@ object AppUpdateHelper {
             com.silvershireinn.app.network.MediaAuth.headers().forEach { (k, v) -> req.addRequestHeader(k, v) }
             val id = dm.enqueue(req)
             activeDownloadId = id
+            setProgress(0)
+            watch(dm, id)
             val receiver = object : android.content.BroadcastReceiver() {
                 override fun onReceive(c: Context?, i: Intent?) {
                     val done = i?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: -1L
@@ -181,18 +235,21 @@ object AppUpdateHelper {
                     try { app.unregisterReceiver(this) } catch (_: Exception) {}
                     activeDownloadId = -1L
                     val uri = try { dm.getUriForDownloadedFile(id) } catch (_: Exception) { null }
-                    if (uri == null) { Toast.makeText(app, "Update download failed", Toast.LENGTH_LONG).show(); return }
-                    openInstaller(app, uri)
+                    if (uri == null) { setProgress(null); Toast.makeText(app, "Update download failed", Toast.LENGTH_LONG).show(); return }
+                    setProgress(101)
+                    // The floating chat would cover Android's installer: step it aside first
+                    com.silvershireinn.app.ui.chathead.ChatHeadService.closeForInstaller(app)
+                    main.postDelayed({ openInstaller(app, uri); main.postDelayed({ setProgress(null) }, 4000) }, 350)
                 }
             }
             val filter = android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE)
             if (android.os.Build.VERSION.SDK_INT >= 33) app.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
             else @Suppress("UnspecifiedRegisterReceiverFlag") app.registerReceiver(receiver, filter)
-            Toast.makeText(context, "Downloading update...", Toast.LENGTH_SHORT).show()
             true
         } catch (e: Exception) {
             Log.e(TAG, "downloadAndInstall: ${e.message}")
             activeDownloadId = -1L
+            setProgress(null)
             false
         }
     }

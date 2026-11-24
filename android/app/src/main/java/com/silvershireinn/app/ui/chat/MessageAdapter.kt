@@ -881,6 +881,7 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                     bodyText = stripApkDownloadMarkup(bodyText)
                     binding.btnApkDownload.visibility = View.VISIBLE
                     binding.btnApkDownload.setOnClickListener { onApkDownload(msg) }
+                    com.silvershireinn.app.utils.AppUpdateHelper.track(binding.btnApkDownload)   // shows "Downloading... 42%" while it runs
                 } else {
                     binding.btnApkDownload.visibility = View.GONE
                     binding.btnApkDownload.setOnClickListener(null)

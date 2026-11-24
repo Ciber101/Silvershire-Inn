@@ -138,6 +138,11 @@ class MutedLoopVideoHelper(
     /** Video that should be playing; restarted when the surface comes back after the app resumes. */
     private var currentPath: String? = null
     private var token = 0
+    /** Started, but its first frame is not on screen yet: the still keeps covering it until then
+     *  (an empty video view showed the picture's coloured background for a moment: a blink). */
+    private var awaitingFrame = false
+    /** True once the video's own frames are showing. */
+    val showingVideo: Boolean get() = mediaPlayer != null && !awaitingFrame && textureView.visibility == View.VISIBLE
 
     init {
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
@@ -153,7 +158,18 @@ class MutedLoopVideoHelper(
                 stop()
                 return true
             }
-            override fun onSurfaceTextureUpdated(st: android.graphics.SurfaceTexture) {}
+            override fun onSurfaceTextureUpdated(st: android.graphics.SurfaceTexture) {
+                if (!awaitingFrame || mediaPlayer == null) return
+                awaitingFrame = false
+                // The first real frame is in: now the video can take over from the still.
+                textureView.post {
+                    try {
+                        if (mediaPlayer == null) return@post
+                        textureView.bringToFront()
+                        coverImage?.visibility = View.GONE
+                    } catch (_: Exception) {}
+                }
+            }
         }
     }
 
@@ -237,8 +253,9 @@ class MutedLoopVideoHelper(
                     }
                     p.start()
                     textureView.visibility = View.VISIBLE
-                    textureView.bringToFront()
-                    coverImage?.visibility = View.GONE
+                    awaitingFrame = true    // a still on top stays there until the first frame
+                    val cover = coverImage
+                    if (cover == null || cover.drawable == null || cover.visibility != View.VISIBLE) textureView.bringToFront()
                 } catch (_: Exception) {}
             }
             mp.setOnErrorListener { _, _, _ ->
@@ -257,6 +274,7 @@ class MutedLoopVideoHelper(
     private fun stop() {
         val mp = mediaPlayer
         mediaPlayer = null
+        awaitingFrame = false
         try { mp?.stop() } catch (_: Exception) {}
         try { mp?.reset() } catch (_: Exception) {}
         try { mp?.release() } catch (_: Exception) {}

@@ -107,6 +107,12 @@ class ChatHeadService : Service() {
         const val EXTRA_MANUAL                  = "manual"
         const val ACTION_RESTORE_AFTER_VIEWER   = "com.silvershireinn.RESTORE_AFTER_VIEWER"
 
+        /** An app update finished downloading: close the floating chat so Android's installer shows. */
+        fun closeForInstaller(context: Context) {
+            val s = instance ?: return
+            Handler(Looper.getMainLooper()).post { try { if (s.overlayView != null) s.hideOverlay() } catch (_: Throwable) {} }
+        }
+
         /** The full media viewer (opened from the floating chat) closed: bring the chat back. */
         fun restoreAfterViewer(context: Context) {
             if (instance == null) return
@@ -2928,6 +2934,7 @@ class ChatHeadService : Service() {
                 )
                 visibility = View.GONE
             }
+            var chipVideo: MutedLoopVideoHelper? = null
             val picPath = contactPicPath(this, user)
             if (picPath.isNotBlank()) {
                 val pf = File(picPath)
@@ -2940,15 +2947,17 @@ class ChatHeadService : Service() {
                             Handler(Looper.getMainLooper()).post {
                                 if (fbmp == null) return@post
                                 avatarFrameCache[picPath] = fbmp
-                                if (vv.visibility != View.VISIBLE) {
+                                if (chipVideo?.showingVideo != true) {
                                     iv.setImageBitmap(fbmp)
                                     iv.visibility = View.VISIBLE
+                                    iv.bringToFront()
                                     tv.visibility = View.GONE
                                 }
                             }
                         }
                         com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(vv, avatarShape)
                         val vh = MutedLoopVideoHelper(this, vv)
+                        chipVideo = vh
                         switcherVideoHelpers.add(vh)
                         vh.play(picPath, iv)
                     } else {
