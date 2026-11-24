@@ -159,26 +159,35 @@ object AppUpdateHelper {
     /** null = nothing going on, 0..100 = downloading (%), 101 = opening the installer. */
     @Volatile var progress: Int? = null
         private set
-    private val buttons = java.util.WeakHashMap<android.widget.TextView, Boolean>()
+    private val buttons = java.util.WeakHashMap<android.widget.TextView, String>()
     private val main = android.os.Handler(android.os.Looper.getMainLooper())
+    /** The update message whose button started the download running now. */
+    @Volatile private var activeKey: String? = null
 
-    /** A Download button on screen: it shows the download's progress from now on. */
-    fun track(b: android.widget.TextView) { buttons[b] = true; paint(b) }
+    /** A Download button on screen for update message [key]: it shows the download's state. */
+    fun track(b: android.widget.TextView, key: String) { buttons[b] = key; paint(b) }
+
+    /** The button of update message [key] was tapped (ignored while a download already runs). */
+    fun tappedFrom(key: String) { if (activeDownloadId < 0 && progress == null) activeKey = key }
 
     private fun paint(b: android.widget.TextView) {
         val p = progress
+        val mine = p != null && buttons[b] != null && buttons[b] == activeKey
+        // Only the button that was tapped shows the progress; the other update messages'
+        // buttons are greyed out until it is done.
         b.text = when {
-            p == null -> "Download"
+            p == null || !mine -> "Download"
             p >= 101 -> "Opening the installer..."
             p <= 0 -> "Starting download..."
             else -> "Downloading... $p%"
         }
         b.isEnabled = p == null
-        b.alpha = if (p == null) 1f else 0.85f
+        b.alpha = when { p == null -> 1f; mine -> 0.85f; else -> 0.35f }
     }
 
     private fun setProgress(p: Int?) {
         progress = p
+        if (p == null) activeKey = null
         main.post { buttons.keys.toList().forEach { try { paint(it) } catch (_: Throwable) {} } }
     }
 

@@ -558,7 +558,9 @@ class ChatHeadService : Service() {
     private fun handleShow(fromUser: String, preview: String, manual: Boolean = false) {
         // Move sender to tail (newest) and increment their unread count - unless that chat is
         // open in the floating window and scrolled to the bottom (then it's already seen).
-        val prev = activeSenders.remove(fromUser) ?: 0
+        // Heads arranged by hand keep their places; otherwise the sender moves to the front
+        val prev = if (manualHeadOrder && activeSenders.containsKey(fromUser)) activeSenders[fromUser] ?: 0
+                   else activeSenders.remove(fromUser) ?: 0
         // Open in the floating window right now: no number on the head for it (only other chats count)
         val seenNow = overlayView != null && !overlayHiddenForPicker && overlayContact == fromUser
         activeSenders[fromUser] = if (seenNow) 0 else if (manual) prev else prev + 1
@@ -580,8 +582,10 @@ class ChatHeadService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType,
-            // GPU drawing: the pictures are hardware bitmaps, which a software-drawn window can't show
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            // GPU drawing: the pictures are hardware bitmaps, which a software-drawn window can't show.
+            // No limits: the heads may be pushed partly off the screen edge (up to half a head).
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSPARENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -849,6 +853,17 @@ class ChatHeadService : Service() {
     private val bubbleDrawn = HashMap<String, FloatArray>()
     private var bubblePad = -1
     private var bubblePadT = 0
+    /** Leftmost / rightmost drawn pixel of the heads (window x), and how far they may go off screen. */
+    private var bubbleVisL = 0f
+    private var bubbleVisR = 0f
+    private var bubbleMaxOff = 0f
+    /** Window x range: the heads may be pushed off either edge by up to half a head. */
+    private fun bubbleMinX(): Int = kotlin.math.floor(-bubbleVisL - bubbleMaxOff).toInt()
+    private fun bubbleMaxX(): Int = maxOf(bubbleMinX(), kotlin.math.ceil(screenWidth - bubbleVisR + bubbleMaxOff).toInt())
+    /** How far (px) past its edge the stack was left (0 = touching it). */
+    private var headEdgeOff: Float
+        get() = getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE).getFloat("edge_off", 0f)
+        set(v) { getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE).edit().putFloat("edge_off", v).apply() }
 
     /**
      * Each head in the bubble gets its whole border (dragons and all), drawn right above its own
@@ -934,13 +949,34 @@ class ChatHeadService : Service() {
         }
         // Grow / shrink the bubble window around the same spot
         if (root.paddingLeft != pL || root.paddingTop != pT || root.paddingRight != pR || root.paddingBottom != pB) root.setPadding(pL, pT, pR, pB)
+        // Where something is really drawn, left and right (window coordinates): each head's own
+        // shape at its real size and scale, and each border's drawn pixels. The edges line up
+        // with these, not with the window, so the heads touch the screen edge exactly.
+        run {
+            var vl = Float.MAX_VALUE; var vr = -Float.MAX_VALUE
+            for ((cv, user) in slots) {
+                if (cv.visibility != View.VISIBLE || user == null) continue
+                val a = (cv.layoutParams?.width ?: 0).toFloat()
+                val cx = pL + cv.translationX + a / 2f
+                vl = minOf(vl, cx - a * cv.scaleX / 2f); vr = maxOf(vr, cx + a * cv.scaleX / 2f)
+            }
+            for (s in live) {
+                val d = s.d ?: continue
+                if (s.iv.visibility != View.VISIBLE) continue
+                val size = (s.iv.layoutParams?.width ?: 0).toFloat()
+                val left = pL + s.iv.translationX
+                vl = minOf(vl, left + d[0] * size); vr = maxOf(vr, left + d[2] * size)
+            }
+            if (vl == Float.MAX_VALUE) { vl = 0f; vr = w.toFloat() }
+            bubbleVisL = vl; bubbleVisR = vr; bubbleMaxOff = contentH / 2f
+        }
         val p = bubbleParams ?: return
         val padPrefs = getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE)
         val old = if (bubblePad < 0) padPrefs.getInt("pad", 0) else bubblePad
         val oldT = if (bubblePad < 0) padPrefs.getInt("padT", old) else bubblePadT
         if (p.width != w || p.height != h || old != pad || oldT != pT || bubblePad < 0) {
             p.width = w; p.height = h
-            if (old != pad) p.x = (p.x - (pad - old)).coerceIn(0, (screenWidth - w).coerceAtLeast(0))
+            if (old != pad) p.x = (p.x - (pad - old)).coerceIn(bubbleMinX(), bubbleMaxX())
             if (oldT != pT) p.y = (p.y - (pT - oldT)).coerceIn(0, (screenHeight - h).coerceAtLeast(0))
             bubblePad = pad; bubblePadT = pT
             padPrefs.edit().putInt("pad", pad).putInt("padT", pT).apply()
@@ -953,14 +989,15 @@ class ChatHeadService : Service() {
             // Heads placed before this was remembered: work out the edge once from where it is
             val sp = getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE)
             if (!sp.contains("side")) headSide = when {
-                p.x <= (8 * dp).toInt() -> "left"
-                p.x + w >= screenWidth - (40 * dp).toInt() -> "right"
+                p.x + bubbleVisL <= 8 * dp -> "left"
+                p.x + bubbleVisR >= screenWidth - 40 * dp -> "right"
                 else -> ""
             }
+            val off = headEdgeOff.coerceIn(0f, bubbleMaxOff)
             val wantX = when (headSide) {
-                "right" -> (screenWidth - w).coerceAtLeast(0)
-                "left" -> 0
-                else -> p.x.coerceIn(0, (screenWidth - w).coerceAtLeast(0))
+                "right" -> kotlin.math.round(screenWidth - bubbleVisR + off).toInt()
+                "left" -> kotlin.math.round(-bubbleVisL - off).toInt()
+                else -> p.x.coerceIn(bubbleMinX(), bubbleMaxX())
             }
             if (p.x != wantX) {
                 p.x = wantX
@@ -1064,7 +1101,7 @@ class ChatHeadService : Service() {
                     } else {
                         enteredDismissZone = false
                     }
-                    nx = nx.coerceIn(0, (screenWidth  - headW).coerceAtLeast(0))
+                    nx = if (bubbleVisR > bubbleVisL) nx.coerceIn(bubbleMinX(), bubbleMaxX()) else nx.coerceIn(0, (screenWidth - headW).coerceAtLeast(0))
                     ny = ny.coerceIn(0, (screenHeight - headH).coerceAtLeast(0))
                     params.x = nx
                     params.y = ny
@@ -1084,16 +1121,25 @@ class ChatHeadService : Service() {
                         removeAllHeads()
                     } else {
                         if (moved) {
-                            params.x = params.x.coerceIn(0, (screenWidth  - headW).coerceAtLeast(0))
+                            val exact = bubbleVisR > bubbleVisL
+                            params.x = if (exact) params.x.coerceIn(bubbleMinX(), bubbleMaxX()) else params.x.coerceIn(0, (screenWidth - headW).coerceAtLeast(0))
                             params.y = params.y.coerceIn(0, (screenHeight - headH).coerceAtLeast(0))
                             if (PreferenceManager.chatHeadSnapEnabled) {
                                 edgeSnap(params, headW, headH)
                             }
-                            // Remember the edge it now sits against (kept flush there later)
+                            // Remember the edge it now sits against (kept there later), and how
+                            // far past it the heads were pushed (up to half a head may hide).
+                            val visLeft = params.x + (if (exact) bubbleVisL else 0f)
+                            val visRight = params.x + (if (exact) bubbleVisR else headW.toFloat())
                             headSide = when {
-                                params.x <= 0 -> "left"
-                                params.x + headW >= screenWidth - 1 -> "right"
+                                visLeft <= 0.5f -> "left"
+                                visRight >= screenWidth - 0.5f -> "right"
                                 else -> ""
+                            }
+                            headEdgeOff = when (headSide) {
+                                "left" -> (-visLeft).coerceIn(0f, bubbleMaxOff)
+                                "right" -> (visRight - screenWidth).coerceIn(0f, bubbleMaxOff)
+                                else -> 0f
                             }
                             PreferenceManager.saveChatHeadPos(BUBBLE_POS_KEY, params.x, params.y)
                             try { wm.updateViewLayout(view, params) } catch (_: Exception) {}
@@ -3220,6 +3266,7 @@ class ChatHeadService : Service() {
         overlayAvatarVideoHelper?.release()
         overlayAvatarVideoHelper = null
         endSwitcherDragGhost()
+        manualHeadOrder = false
         activeSenders.clear()
         groupExtras.clear()
         hideOverlay()
@@ -3393,13 +3440,26 @@ class ChatHeadService : Service() {
      * Overlay stays visible; ghost + dismiss X are separate WM windows above it.
      */
     @Suppress("ClickableViewAccessibility")
+    /** The person arranged the heads by hand: new messages no longer shuffle them. */
+    private var manualHeadOrder = false
+
     private fun attachSwitcherHeadDrag(view: View, user: String) {
         var downRawX = 0f
         var downRawY = 0f
         var dragged = false
         var yieldedToScroll = false
+        var reordering = false
+        var holdReady = false
         val slop = 14 * dp  // lower vertical slop (~12-16dp) for easier dismiss drag
         val ghostSize = (48 * dp).toInt()
+        val main = Handler(Looper.getMainLooper())
+        // Held still for a moment: ready to be moved along the row even when the row scrolls
+        val hold = Runnable {
+            holdReady = true
+            // lifted a little (its border follows; scaling would fight the border's own fit)
+            view.animate().translationY(-4 * dp).setDuration(120).setUpdateListener { (view.parent as? View)?.invalidate() }.start()
+            try { view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS) } catch (_: Throwable) {}
+        }
         view.setOnTouchListener { v, ev ->
             when (ev.actionMasked) {
                 android.view.MotionEvent.ACTION_DOWN -> {
@@ -3407,7 +3467,10 @@ class ChatHeadService : Service() {
                     downRawY = ev.rawY
                     dragged = false
                     yieldedToScroll = false
-                    // Allow HorizontalScrollView to intercept until we decide on vertical drag
+                    reordering = false
+                    holdReady = false
+                    main.postDelayed(hold, 280)
+                    // Allow HorizontalScrollView to intercept until we decide on the drag
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     true
                 }
@@ -3415,16 +3478,30 @@ class ChatHeadService : Service() {
                     if (yieldedToScroll) return@setOnTouchListener false
                     val dx = ev.rawX - downRawX
                     val dy = ev.rawY - downRawY
+                    if (reordering) { moveReorder(v, dx); return@setOnTouchListener true }
                     if (!dragged && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) {
+                        main.removeCallbacks(hold)
                         if (kotlin.math.abs(dx) >= kotlin.math.abs(dy)) {
-                            // Horizontal: side-scroll the top row
-                            yieldedToScroll = true
-                            v.parent?.requestDisallowInterceptTouchEvent(false)
-                            return@setOnTouchListener false
+                            val scroll = (v.parent as? View)?.parent as? View
+                            val scrolls = scroll != null && (scroll.canScrollHorizontally(1) || scroll.canScrollHorizontally(-1))
+                            if (scrolls && !holdReady) {
+                                // A long row: a quick swipe scrolls it (hold a head first to move it)
+                                yieldedToScroll = true
+                                v.parent?.requestDisallowInterceptTouchEvent(false)
+                                return@setOnTouchListener false
+                            }
+                            // Sideways: move this head along the row
+                            reordering = true
+                            isDraggingBubble = true
+                            v.parent?.requestDisallowInterceptTouchEvent(true)
+                            startReorder(v)
+                            moveReorder(v, dx)
+                            return@setOnTouchListener true
                         }
                         // Vertical / downward: start dismiss-ghost drag
                         dragged = true
                         isDraggingBubble = true
+                        v.animate().cancel()
                         v.parent?.requestDisallowInterceptTouchEvent(true)
                         ensureSwitcherStillFrame(v, user)  // still on ImageView before ghost
                         startSwitcherDragGhost(v, user, ghostSize, ev.rawX, ev.rawY)
@@ -3448,7 +3525,17 @@ class ChatHeadService : Service() {
                     true
                 }
                 android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    main.removeCallbacks(hold)
+                    if (holdReady && !reordering) {
+                        v.animate().translationY(0f).setDuration(120).setUpdateListener { (v.parent as? View)?.invalidate() }.start()
+                    }
                     val isCancel = ev.actionMasked == android.view.MotionEvent.ACTION_CANCEL
+                    if (reordering) {
+                        reordering = false
+                        isDraggingBubble = false
+                        endReorder(v)
+                        return@setOnTouchListener true
+                    }
                     if (yieldedToScroll) {
                         yieldedToScroll = false
                         return@setOnTouchListener false
@@ -3474,6 +3561,102 @@ class ChatHeadService : Service() {
                 else -> false
             }
         }
+    }
+
+    // ── Moving a head along the top row ───────────────────────────────────────
+    private var reorderFrom = -1
+    private var reorderTo = -1
+    /** Each head's place in the row (left edge of its slot, margins included) and slot width. */
+    private var reorderSlots: List<Pair<Int, Int>> = emptyList()
+
+    private fun slotOf(c: View): Pair<Int, Int> {
+        val lp = c.layoutParams as? ViewGroup.MarginLayoutParams
+        val ml = lp?.leftMargin ?: 0; val mr = lp?.rightMargin ?: 0
+        return Pair(c.left - ml, c.width + ml + mr)
+    }
+
+    private fun startReorder(chip: View) {
+        val row = chip.parent as? ViewGroup ?: return
+        reorderSlots = (0 until row.childCount).map { slotOf(row.getChildAt(it)) }
+        reorderFrom = row.indexOfChild(chip)
+        reorderTo = reorderFrom
+        chip.animate().cancel()
+        chip.translationY = -4 * dp
+        chip.translationZ = 8 * dp          // drawn above the others while it moves
+    }
+
+    /** Where each head would sit (left edge of its slot) with [order] (indexes into the row). */
+    private fun slotLefts(order: List<Int>): IntArray {
+        val out = IntArray(order.size)
+        var x = reorderSlots.firstOrNull()?.first ?: 0
+        for (i in order.indices) {
+            val idx = order[i]
+            out[idx] = x
+            x += reorderSlots[idx].second
+        }
+        return out
+    }
+
+    private fun moveReorder(chip: View, dx: Float) {
+        val row = chip.parent as? ViewGroup ?: return
+        val n = reorderSlots.size
+        if (n < 2 || reorderFrom < 0) return
+        val first = reorderSlots.first().first.toFloat()
+        val lastEnd = (reorderSlots.last().first + reorderSlots.last().second).toFloat()
+        val mine = reorderSlots[reorderFrom]
+        val t = dx.coerceIn(first - mine.first, lastEnd - (mine.first + mine.second))
+        chip.translationX = t
+        // the gap opens where the head's centre is now
+        val centre = mine.first + t + mine.second / 2f
+        var to = 0
+        for (i in 0 until n) if (i != reorderFrom) {
+            val s = reorderSlots[i]
+            if (s.first + s.second / 2f < centre) to++
+        }
+        if (to != reorderTo) {
+            reorderTo = to
+            val order = (0 until n).filter { it != reorderFrom }.toMutableList().apply { add(to, reorderFrom) }
+            val lefts = slotLefts(order)
+            for (i in 0 until n) if (i != reorderFrom) {
+                val c = row.getChildAt(i) ?: continue
+                c.animate().translationX((lefts[i] - reorderSlots[i].first).toFloat()).setDuration(140)
+                    .setUpdateListener { row.invalidate() }.start()
+            }
+            try { chip.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK) } catch (_: Throwable) {}
+        }
+        row.invalidate()        // the borders follow the heads
+    }
+
+    private fun endReorder(chip: View) {
+        val row = chip.parent as? ViewGroup ?: return
+        val n = reorderSlots.size
+        val from = reorderFrom; val to = reorderTo
+        reorderFrom = -1; reorderTo = -1
+        if (n < 2 || from < 0) { chip.translationX = 0f; chip.translationY = 0f; chip.translationZ = 0f; row.invalidate(); return }
+        val order = (0 until n).filter { it != from }.toMutableList().apply { add(to, from) }
+        val lefts = slotLefts(order)
+        val fingerLeft = reorderSlots[from].first + chip.translationX
+        val views = (0 until n).map { row.getChildAt(it) }
+        views.forEach { if (it !== chip) { it.animate().cancel(); it.translationX = 0f } }
+        chip.animate().cancel()
+        if (to != from) {
+            row.removeAllViews()
+            order.forEach { row.addView(views[it]) }
+            // The heads' new order is the chats' order (first in the row = front of the stack)
+            val users = order.mapNotNull { views[it].getTag(R.id.switcher_user) as? String }
+            val copy = LinkedHashMap(activeSenders)
+            activeSenders.clear()
+            users.asReversed().forEach { u -> copy[u]?.let { activeSenders[u] = it } }
+            copy.forEach { (u, c) -> if (!activeSenders.containsKey(u)) activeSenders[u] = c }
+            manualHeadOrder = true
+            updateBubble()
+        }
+        // settle into its new place from where the finger left it
+        chip.translationX = fingerLeft - lefts[from]
+        chip.animate().translationX(0f).translationY(0f).setDuration(160)
+            .setUpdateListener { row.invalidate() }
+            .withEndAction { chip.translationZ = 0f; row.invalidate() }.start()
+        row.invalidate()
     }
 
     private fun startSwitcherDragGhost(src: View, user: String, size: Int, rawX: Float, rawY: Float) {
@@ -3623,7 +3806,12 @@ class ChatHeadService : Service() {
 
     private fun edgeSnap(params: WindowManager.LayoutParams, bubbleW: Int, bubbleH: Int) {
         val edge = (28 * dp).toInt()
-        if (params.x < edge) params.x = 0
+        if (bubbleVisR > bubbleVisL) {
+            // By what is really drawn: near an edge it snaps flush; pushed past it, it stays there
+            val l = params.x + bubbleVisL; val r = params.x + bubbleVisR
+            if (l < edge) { if (l > 0f) params.x = kotlin.math.round(-bubbleVisL).toInt() }
+            else if (r > screenWidth - edge) { if (r < screenWidth) params.x = kotlin.math.round(screenWidth - bubbleVisR).toInt() }
+        } else if (params.x < edge) params.x = 0
         else if (params.x > screenWidth - bubbleW - edge) params.x = screenWidth - bubbleW
         if (params.y < edge) params.y = 0
         else if (params.y > screenHeight - bubbleH - edge) params.y = screenHeight - bubbleH

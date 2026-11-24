@@ -880,8 +880,11 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
                 if (apkNotice) {
                     bodyText = stripApkDownloadMarkup(bodyText)
                     binding.btnApkDownload.visibility = View.VISIBLE
-                    binding.btnApkDownload.setOnClickListener { onApkDownload(msg) }
-                    com.silvershireinn.app.utils.AppUpdateHelper.track(binding.btnApkDownload)   // shows "Downloading... 42%" while it runs
+                    binding.btnApkDownload.setOnClickListener {
+                        com.silvershireinn.app.utils.AppUpdateHelper.tappedFrom(msg.messageId)
+                        onApkDownload(msg)
+                    }
+                    com.silvershireinn.app.utils.AppUpdateHelper.track(binding.btnApkDownload, msg.messageId)   // "Downloading... 42%" on this one only
                 } else {
                     binding.btnApkDownload.visibility = View.GONE
                     binding.btnApkDownload.setOnClickListener(null)
