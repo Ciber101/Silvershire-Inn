@@ -240,6 +240,11 @@ class ChatHeadService : Service() {
     private var overlayDraftMime: String? = null
     private var overlayDraftName: String? = null
     private var overlayParams: WindowManager.LayoutParams? = null   // saved so we can re-add after picker
+    /** The floating chat's window. Its content (one chat) is swapped inside it when switching
+     *  chats, so the window, the heads above it and the top row never disappear (they blinked). */
+    private var overlayHost: FrameLayout? = null
+    /** True while one chat is swapped for another (keep the window). */
+    private var switchingOverlay = false
     private var overlayContact: String? = null
     /** Text being typed in the floating chat, per chat, kept while the window is closed. */
     private val typedDrafts = HashMap<String, String>()
@@ -533,7 +538,8 @@ class ChatHeadService : Service() {
         hideDismissOverlay()
         mediaOverlayView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         mediaOverlayView = null
-        overlayView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        overlayHost?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        overlayHost = null
         overlayView = null
         bubbleView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         bubbleView   = null
@@ -1998,9 +2004,24 @@ class ChatHeadService : Service() {
         }
 
         try {
-            wm.addView(view, params)
+            // One window for the floating chat: switching chats only swaps what is inside it
+            val host = overlayHost
+            val reusing = host != null && host.isAttachedToWindow
+            if (reusing) {
+                host!!.addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+            } else {
+                overlayHost?.let { old -> try { wm.removeView(old) } catch (_: Exception) {} }
+                // Keys (back) go straight to the chat inside, focused or not, as when it was the window
+                val h = object : FrameLayout(themedCtx) {
+                    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+                        getChildAt(childCount - 1)?.dispatchKeyEvent(event) ?: super.dispatchKeyEvent(event)
+                }.apply { setBackgroundColor(Color.TRANSPARENT) }
+                h.addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+                wm.addView(h, params)
+                overlayHost = h
+                overlayParams = params
+            }
             overlayView   = view
-            overlayParams = params
             view.post { try { com.silvershireinn.app.utils.OrnateTheme.attachRoot(view) } catch (_: Throwable) {} }   // same theme as the app
             com.silvershireinn.app.SilvershireApp.overlayOpen = true   // chatting in the floating window = online
             // Re-add bubble on top so it stays visible and tappable over the overlay.
@@ -2011,7 +2032,7 @@ class ChatHeadService : Service() {
                 ensureBubbleStillFramesVisible(bv)
                 bv.alpha = targetAlpha
             }
-            android.view.Choreographer.getInstance().postFrameCallback {
+            if (!reusing) android.view.Choreographer.getInstance().postFrameCallback {     // (same window: the heads are already above it)
                 if (bubbleView == null) return@postFrameCallback
                 bubbleView?.let { bv ->
                     ensureBubbleStillFramesVisible(bv)
@@ -2977,8 +2998,11 @@ class ChatHeadService : Service() {
         if (existing != null) {
             softHighlightSwitcher(existing, contactId)
         }
-        hideOverlay()
-        showOverlay(contactId, groupExtras[contactId])
+        switchingOverlay = true
+        try {
+            hideOverlay()
+            showOverlay(contactId, groupExtras[contactId])
+        } finally { switchingOverlay = false }
     }
 
     /** Update switcher selection styling without releasing/rebuilding video chips. */
@@ -3021,8 +3045,8 @@ class ChatHeadService : Service() {
     }
 
     private fun hideOverlayTemporarily(alsoBubble: Boolean = false) {
-        val v = overlayView
-        if (v != null) {
+        val v = overlayHost
+        if (v != null && overlayView != null) {
             overlayHiddenForPicker = true
             try { wm.removeView(v) } catch (_: Exception) {}
         }
@@ -3045,9 +3069,9 @@ class ChatHeadService : Service() {
         overlayHiddenForPicker = false
         bubbleHiddenForPicker = false
         if (needOverlay) {
-            val v = overlayView
+            val v = overlayHost
             val p = overlayParams
-            if (v != null && p != null) {
+            if (v != null && p != null && !v.isAttachedToWindow) {
                 try { wm.addView(v, p) } catch (_: Exception) {}
             }
         }
@@ -3086,7 +3110,11 @@ class ChatHeadService : Service() {
             val t = overlayView?.findViewById<EditText>(R.id.etOverlayInput)?.text?.toString().orEmpty()
             if (t.isNotBlank()) typedDrafts[c] = t else typedDrafts.remove(c)
         }
-        overlayView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        overlayView?.let { v -> (v.parent as? ViewGroup)?.removeView(v) }
+        if (!switchingOverlay) {
+            overlayHost?.let { h -> try { wm.removeView(h) } catch (_: Exception) {} }
+            overlayHost = null
+        }
         overlayView    = null
         lastOverlayContact = overlayContact
         overlayContact = null
