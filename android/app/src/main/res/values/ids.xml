@@ -9,4 +9,5 @@
     <item name="seal_padding" type="id" />
     <item name="seal_ring" type="id" />
     <item name="seal_shape" type="id" />
+    <item name="switcher_user" type="id" />
 </resources>

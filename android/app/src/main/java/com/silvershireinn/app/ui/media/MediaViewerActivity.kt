@@ -672,11 +672,8 @@ class MediaViewerActivity : AppCompatActivity() {
     }
 
     private fun copyToClipboard() = withLocalFile { item, f ->
-        try {
-            (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
-                .setPrimaryClip(ClipData.newUri(contentResolver, item.name, contentUri(f)))
-            toast("Copied")
-        } catch (_: Throwable) { toast("Copy failed") }
+        val ok = com.silvershireinn.app.utils.ClipCopy.file(this, f, item.name, item.mime)
+        toast(if (!ok) "Copy failed" else if (item.mime.startsWith("image/")) "Picture copied" else "Copied")
     }
 
     /** Save the paused video frame as a full-resolution photo. */
@@ -752,7 +749,7 @@ class MediaViewerActivity : AppCompatActivity() {
             opts += "Playback speed" to { pickSpeed() }
         }
         opts += "Open with..." to { openWith() }
-        opts += "Copy" to { copyToClipboard() }
+        opts += com.silvershireinn.app.utils.ClipCopy.label(item.mime) to { copyToClipboard() }
         opts += "Details" to { showInfo() }
         AlertDialog.Builder(this).setItems(opts.map { it.first }.toTypedArray()) { _, i -> opts[i].second() }.show()
     }

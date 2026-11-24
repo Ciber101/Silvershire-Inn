@@ -1596,6 +1596,7 @@
   </div>
   <div class="lb-actions">
     <button id="lbEdit" onclick="openImageEditor()"><svg class="ic inl" aria-hidden="true" focusable="false"><use href="#i-pen"/></svg>Edit</button>
+    <button id="lbCopy" onclick="copyPicture(document.getElementById('lbImg'))"><svg class="ic inl" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg>Copy</button>
     <a id="lbDownload" download><svg class="ic inl" aria-hidden="true" focusable="false"><use href="#i-download"/></svg>Download</a>
     <button onclick="closeLightbox()">Close</button>
   </div>
@@ -5239,9 +5240,42 @@ async function uploadFiles(files, conv) {
 /* ═══════════════════════════════════════════════════════════════
    CONTEXT MENU / REPLY / DELETE
    ═══════════════════════════════════════════════════════════════ */
+/* Copy a picture to the clipboard (as PNG, the one picture type every browser can paste). */
+function _picBlob(img) {
+  return new Promise((res, rej) => {
+    const go = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        c.toBlob(b => b ? res(b) : rej(new Error('no picture')), 'image/png');
+      } catch (err) { rej(err); }
+    };
+    if (img.complete && img.naturalWidth) go();
+    else { img.addEventListener('load', go, { once: true }); img.addEventListener('error', () => rej(new Error('load')), { once: true }); }
+  });
+}
+async function copyPicture(img) {
+  if (!img || !img.getAttribute('src')) { toast('The picture is still loading'); return; }
+  if (!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write) { toast('This browser cannot copy pictures'); return; }
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': _picBlob(img) })]);
+    toast('Picture copied');
+  } catch (_) {
+    try {
+      const b = await _picBlob(img);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]);
+      toast('Picture copied');
+    } catch (err) { toast('Could not copy the picture'); }
+  }
+}
+
 function showCtxMenu(e, m) {
   const menu = document.getElementById('ctxMenu');
   menu.innerHTML = '';
+  // the picture in this message (right-click on a picture: Copy picture)
+  const picEl = (m.att && (m.att.mime || '').startsWith('image/') && e.currentTarget && e.currentTarget.querySelector)
+    ? e.currentTarget.querySelector('img.att') : null;
   const add = (label, fn, danger) => {
     const b = document.createElement('button');
     b.innerHTML = iconize(label); if (danger) b.className = 'danger';
@@ -5251,6 +5285,7 @@ function showCtxMenu(e, m) {
   if (isNotes(state.current)) {
     // Notes: only you, so one delete (removed everywhere, nothing left behind)
     if (m.text) add('📋 Copy', () => navigator.clipboard.writeText(m.text).then(() => toast('Copied')));
+    if (picEl) add('📋 Copy picture', () => copyPicture(picEl));
     add('↩ Reply', () => setReply(m));
     add('↪ Forward', () => openForwardModal(m));
     if (m.att?.fileId) add('⬇ Download', () => {
@@ -5270,6 +5305,7 @@ function showCtxMenu(e, m) {
     return;
   }
   if (m.text) add('📋 Copy', () => navigator.clipboard.writeText(m.text).then(() => toast('Copied')));
+  if (picEl) add('📋 Copy picture', () => copyPicture(picEl));
   add('↩ Reply', () => setReply(m));
   add('↪ Forward', () => openForwardModal(m));
   if (m.att?.fileId) add('⬇ Download', () => {
@@ -5965,6 +6001,8 @@ function closeLightbox() {
 function openLightbox(url, name, isVideo) {
   const eb = document.getElementById('lbEdit');
   if (eb) eb.style.display = isVideo ? 'none' : '';
+  const cb = document.getElementById('lbCopy');
+  if (cb) cb.style.display = isVideo ? 'none' : '';
   const img = document.getElementById('lbImg');
   const vid = document.getElementById('lbVideo');
   const dl = document.getElementById('lbDownload');

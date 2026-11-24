@@ -848,6 +848,7 @@ class ChatHeadService : Service() {
     /** Drawn area of each border picture used on the bubble (key: frame|shape|size). */
     private val bubbleDrawn = HashMap<String, FloatArray>()
     private var bubblePad = -1
+    private var bubblePadT = 0
 
     /**
      * Each head in the bubble gets its whole border (dragons and all), drawn right above its own
@@ -893,22 +894,30 @@ class ChatHeadService : Service() {
             }
             live.add(S(cv, iv, a, full, bubbleDrawn[key]))
         }
-        // Room the borders need past the edge of their pictures (same on every side)
-        var need = 0f
-        for (s in live) {
-            val d = s.d ?: continue
-            val reach = maxOf((0.5f - d[0]), (d[2] - 0.5f), (0.5f - d[1]), (d[3] - 0.5f)) * s.full - s.a / 2f
-            need = maxOf(need, reach + tol)
-        }
-        val pad = need.coerceIn(0f, contentH * 0.22f).toInt()      // a little room: the border shrinks to fit
+        // Room the borders need past the pictures, worked out for each side on its own: a side
+        // no border reaches gets none, so the pictures sit right against the screen edge there
+        // (the same room on every side kept the heads ~20 px off the edge).
         val contentW = slots.filter { it.first.visibility == View.VISIBLE }
             .maxOfOrNull { it.first.translationX + (it.first.layoutParams?.width ?: 0) } ?: contentH
-        val w = (contentW + 2 * pad).toInt(); val h = (contentH + 2 * pad).toInt()
+        var nL = 0f; var nR = 0f; var nT = 0f; var nB = 0f
+        for (s in live) {
+            val d = s.d ?: continue
+            val cx0 = s.cv.translationX + s.a / 2f; val cy0 = contentH / 2f
+            nL = maxOf(nL, (0.5f - d[0]) * s.full - cx0 + tol)
+            nR = maxOf(nR, cx0 + (d[2] - 0.5f) * s.full - contentW + tol)
+            nT = maxOf(nT, (0.5f - d[1]) * s.full - cy0 + tol)
+            nB = maxOf(nB, cy0 + (d[3] - 0.5f) * s.full - contentH + tol)
+        }
+        val cap = contentH * 0.22f                                  // a little room: the border shrinks to fit
+        val pL = nL.coerceIn(0f, cap).toInt(); val pR = nR.coerceIn(0f, cap).toInt()
+        val pT = nT.coerceIn(0f, cap).toInt(); val pB = nB.coerceIn(0f, cap).toInt()
+        val pad = pL                                                // remembered: keeps the pictures in place
+        val w = (contentW + pL + pR).toInt(); val h = (contentH + pT + pB).toInt()
         for (s in live) {
             val d = s.d
             var k = 1f
             if (d != null) {
-                val cx = pad + s.cv.translationX + s.a / 2f; val cy = h / 2f
+                val cx = pL + s.cv.translationX + s.a / 2f; val cy = pT + contentH / 2f
                 val nl = (0.5f - d[0]) * s.full; val nr = (d[2] - 0.5f) * s.full
                 val nt = (0.5f - d[1]) * s.full; val nb = (d[3] - 0.5f) * s.full
                 if (nl > 0) k = minOf(k, (cx - tol) / nl)
@@ -924,18 +933,17 @@ class ChatHeadService : Service() {
             s.cv.scaleX = k; s.cv.scaleY = k
         }
         // Grow / shrink the bubble window around the same spot
-        if (root.paddingLeft != pad) root.setPadding(pad, pad, pad, pad)
+        if (root.paddingLeft != pL || root.paddingTop != pT || root.paddingRight != pR || root.paddingBottom != pB) root.setPadding(pL, pT, pR, pB)
         val p = bubbleParams ?: return
         val padPrefs = getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE)
         val old = if (bubblePad < 0) padPrefs.getInt("pad", 0) else bubblePad
-        if (p.width != w || p.height != h || old != pad || bubblePad < 0) {
+        val oldT = if (bubblePad < 0) padPrefs.getInt("padT", old) else bubblePadT
+        if (p.width != w || p.height != h || old != pad || oldT != pT || bubblePad < 0) {
             p.width = w; p.height = h
-            if (old != pad) {
-                p.x = (p.x - (pad - old)).coerceIn(0, (screenWidth - w).coerceAtLeast(0))
-                p.y = (p.y - (pad - old)).coerceIn(0, (screenHeight - h).coerceAtLeast(0))
-            }
-            bubblePad = pad
-            padPrefs.edit().putInt("pad", pad).apply()
+            if (old != pad) p.x = (p.x - (pad - old)).coerceIn(0, (screenWidth - w).coerceAtLeast(0))
+            if (oldT != pT) p.y = (p.y - (pT - oldT)).coerceIn(0, (screenHeight - h).coerceAtLeast(0))
+            bubblePad = pad; bubblePadT = pT
+            padPrefs.edit().putInt("pad", pad).putInt("padT", pT).apply()
             try { if (root.isAttachedToWindow) wm.updateViewLayout(root, p) } catch (_: Exception) {}
         }
         // Dropped against an edge: stay flush with it whatever the width does (more heads in the
@@ -1219,7 +1227,11 @@ class ChatHeadService : Service() {
             .inflate(R.layout.layout_chat_head_overlay, null, false)
 
         view.findViewById<TextView>(R.id.tvOverlayName).text = displayName
-        setupOverlayStackSwitcher(view, contactId)
+        // Switching chats: the row of heads at the top moves over as it is (pictures, borders,
+        // scroll spot); only the highlight changes. Rebuilding it made every head blink.
+        val carried = carrySwitcher
+        carrySwitcher = null
+        if (carried == null || !adoptSwitcher(view, carried, contactId)) setupOverlayStackSwitcher(view, contactId)
 
 
         // ── Close ─────────────────────────────────────────────────────────────
@@ -2361,6 +2373,7 @@ class ChatHeadService : Service() {
                 if (mime.startsWith("image/") || mime.startsWith("video/"))
                     options += "🖼  Open"
                 options += "⬇  Save to phone"
+                options += "📋  " + com.silvershireinn.app.utils.ClipCopy.label(mime)
             }
             if (!msg.isDeleted) {
                 options += "🗑  Delete for me"
@@ -2397,6 +2410,17 @@ class ChatHeadService : Service() {
                         val fileId = msg.attachmentId ?: return@setItems
                         val url    = try { MediaAuth.fileUrl(fileId) } catch (_: Exception) { "" }
                         showInOverlayMedia(fileId, msg.attachmentName ?: "file", msg.attachmentMime ?: "*/*", url)
+                    }
+                    "📋  Copy picture", "📋  Copy video", "📋  Copy file", "📋  Copy" -> {
+                        ensureOverlayScope().launch {
+                            val dName = msg.attachmentName ?: "file"
+                            val dMime = msg.attachmentMime ?: "application/octet-stream"
+                            val f     = FileRepository.ensureCached(applicationContext, msg.attachmentId ?: return@launch, dMime, dName)
+                            withContext(Dispatchers.Main) {
+                                val ok = f != null && com.silvershireinn.app.utils.ClipCopy.file(applicationContext, f, dName, dMime)
+                                showOverlaySnackbar(if (!ok) "Copy failed" else if (dMime.startsWith("image/")) "Picture copied" else "Copied")
+                            }
+                        }
                     }
                     "⬇  Save to phone" -> {
                         ensureOverlayScope().launch {
@@ -2986,6 +3010,7 @@ class ChatHeadService : Service() {
                 layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, (16 * dp).toInt(), Gravity.TOP or Gravity.END)
             })
             attachSwitcherHeadDrag(avatar, user)
+            avatar.setTag(R.id.switcher_user, user)
             row.addView(avatar)
             com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatar, user)   // their border, in room of its own
         }
@@ -3006,12 +3031,41 @@ class ChatHeadService : Service() {
         val existing = overlayView
         if (existing != null) {
             softHighlightSwitcher(existing, contactId)
+            // keep the row of heads for the next chat (see showOverlay)
+            existing.findViewById<View?>(R.id.overlayStackSwitcherScroll)?.let { sc ->
+                (sc.parent as? ViewGroup)?.let { p ->
+                    carrySwitcherLp = sc.layoutParams
+                    p.removeView(sc)
+                    carrySwitcher = sc
+                }
+            }
         }
         switchingOverlay = true
         try {
             hideOverlay()
             showOverlay(contactId, groupExtras[contactId])
         } finally { switchingOverlay = false }
+    }
+
+    /** Row of heads carried from the chat being left to the one being opened. */
+    private var carrySwitcher: View? = null
+    private var carrySwitcherLp: ViewGroup.LayoutParams? = null
+
+    /** Put the carried row of heads into the new window in place of its fresh, empty one.
+     *  False when the heads changed meanwhile (then the row is built anew). */
+    private fun adoptSwitcher(view: View, carried: View, currentId: String): Boolean {
+        val row = carried.findViewById<LinearLayout?>(R.id.overlayStackSwitcher) ?: return false
+        val senders = activeSenders.keys.toList().asReversed()
+        if (row.childCount != senders.size) return false
+        for (i in 0 until row.childCount) if (row.getChildAt(i).getTag(R.id.switcher_user) != senders[i]) return false
+        val fresh = view.findViewById<View?>(R.id.overlayStackSwitcherScroll) ?: return false
+        val parent = fresh.parent as? ViewGroup ?: return false
+        val idx = parent.indexOfChild(fresh)
+        val lp = carrySwitcherLp ?: fresh.layoutParams
+        parent.removeViewAt(idx)
+        parent.addView(carried, idx, lp)
+        softHighlightSwitcher(view, currentId)
+        return true
     }
 
     /** Update switcher selection styling without releasing/rebuilding video chips. */
@@ -3026,7 +3080,12 @@ class ChatHeadService : Service() {
             chip.alpha = if (isCurrent) 1f else 0.62f
             val avatarShape = com.silvershireinn.app.utils.AvatarShapeHelper.forUser(user)
             chip.foreground = if (isCurrent) selectionRing(avatarShape) else null
-            if (isCurrent) chip.findViewWithTag<View>("badge")?.visibility = View.GONE
+            chip.contentDescription = switcherName(user) + if (isCurrent) " (open)" else ""
+            (chip.findViewWithTag<View>("badge") as? TextView)?.let { b ->
+                val unread = activeSenders[user] ?: 0
+                b.text = if (unread > 99) "99+" else unread.toString()
+                b.visibility = if (unread > 0 && !isCurrent) View.VISIBLE else View.GONE
+            }
         }
         row.invalidate()      // borders follow the new fade
     }
@@ -3123,6 +3182,7 @@ class ChatHeadService : Service() {
         if (!switchingOverlay) {
             overlayHost?.let { h -> try { wm.removeView(h) } catch (_: Exception) {} }
             overlayHost = null
+            carrySwitcher = null
         }
         overlayView    = null
         lastOverlayContact = overlayContact
@@ -3495,20 +3555,28 @@ class ChatHeadService : Service() {
         val overlayType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
+        // The head keeps its border while dragged: a window with room around the picture
+        val fid = com.silvershireinn.app.utils.ProfileFrames.frameFor(user)
+        val framed = !(fid == "none" || fid.startsWith("gen:none"))
+        val room = if (framed) (size * 0.3f).toInt() else 0
+        val total = size + 2 * room
+        val holder = FrameLayout(this).apply { clipChildren = false; clipToPadding = false }
+        holder.addView(ghost, FrameLayout.LayoutParams(size, size, Gravity.CENTER))
+        if (framed) com.silvershireinn.app.utils.ProfileFrames.applyFloating(ghost, user, reserve = false)
         val lp = WindowManager.LayoutParams(
-            size, size, overlayType,
+            total, total, overlayType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
                 WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = (rawX - size / 2f).toInt().coerceIn(0, (screenWidth - size).coerceAtLeast(0))
-            y = (rawY - size / 2f).toInt().coerceIn(0, (screenHeight - size).coerceAtLeast(0))
+            x = (rawX - total / 2f).toInt().coerceIn(-room, (screenWidth - total + room).coerceAtLeast(0))
+            y = (rawY - total / 2f).toInt().coerceIn(-room, (screenHeight - total + room).coerceAtLeast(0))
         }
         try {
-            wm.addView(ghost, lp)
-            switcherDragGhost = ghost
+            wm.addView(holder, lp)
+            switcherDragGhost = holder
             switcherDragGhostParams = lp
         } catch (e: Exception) {
             android.util.Log.e("ChatHead", "switcher ghost add failed", e)
@@ -3520,8 +3588,10 @@ class ChatHeadService : Service() {
     private fun moveSwitcherDragGhost(rawX: Float, rawY: Float, size: Int) {
         val ghost = switcherDragGhost ?: return
         val lp = switcherDragGhostParams ?: return
-        lp.x = (rawX - size / 2f).toInt().coerceIn(0, (screenWidth - size).coerceAtLeast(0))
-        lp.y = (rawY - size / 2f).toInt().coerceIn(0, (screenHeight - size).coerceAtLeast(0))
+        val total = lp.width.coerceAtLeast(size)
+        val room = (total - size) / 2
+        lp.x = (rawX - total / 2f).toInt().coerceIn(-room, (screenWidth - total + room).coerceAtLeast(0))
+        lp.y = (rawY - total / 2f).toInt().coerceIn(-room, (screenHeight - total + room).coerceAtLeast(0))
         try { wm.updateViewLayout(ghost, lp) } catch (_: Exception) {}
     }
 

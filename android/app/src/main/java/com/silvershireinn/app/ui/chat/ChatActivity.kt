@@ -1359,7 +1359,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
             } else if (mime != "silvershire/call") {
                 options += "Save to phone"
             }
-            if (mime != "silvershire/call") options += "Copy"
+            if (mime != "silvershire/call") options += com.silvershireinn.app.utils.ClipCopy.label(mime)
         }
 
         // Delete options for non-deleted messages (Notes: only you, so one delete)
@@ -1389,7 +1389,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                     }
                     "Open"          -> openMedia(msg)
                     "Save to phone" -> viewModel.downloadAttachment(this, msg)
-                    "Copy"          -> copyAttachmentToClipboard(msg)
+                    "Copy", "Copy picture", "Copy video", "Copy file" -> copyAttachmentToClipboard(msg)
                     "Delete for me" -> viewModel.deleteForMe(msg)
                     "Delete" -> viewModel.deleteNote(msg)
                     "Delete for everyone" -> {
@@ -1416,7 +1416,6 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
         val fileName = msg.attachmentName ?: "file"
         val mimeType = msg.attachmentMime ?: "*/*"
 
-        toast("Copying...")
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // Same cached copy the viewer uses (downloaded once, streamed to disk).
@@ -1426,15 +1425,9 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                     return@launch
                 }
 
-                val uri = androidx.core.content.FileProvider.getUriForFile(
-                    this@ChatActivity,
-                    "${packageName}.provider",
-                    targetFile
-                )
-                val clip = android.content.ClipData.newUri(contentResolver, fileName, uri)
                 withContext(Dispatchers.Main) {
-                    (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
-                    toast("Copied to clipboard")
+                    val ok = com.silvershireinn.app.utils.ClipCopy.file(this@ChatActivity, targetFile, fileName, mimeType)
+                    toast(if (!ok) "Copy failed" else if (mimeType.startsWith("image/")) "Picture copied" else "Copied")
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { toast("Copy failed - download error") }

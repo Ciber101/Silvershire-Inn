@@ -156,6 +156,9 @@ class MutedLoopVideoHelper(
             override fun onSurfaceTextureDestroyed(st: android.graphics.SurfaceTexture): Boolean {
                 surfaceReady = false
                 stop()
+                // The still covers again, so when the view comes back (moved, window reopened)
+                // the empty video view never shows before its first frame.
+                coverImage?.let { c -> if (c.drawable != null) { c.visibility = View.VISIBLE; c.bringToFront() } }
                 return true
             }
             override fun onSurfaceTextureUpdated(st: android.graphics.SurfaceTexture) {
