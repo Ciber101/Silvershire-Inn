@@ -357,7 +357,6 @@ class MediaViewerActivity : AppCompatActivity() {
                 val tiles = com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView(f.context).apply {
                     tag = "image"
                     alpha = 0f
-                    setOrientation(com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.ORIENTATION_USE_EXIF)
                     setMinimumScaleType(com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE)
                     setDoubleTapZoomStyle(com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.ZOOM_FOCUS_FIXED)
                     setDoubleTapZoomDuration(220)
@@ -375,32 +374,53 @@ class MediaViewerActivity : AppCompatActivity() {
                     allowHardware(true)
                     listener(onSuccess = { _, _ -> spinner.visibility = View.GONE })
                 }
+                // The zoomable picture instead of the tiled one (a kind it can't open, or a mirrored
+                // selfie: the tiled viewer only knows plain turns, so it showed those sideways)
+                fun useZoomable() {
+                    if (f.tag != item.fileId) return
+                    f.removeView(tiles); f.removeView(preview)
+                    val iv = ZoomableImageView(f.context)
+                    iv.onSingleTap = { toggleChrome() }
+                    iv.tag = "image"
+                    f.addView(iv, 0, FrameLayout.LayoutParams(-1, -1))
+                    iv.load(data) {
+                        MediaAuth.headers().forEach { (k, v) -> addHeader(k, v) }
+                        size(imageCap); allowHardware(true)
+                        listener(onSuccess = { _, _ -> spinner.visibility = View.GONE })
+                    }
+                }
                 tiles.setOnImageEventListener(object : com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.DefaultOnImageEventListener() {
                     override fun onReady() {
                         spinner.visibility = View.GONE
                         tiles.setDoubleTapZoomScale(tiles.minScale * 2.5f)   // double tap: 2.5x, as before
                         tiles.animate().alpha(1f).setDuration(120).withEndAction { preview.setImageDrawable(null); preview.visibility = View.GONE }.start()
                     }
-                    override fun onImageLoadError(e: Exception?) {
-                        // A kind of picture the tiled viewer can't open: the zoomable picture instead
-                        if (f.tag != item.fileId) return
-                        f.removeView(tiles); f.removeView(preview)
-                        val iv = ZoomableImageView(f.context)
-                        iv.onSingleTap = { toggleChrome() }
-                        iv.tag = "image"
-                        f.addView(iv, 0, FrameLayout.LayoutParams(-1, -1))
-                        iv.load(data) {
-                            MediaAuth.headers().forEach { (k, v) -> addHeader(k, v) }
-                            size(imageCap); allowHardware(true)
-                            listener(onSuccess = { _, _ -> spinner.visibility = View.GONE })
-                        }
-                    }
+                    override fun onImageLoadError(e: Exception?) { useZoomable() }
                 })
                 lifecycleScope.launch {
                     val file = if (local.exists() && local.length() > 0) local
                                else FileRepository.ensureCached(this@MediaViewerActivity, item.fileId, item.mime, item.name)
                     if (f.tag != item.fileId) return@launch
-                    if (file != null) tiles.setImage(com.davemorrissey.labs.subscaleview.ImageSource.uri(Uri.fromFile(file)))
+                    if (file != null) {
+                        // Which way up the photo goes, read the same way as the chat's pictures (it
+                        // was left to the tiled viewer, which turned some photos on their side)
+                        val turn = withContext(Dispatchers.IO) {
+                            try {
+                                when (androidx.exifinterface.media.ExifInterface(file.absolutePath)
+                                    .getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION, 1)) {
+                                    0, 1 -> 0
+                                    6 -> 90
+                                    3 -> 180
+                                    8 -> 270
+                                    else -> -1               // mirrored (front camera): not a plain turn
+                                }
+                            } catch (_: Throwable) { 0 }
+                        }
+                        if (f.tag != item.fileId) return@launch
+                        if (turn < 0) { useZoomable(); return@launch }
+                        tiles.setOrientation(turn)
+                        tiles.setImage(com.davemorrissey.labs.subscaleview.ImageSource.uri(Uri.fromFile(file)))
+                    }
                     else if (position == currentIndex && preview.drawable == null) { spinner.visibility = View.GONE; toast("Could not load photo") }
                 }
             } else {
