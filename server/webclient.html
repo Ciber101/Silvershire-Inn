@@ -25,6 +25,7 @@
     --recv:      #2A2A32;
     --danger:    #cf6679;
     --online:    #6abf69;
+    --bgonline:  #4da3ff;     /* open in the background (Online), vs in use (Active, green) */
     --away:      #e0a84a;
     --dnd:       #cf6679;
     --on-accent: #1A1A1E;
@@ -628,6 +629,7 @@
   }
   .dot { width:9px; height:9px; border-radius:50%; background:#555; flex-shrink:0; margin-top:4px; }
   .dot.on { background:var(--online); box-shadow:0 0 6px var(--online); }
+  .dot.bg { background:var(--bgonline); box-shadow:0 0 5px var(--bgonline); }
   .dot.away { background:var(--away); box-shadow:0 0 6px var(--away); }
   .dot.dnd { background:var(--dnd); box-shadow:0 0 6px var(--dnd); }
   .contact .sub {
@@ -662,6 +664,7 @@
   #chatHeader .cname { font-weight:650; font-size:16px; color:var(--gold); letter-spacing:.15px; }
   #chatHeader .status { font-size:12px; color:var(--text-dim); margin-top:2px; }
   #chatHeader .status.on { color:var(--online); }
+  #chatHeader .status.bg { color:var(--bgonline); }
   #chatHeader .status.away { color:var(--away); }
   #chatHeader .status.dnd { color:var(--dnd); }
   #chatHeader .status.typing { color:var(--gold); font-style:italic; }
@@ -2796,9 +2799,9 @@ function normalizePresenceMode(v) {
   return PRESENCE_MODES.includes(s) ? s : null;
 }
 
-function presenceShortLabel(mode) {
+function presenceShortLabel(mode, active) {
   const m = normalizePresenceMode(mode) || 'online';
-  if (m === 'online') return 'Online';
+  if (m === 'online') return active === false ? 'Online' : 'Active';
   if (m === 'afk') return 'AFK';
   if (m === 'brb') return 'BRB';
   if (m === 'dnd') return 'Do not disturb';
@@ -2811,7 +2814,7 @@ function presenceDotClass(user) {
   const o = state.online[user];
   if (!o || !o.online) return '';
   const p = normalizePresenceMode(o.presence) || 'online';
-  if (p === 'online') return 'on';
+  if (p === 'online') return o.active === false ? 'bg' : 'on';     // Online (background) / Active
   if (p === 'afk' || p === 'brb' || p === 'away') return 'away';
   if (p === 'dnd' || p === 'busy') return 'dnd';
   return '';
@@ -2873,7 +2876,7 @@ function openPresenceMenu(anchor) {
     dnd: 'var(--dnd)', busy: 'var(--dnd)', invisible: '#555'
   };
   const labels = {
-    online: 'Online', afk: 'AFK', dnd: 'Do not disturb',
+    online: 'Active / Online', afk: 'AFK', dnd: 'Do not disturb',
     busy: 'Busy', brb: 'BRB', invisible: 'Invisible'
   };
   menu.innerHTML = PRESENCE_MODES.map(m =>
@@ -3089,6 +3092,8 @@ async function handleServerMessage(msg) {
       const presence = normalizePresenceMode(msg.presence || msg.mode) || (msg.online ? (prev.presence || null) : null);
       state.online[msg.name] = {
         online: !!msg.online,
+        // Active = using it right now; Online = only open in the background (older servers: Active)
+        active: msg.online ? (msg.active !== false) : false,
         lastSeen: msg.lastSeen || prev.lastSeen || null,
         presence: msg.online ? presence : null
       };
@@ -4471,7 +4476,7 @@ function lastSeenText(user) {
   if (!o) return 'offline';
   if (o.online) {
     const p = normalizePresenceMode(o.presence) || 'online';
-    return presenceShortLabel(p);
+    return presenceShortLabel(p, o.active);
   }
   if (!o.lastSeen) return 'offline';
   const d = new Date(o.lastSeen);
@@ -4730,7 +4735,7 @@ function renderChatHeader() {
     const online = !!(o && o.online);
     const p = online ? (normalizePresenceMode(o.presence) || 'online') : '';
     let cls = 'status';
-    if (online && p === 'online') cls += ' on';
+    if (online && p === 'online') cls += (o.active === false ? ' bg' : ' on');
     else if (online && (p === 'afk' || p === 'brb')) cls += ' away';
     else if (online && (p === 'dnd' || p === 'busy')) cls += ' dnd';
     st.className = cls;

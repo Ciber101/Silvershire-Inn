@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 30,
-  versionName: '1.0.29',
+  versionCode: 31,
+  versionName: '1.0.30',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -215,7 +215,11 @@ function buildOnlineStatusMsgRaw(username, isConnected) {
       lastSeen: lastSeenMap.get(username) || users[username]?.lastSeen || null
     };
   }
-  const msg = { type: 'online_status', name: username, online: true };
+  // Connected. "active" = someone is using it right now (app / tab on screen); otherwise the
+  // app or tab is only open in the background: shown as Online, not Active.
+  const active = isUserActive(username);
+  const msg = { type: 'online_status', name: username, online: true, active };
+  if (!active) { const ls = lastSeenMap.get(username) || users[username]?.lastSeen; if (ls) msg.lastSeen = ls; }
   if (mode && mode !== 'online') {
     msg.presence = mode;
     msg.mode = mode;
@@ -961,6 +965,13 @@ function iceServersFor(ws) {
   return list;
 }
 
+/** True while any of the user's devices is connected (app or tab open, even in the background). */
+function isUserConnected(username) {
+  if (panicLocked(username)) return false;
+  const set = connections.get(username);
+  return !!(set && set.size > 0);
+}
+
 /** True while at least one of the user's devices is actually in use (not just connected). */
 function isUserActive(username) {
   if (panicLocked(username)) return false;   // locked: shown as away / offline
@@ -1062,8 +1073,9 @@ function sendToOtherDevices(username, exceptWs, data) {
   }
 }
 
+/** Tells friends the user's state: Active (in use), Online (open in the background) or offline. */
 function notifyOnlineStatus(username, online) {
-  const msg = buildOnlineStatusMsg(username, !!online && isUserActive(username));
+  const msg = buildOnlineStatusMsg(username, !!online && isUserConnected(username));
   for (const friend of (friends[username] || [])) {
     if (areMutualFriends(username, friend)) {
       sendToUser(friend, msg);
@@ -2536,7 +2548,7 @@ wss.on('connection', (ws, req) => {
         }
         for (const friend of (friends[username] || [])) {
           if (areMutualFriends(username, friend)) {
-            send(ws, buildOnlineStatusMsg(friend, isUserActive(friend)));
+            send(ws, buildOnlineStatusMsg(friend, isUserConnected(friend)));
           }
         }
         notifyOnlineStatus(username, true);
@@ -2616,7 +2628,7 @@ wss.on('connection', (ws, req) => {
           { const fa = userFrame(requester), fb = userFrame(username);
             if (fa) send(ws, { type: 'profile_updated', name: requester, frame: fa });
             if (fb) sendToUser(requester, { type: 'profile_updated', name: username, frame: fb }); }
-          send(ws, buildOnlineStatusMsg(requester, isUserActive(requester)));
+          send(ws, buildOnlineStatusMsg(requester, isUserConnected(requester)));
           sendToUser(requester, buildOnlineStatusMsg(username, true));
         } else {
           sendToUser(requester, { type: 'friend_declined', name: username });
@@ -2686,7 +2698,7 @@ wss.on('connection', (ws, req) => {
             const pm = normalizePresenceMode(incoming.presenceMode);
             if (pm) users[username].settings.presenceMode = pm;
             else delete users[username].settings.presenceMode;
-            notifyOnlineStatus(username, isUserActive(username));
+            notifyOnlineStatus(username, true);
           }
           saveJSON(USERS_FILE, users);
           // Other devices (the web app) learn about changes that matter to them (Notes lock)
@@ -2700,7 +2712,7 @@ wss.on('connection', (ws, req) => {
         if (!username || !users[username]) break;
         const pm = persistPresenceMode(username, msg.presence || msg.mode || msg.presenceMode);
         send(ws, { type: 'presence_ok', presence: pm || 'online' });
-        notifyOnlineStatus(username, isUserActive(username));
+        notifyOnlineStatus(username, true);
         break;
       }
 
@@ -2711,7 +2723,7 @@ wss.on('connection', (ws, req) => {
         ws.isActive = msg.active !== false;
         const nowActive = isUserActive(username);
         if (wasActive && !nowActive) markLastSeen(username);
-        if (wasActive !== nowActive) notifyOnlineStatus(username, nowActive);
+        if (wasActive !== nowActive) notifyOnlineStatus(username, true);   // Active <-> Online (still connected)
         break;
       }
 
@@ -3336,9 +3348,10 @@ wss.on('connection', (ws, req) => {
         console.log(`[DISCONNECT] ${username}`);
         notifyOnlineStatus(username, false);
       } else if (wasActive && !isUserActive(username)) {
-        // The device that was in use went away; the others are only background connections.
+        // The device that was in use went away; the others are only background connections:
+        // still Online, no longer Active.
         markLastSeen(username);
-        notifyOnlineStatus(username, false);
+        notifyOnlineStatus(username, true);
       } else {
         console.log(`[DISCONNECT] ${username} (device -------- still online elsewhere)`);
       }

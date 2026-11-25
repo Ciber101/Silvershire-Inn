@@ -663,7 +663,8 @@ class WebSocketService : Service() {
                 if (user.isNotBlank()) {
                     contactRepo.setOnlineStatus(user, online)
                     OnlineStatusManager.setStatus(
-                        user, online, lastSeen, presence, presenceProvided
+                        user, online, lastSeen, presence, presenceProvided,
+                        active = if (json.has("active")) json.optBoolean("active") else null
                     )
                 }
             }

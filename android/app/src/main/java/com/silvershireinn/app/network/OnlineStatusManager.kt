@@ -27,6 +27,12 @@ object OnlineStatusManager {
     private val lastSeenMap = ConcurrentHashMap<String, String>()
     // Map of username → presence mode while online (absent = treat as online)
     private val presenceMap = ConcurrentHashMap<String, String>()
+    // Map of username → using the app right now (Active) vs only open in the background (Online)
+    private val activeMap = ConcurrentHashMap<String, Boolean>()
+
+    /** Active: using the app / web app right now. Online: open in the background. */
+    const val ACTIVE_COLOR = 0xFF4CAF50.toInt()
+    const val BACKGROUND_COLOR = 0xFF4DA3FF.toInt()
 
     /** Version counter; a new value whenever any status changes (adapters collect this).
      *  A counter, not the clock: two updates in the same millisecond used to be swallowed. */
@@ -44,14 +50,19 @@ object OnlineStatusManager {
         online: Boolean,
         lastSeenIso: String? = null,
         presence: String? = null,
-        presenceProvided: Boolean = false
+        presenceProvided: Boolean = false,
+        active: Boolean? = null
     ) {
         if (username.isBlank()) return
         onlineMap[username] = online
         if (!online) {
             presenceMap.remove(username)
+            activeMap.remove(username)
             if (lastSeenIso != null) lastSeenMap[username] = lastSeenIso
         } else {
+            // An older server only reported people in use as online: that is Active
+            activeMap[username] = active ?: true
+            if (lastSeenIso != null) lastSeenMap[username] = lastSeenIso
             if (presenceProvided) {
                 val normalized = normalizePresenceMode(presence)
                 if (normalized != null) presenceMap[username] = normalized
@@ -63,6 +74,9 @@ object OnlineStatusManager {
     }
 
     fun isOnline(username: String): Boolean = onlineMap[username] == true
+
+    /** Using the app or web app right now (not just open in the background). */
+    fun isActive(username: String): Boolean = isOnline(username) && activeMap[username] != false
 
     /** Normalized presence for an online user, or null if offline / unset. */
     fun getPresence(username: String): String? {
@@ -86,7 +100,7 @@ object OnlineStatusManager {
 
     fun modeLabel(mode: String?): String {
         return when (normalizePresenceMode(mode) ?: "online") {
-            "online" -> "Online"
+            "online" -> "Active / Online"         // automatic: Active while using it, Online in the background
             "afk" -> "AFK"
             "brb" -> "BRB"
             "dnd" -> "Do not disturb"
@@ -108,14 +122,17 @@ object OnlineStatusManager {
     }
 
     fun statusColor(username: String): Int {
-        val mode = effectivePresence(username)
-        return if (mode != null) colorForMode(mode) else 0xFF757575.toInt()
+        val mode = effectivePresence(username) ?: return 0xFF757575.toInt()
+        if (mode != "online") return colorForMode(mode)
+        return if (isActive(username)) ACTIVE_COLOR else BACKGROUND_COLOR
     }
 
-    /** "Online" / "AFK" / … when online; last-seen text when offline. */
+    /** "Active" / "Online" / "AFK" / … when connected; last-seen text when offline. */
     fun statusLabel(username: String): String {
         if (isOnline(username)) {
-            return modeLabel(presenceMap[username] ?: "online")
+            val mode = presenceMap[username] ?: "online"
+            if (mode != "online") return modeLabel(mode)
+            return if (isActive(username)) "Active" else "Online"
         }
         val isoStr = lastSeenMap[username] ?: return ""
         // java.time is missing on Android 7 (and the old catch did not cover that error), so
@@ -134,6 +151,7 @@ object OnlineStatusManager {
         onlineMap.clear()
         lastSeenMap.clear()
         presenceMap.clear()
+        activeMap.clear()
         _statusFlow.value = version.incrementAndGet()
     }
 }
