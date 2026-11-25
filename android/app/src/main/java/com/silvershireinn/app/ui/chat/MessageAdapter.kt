@@ -85,8 +85,10 @@ class MessageAdapter(
      * (the others keep the space so bubbles stay aligned), 2 = off.
      */
     /** Where the picture sits (see [SealBubble.place]). */
+    /** Attachment and voice bubbles put their content below the corner picture (see SealBubble.place). */
+    private var sealBelow = false
     private fun placeSeal(frame: View, bubble: SealBubble?, mine: Boolean, state: Int) =
-        SealBubble.place(frame, bubble, mine, state, PreferenceManager.msgAvatarSize, com.silvershireinn.app.utils.OrnateTheme.isOn(frame.context))
+        SealBubble.place(frame, bubble, mine, state, PreferenceManager.msgAvatarSize, com.silvershireinn.app.utils.OrnateTheme.isOn(frame.context), sealBelow)
 
     private fun bindSenderAvatar(frame: View, iv: ImageView, tv: android.widget.TextView,
                                  msg: Message, position: Int, mine: Boolean = false, bubble: SealBubble? = null) {
@@ -784,12 +786,12 @@ private fun bindReplyQuote(quoteView: android.widget.TextView, msg: Message): St
         val msg = getItem(position)
         when (holder) {
             is SystemVH             -> holder.bind(msg)
-            is SentVH               -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleSent) }
-            is ReceivedVH           -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleReceived) }
-            is AttachmentSentVH     -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleAttachmentSent) }
-            is AttachmentReceivedVH -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleAttachmentReceived) }
-            is AudioSentVH          -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleAudioSent) }
-            is AudioReceivedVH      -> { holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleAudioReceived) }
+            is SentVH               -> { sealBelow = false; holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleSent) }
+            is ReceivedVH           -> { sealBelow = false; holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleReceived) }
+            is AttachmentSentVH     -> { sealBelow = true; holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleAttachmentSent) }
+            is AttachmentReceivedVH -> { sealBelow = true; holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleAttachmentReceived) }
+            is AudioSentVH          -> { sealBelow = true; holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrameMine, holder.binding.ivMyAvatar, holder.binding.tvMyInitials, msg, position, mine = true, bubble = holder.binding.bubbleAudioSent) }
+            is AudioReceivedVH      -> { sealBelow = true; holder.bind(msg); bindSenderAvatar(holder.binding.avatarFrame, holder.binding.ivSenderAvatar, holder.binding.tvSenderInitials, msg, position, bubble = holder.binding.bubbleAudioReceived) }
             is CallSentVH           -> holder.bind(msg)
             is CallReceivedVH       -> holder.bind(msg)
         }

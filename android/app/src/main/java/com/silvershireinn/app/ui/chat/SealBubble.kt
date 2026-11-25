@@ -133,7 +133,7 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
          * run) or none at all ([NONE]). [sizeDp] is the picture size. Big pictures sit a little
          * further out of the corner, and the bubble's content always stays clear of the cut.
          */
-        fun place(frame: View, bubble: SealBubble?, mine: Boolean, state: Int, sizeDp: Int, ornate: Boolean) {
+        fun place(frame: View, bubble: SealBubble?, mine: Boolean, state: Int, sizeDp: Int, ornate: Boolean, below: Boolean = false) {
             val b = bubble ?: return
             val d = frame.resources.displayMetrics.density
             val a = (sizeDp * d).toInt()
@@ -166,9 +166,17 @@ class SealBubble @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = 
                 // Nothing of the picture or its border ever sits on the text, and the bubble does
                 // not grow taller: the content keeps clear sideways (its border may reach 0.3 x the
                 // size past the picture), so the bubble just gets a little wider on that side.
-                val clearX = (half - o + a * 0.3f + 2 * d).toInt()
-                if (mine) b.setPadding(orig[0], orig[1], max(orig[2], clearX), orig[3])
-                else b.setPadding(max(orig[0], clearX), orig[1], orig[2], orig[3])
+                if (below) {
+                    // Pictures, videos, files and voice messages are wide blocks: they go BELOW the
+                    // picture's corner, at the bubble's full width. Pushed sideways they stuck out
+                    // past the bubble's edge. The border reaches at most 0.15 x the size below it.
+                    val clearY = (half - o + a * 0.15f + (GAP_DP + 2f) * d).toInt()
+                    b.setPadding(orig[0], max(orig[1], clearY), orig[2], orig[3])
+                } else {
+                    val clearX = (half - o + a * 0.3f + 2 * d).toInt()
+                    if (mine) b.setPadding(orig[0], orig[1], max(orig[2], clearX), orig[3])
+                    else b.setPadding(max(orig[0], clearX), orig[1], orig[2], orig[3])
+                }
                 val rim = if (!ornate) 0xFF3C3C42.toInt() else if (mine) 0xFF8C6A2A.toInt() else 0xFF6E7078.toInt()
                 b.setSeal(if (mine) RIGHT else LEFT, radius, rim, 1.5f * d, o)
             } else {
