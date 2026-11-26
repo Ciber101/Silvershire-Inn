@@ -5025,10 +5025,10 @@ function renderMessages() {
   if (!state.scrolledOnce[c]) {
     state.scrolledOnce[c] = true;
     scrollToBottom(false);
-  } else if (wasAtBottom) {
+  } else if (wasAtBottom || _stickBottom) {
+    // at the bottom, or meant to be (the page grew by itself while this tab was in the background)
     scrollToBottom(false);
   } else {
-    _stickBottom = false;
     // Preserve the reading position. Messages are appended at the bottom, so keeping
     // scrollTop keeps the same messages in view - without this, clearing innerHTML jumps
     // the view to the top on every render (new message, read receipt, delivery ack…).
@@ -5233,6 +5233,19 @@ function keepAtBottom() {
 }
 const _msgResize = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver(() => keepAtBottom()) : null;
 const _msgObserved = new WeakSet();
+// The chat area itself getting shorter (a bar shown below or above it, the window resized, a
+// banner while reconnecting) used to leave the last message a hair under the edge.
+if (_msgResize) _msgResize.observe(document.getElementById('messages'));
+// Back to this tab / window: the newest message is in full view again (late layout included)
+function _rePinSoon() {
+  if (!_stickBottom || !state.current) return;
+  requestAnimationFrame(() => keepAtBottom());
+  setTimeout(() => keepAtBottom(), 300);
+  setTimeout(() => keepAtBottom(), 1200);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') _rePinSoon(); });
+window.addEventListener('focus', _rePinSoon);
+window.addEventListener('resize', _rePinSoon);
 function watchMsgSizes(cont) {
   if (!_msgResize) return;
   for (const n of cont.children) if (!_msgObserved.has(n)) { _msgObserved.add(n); _msgResize.observe(n); }
@@ -5240,10 +5253,15 @@ function watchMsgSizes(cont) {
 document.getElementById('messages').addEventListener('load', () => keepAtBottom(), true);
 document.getElementById('messages').addEventListener('loadedmetadata', () => keepAtBottom(), true);
 let _lastMsgScrollTop = 0;
+let _userScrollAt = 0;
+['wheel', 'touchmove', 'keydown', 'mousedown'].forEach(ev =>
+  document.getElementById('messages').addEventListener(ev, () => { _userScrollAt = Date.now(); }, { passive: true }));
 document.getElementById('messages').addEventListener('scroll', function () {
   const dist = this.scrollHeight - this.scrollTop - this.clientHeight;
   if (dist < 4) _stickBottom = true;
-  else if (this.scrollTop < _lastMsgScrollTop - 2) _stickBottom = false;     // the person scrolled up
+  // Only the person scrolling up lets go of the bottom (wheel, touch, keys, the scrollbar); the
+  // page shifting by itself (pictures loading, a bar showing, the tab coming back) doesn't
+  else if (this.scrollTop < _lastMsgScrollTop - 2 && Date.now() - _userScrollAt < 1500) _stickBottom = false;
   _lastMsgScrollTop = this.scrollTop;
 }, { passive: true });
 
