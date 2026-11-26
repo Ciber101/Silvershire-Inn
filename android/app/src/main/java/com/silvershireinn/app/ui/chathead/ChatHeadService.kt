@@ -1304,6 +1304,22 @@ class ChatHeadService : Service() {
     @Suppress("ClickableViewAccessibility")
     private fun showOverlay(contactId: String, group: Pair<String, String>?) {
         if (overlayOpening) return
+        // A locked chat (or locked Notes) opens in the app, which asks for the PIN / password /
+        // fingerprint; the floating window can't ask for a fingerprint.
+        val lockedNow = if (com.silvershireinn.app.utils.NotesChat.isNotes(contactId)) com.silvershireinn.app.utils.NotesLock.needsUnlock()
+                        else com.silvershireinn.app.utils.ChatLocks.needsUnlock(group?.first ?: contactId)
+        if (lockedNow) {
+            if (overlayView != null) try { hideOverlay() } catch (_: Exception) {}
+            try {
+                startActivity(Intent(this, ChatActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra("contact_username", contactId)
+                    putExtra("launched_from_chat_head", true)
+                    if (group != null) { putExtra("group_id", group.first); putExtra("group_name", group.second) }
+                })
+            } catch (_: Exception) {}
+            return
+        }
         // Ensure any previous overlay is fully removed before re-add
         if (overlayView != null) {
             try { hideOverlay() } catch (_: Exception) {}
@@ -3286,6 +3302,8 @@ class ChatHeadService : Service() {
         overlayVideoBgHelper = null
         mediaOverlayView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         mediaOverlayView = null
+        // A locked chat locks again a minute after its window closes
+        overlayContact?.let { c -> com.silvershireinn.app.utils.ChatLocks.left(overlayGroup?.first ?: c) }
         // Keep what was typed (a tap on the head closes the window; the text must not be lost)
         overlayContact?.let { c ->
             val t = overlayView?.findViewById<EditText>(R.id.etOverlayInput)?.text?.toString().orEmpty()

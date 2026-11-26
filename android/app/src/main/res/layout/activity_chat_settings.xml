@@ -436,6 +436,19 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- Lock this chat (PIN / password / fingerprint) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLockChat"
+                style="@style/Widget.Silvershire.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:minHeight="52dp"
+                android:text="Lock this chat"
+                app:icon="@drawable/ic_lock"
+                app:iconGravity="textStart"
+                app:iconTint="@color/color_gold"
+                app:cornerRadius="12dp"
+                android:layout_marginTop="8dp" />
+
             <!-- Open a floating chat head for this chat -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenChatHead"

@@ -88,6 +88,20 @@ class WebSocketService : Service() {
             android.os.Handler(android.os.Looper.getMainLooper()).post { svc.startForegroundCompat() }
         }
 
+        @Volatile private var callScreen = false
+        /**
+         * Screen sharing in a call: Android wants the service declared as "screen capture" BEFORE
+         * the capture starts, so this runs right away (on the main thread) and returns false when
+         * it couldn't be done.
+         */
+        fun setScreenShare(on: Boolean): Boolean {
+            if (callScreen == on) return true
+            callScreen = on
+            val svc = instance ?: return !on
+            return if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) svc.startForegroundCompat()
+                   else { android.os.Handler(android.os.Looper.getMainLooper()).post { svc.startForegroundCompat() }; true }
+        }
+
         /** Background panic listening switched on / off: update the service's declared types. */
         fun refreshForegroundTypes() {
             val svc = instance ?: return
@@ -113,6 +127,14 @@ class WebSocketService : Service() {
         observeConnectionForNotification()
         registerNetworkCallback()
         startPendingFlushLoop()
+        // The app icon's number / notifications follow what is really unread (a chat read in the
+        // floating window cleared in the app but stayed on the icon)
+        scope.launch {
+            try {
+                SilvershireApp.database.messageDao().unreadByConversation()
+                    .collect { com.silvershireinn.app.utils.AppBadge.onUnread(this@WebSocketService, it) }
+            } catch (_: Exception) {}
+        }
         // Arm the periodic watchdog so we recover even if the OS kills this service.
         WatchdogReceiver.schedule(this)
         // Register settings auto-push listener
@@ -131,7 +153,7 @@ class WebSocketService : Service() {
      * startForegroundService() (including the watchdog's) must be matched by a
      * startForeground() within ~5 s or the OS kills us.
      */
-    private fun startForegroundCompat() {
+    private fun startForegroundCompat(): Boolean {
         val notification = NotificationHelper.buildServiceNotification(this, serviceStatusLabel)
         // During a call also declare microphone / camera use (only types we hold the
         // permission for, or Android refuses the whole call).
@@ -145,6 +167,8 @@ class WebSocketService : Service() {
                 media = media or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
             if (callCam && granted(android.Manifest.permission.CAMERA))
                 media = media or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+            if (callScreen)
+                media = media or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
         }
         try {
             when {
@@ -161,9 +185,12 @@ class WebSocketService : Service() {
                 else ->
                     startForeground(SERVICE_ID, notification)
             }
+            return true
         } catch (e: Exception) {
             android.util.Log.e("WebSocketService", "startForeground failed: ${e.message}")
+            if (callScreen) callScreen = false          // screen capture refused: don't keep claiming it
             try { startForeground(SERVICE_ID, notification) } catch (_: Exception) {}
+            return false
         }
     }
 
@@ -666,6 +693,19 @@ class WebSocketService : Service() {
                         user, online, lastSeen, presence, presenceProvided,
                         active = if (json.has("active")) json.optBoolean("active") else null
                     )
+                }
+            }
+            // Another of my devices changed a lock (Notes / a chat): the same lock here at once
+            "settings_updated" -> {
+                val s = json.optJSONObject("settings")
+                if (s != null) withContext(Dispatchers.Main) {
+                    s.optJSONObject("chatLocks")?.let { com.silvershireinn.app.utils.ChatLocks.all = it }
+                    s.optJSONObject("notesLock")?.let { nl ->
+                        PreferenceManager.notesLockType = nl.optString("type", "none").ifBlank { "none" }
+                        PreferenceManager.notesLockSalt = nl.optString("salt", "")
+                        PreferenceManager.notesLockHash = nl.optString("hash", "")
+                    }
+                    sendBroadcast(android.content.Intent("com.silvershireinn.PROFILE_UPDATED").setPackage(packageName))   // lists redraw (Locked)
                 }
             }
             "presence_ok" -> {

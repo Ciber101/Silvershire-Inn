@@ -222,6 +222,24 @@ class ChatSettingsActivity : AppCompatActivity() {
                     .setNegativeButton("Cancel", null).show()
             }
         }
+        // Lock this chat: PIN, password or fingerprint (Notes keeps its own lock)
+        run {
+            val notes = com.silvershireinn.app.utils.NotesChat.isNotes(contactUsername)
+            val who = intent.getStringExtra(EXTRA_GROUP_NAME) ?: com.silvershireinn.app.utils.PreferenceManager.displayNameFor(contactUsername)
+            fun label() {
+                val l = if (notes) (if (com.silvershireinn.app.utils.NotesLock.enabled) "On" else "Off")
+                        else com.silvershireinn.app.utils.ChatLocks.label(contactUsername)
+                binding.btnLockChat.text = (if (notes) "Lock Notes: " else "Lock this chat: ") + l
+            }
+            label()
+            binding.btnLockChat.setOnClickListener {
+                if (notes) com.silvershireinn.app.utils.NotesLock.configure(this) { label() }
+                else com.silvershireinn.app.utils.ChatLocks.configure(this, contactUsername, who) {
+                    label()
+                    toast(if (com.silvershireinn.app.utils.ChatLocks.isLocked(contactUsername)) "Chat locked" else "Lock removed")
+                }
+            }
+        }
         binding.btnOpenChatHead.setOnClickListener {
             if (android.os.Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(this)) {
                 toast("Allow \"Display over other apps\" for chat heads")

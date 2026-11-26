@@ -169,6 +169,8 @@ object CallManager {
                     setStatus("", true)
                 }
                 override fun onReconnecting() { setStatus("Reconnecting...", false) }
+                // Their screen, shared into this voice call
+                override fun onRemoteScreenShare(on: Boolean) { main.post { onStatusChanged?.invoke() } }
                 override fun onFailed(reason: String) {
                     setStatus(reason, false)
                     val user = remoteUser

@@ -3009,6 +3009,7 @@ async function handleServerMessage(msg) {
         }
         applyOwnPresenceFromSettings(msg.settings);
         NotesLockW.apply(msg.settings && msg.settings.notesLock);
+        ChatLocksW.apply(msg.settings && msg.settings.chatLocks);
         if (msg.settings && typeof msg.settings.showMyAvatar === 'boolean' && state.prefs.showMyAvatar === undefined) {
           state.prefs.showMyAvatar = msg.settings.showMyAvatar; LS.set('prefs', state.prefs);   // same as on the phone
         }
@@ -3038,6 +3039,7 @@ async function handleServerMessage(msg) {
 
     case 'settings_updated': {
       if (msg.settings && 'notesLock' in msg.settings) NotesLockW.apply(msg.settings.notesLock);
+      if (msg.settings && 'chatLocks' in msg.settings) ChatLocksW.apply(msg.settings.chatLocks);
       break;
     }
 
@@ -4476,15 +4478,38 @@ function lastSeenText(user) {
   if (!o) return 'offline';
   if (o.online) {
     const p = normalizePresenceMode(o.presence) || 'online';
+    // Open in the background: when they last actually used it
+    if (p === 'online' && o.active === false && o.lastSeen) {
+      const ago = lastSeenAgo(o.lastSeen);
+      if (ago) return 'Online · last seen ' + ago;
+    }
     return presenceShortLabel(p, o.active);
   }
   if (!o.lastSeen) return 'offline';
-  const d = new Date(o.lastSeen);
-  const today = new Date(); const sameDay = d.toDateString() === today.toDateString();
-  if (Number.isNaN(d.getTime())) return 'offline';
-  return 'last seen ' + (sameDay ? fmtClock(d)
-    : d.toLocaleDateString([], d.getFullYear() === today.getFullYear() ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }));
+  const ago = lastSeenAgo(o.lastSeen);
+  return ago ? 'last seen ' + ago : 'offline';
 }
+/** "just now" / "5m ago" / "3h ago" / "May 3" from an ISO time ('' if unreadable). */
+function lastSeenAgo(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  if (mins < 24 * 60) return Math.floor(mins / 60) + 'h ago';
+  const today = new Date();
+  return d.toLocaleDateString([], d.getFullYear() === today.getFullYear() ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' });
+}
+// "last seen 5m ago" keeps counting
+setInterval(() => {
+  try {
+    if (state.current && !isGroup(state.current) && !isNotes(state.current)) {
+      const st = document.querySelector('#chatHeader .status');
+      if (st && !/typing/i.test(st.textContent || '')) st.textContent = lastSeenText(state.current);   // text only: no picture redraw
+    }
+    for (const u of Object.keys(state.online || {})) updateContactRowPresence(u);
+  } catch (_) {}
+}, 60000);
 
 
 /** Update one contact row's presence dot + offline preview without wiping the list (avoids video blink). */
@@ -4549,6 +4574,7 @@ function renderContactsNow() {
     let preview = last ? (last.deleted ? 'Message deleted' : last.att ? '[file] ' + last.att.name : last.locked ? '🔒 message' : (last.text || ''))
                          : (grp ? (((state.groups[c] && Array.isArray(state.groups[c].members)) ? state.groups[c].members.length : 0) + ' members') : notes ? 'Your private notes' : lastSeenText(c));
     if (notes && NotesLockW.cfg) preview = '🔒 Locked';
+    else if (ChatLocksW.locked(c)) preview = '🔒 Locked';
     if (last && grp && !last.sys && !last.deleted) preview = (last.sent ? 'You' : displayName(last.from)) + ': ' + preview;
     if (!grp && state.lockedPeers.has(c)) preview = '🔒 Locked';
     else if (grp && last && state.lockedPeers.has(last.from)) preview = '🔒 Locked';
@@ -4682,8 +4708,118 @@ document.addEventListener('visibilitychange', () => {
   else if (NotesLockW.cfg && NotesLockW.hiddenAt && Date.now() - NotesLockW.hiddenAt > 60000) NotesLockW.relock();
 });
 
+/* Locks on single chats (set on the phone or here: chat menu > Lock this chat). Same salted
+   PBKDF2 hash as the phone; fingerprint locks open here with their backup PIN. */
+const ChatLocksW = {
+  all: {}, open: {}, hiddenAt: 0,
+  apply(obj) {
+    this.all = (obj && typeof obj === 'object') ? obj : {};
+    renderContacts();
+    if (state.current && this.needs(state.current)) this.relock();
+  },
+  locked(id) { const e = this.all[id]; return !!(e && e.type && e.type !== 'none' && e.hash && e.salt); },
+  needs(id) { return this.locked(id) && !this.open[id]; },
+  async hash(secret, saltB64) {
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: b64.dec(saltB64), iterations: 120000 }, key, 256);
+    return b64.enc(bits);
+  },
+  async check(id, secret) {
+    const e = this.all[id]; if (!e) return false;
+    try { return (await this.hash(secret, e.salt)) === e.hash; } catch (_) { return false; }
+  },
+  relock() {
+    this.open = {};
+    if (state.current && this.locked(state.current)) {
+      state.current = null;
+      document.getElementById('chatView').classList.remove('visible');
+      document.getElementById('emptyState').style.display = '';
+      renderContacts();
+    }
+  },
+  save() {
+    wsSend({ type: 'save_settings', settings: { chatLocks: this.all } });
+    renderContacts();
+  },
+  prompt(id, then) {
+    const e = this.all[id]; const pin = e.type !== 'password';
+    showModal(`<button class="close-x" onclick="closeModal()" aria-label="Close">${ic('close')}</button>
+      <h2>${ic('lock', 'inl')}Open chat with ${esc(chatTitle(id))}</h2>
+      <p style="color:var(--text-dim);margin:6px 0 12px">${pin ? 'Enter this chat\'s PIN' : 'Enter this chat\'s password'}${e.type === 'biometric' ? ' (the backup PIN of its fingerprint lock)' : ''}.</p>
+      <input type="password" id="clIn" class="nl-input" ${pin ? 'inputmode="numeric" autocomplete="off"' : 'autocomplete="off"'}>
+      <div id="clErr" style="color:var(--danger);min-height:18px;margin-top:6px"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="clGo">Open</button>
+      </div>`);
+    const inp = document.getElementById('clIn'), go = document.getElementById('clGo');
+    const tryIt = async () => {
+      go.disabled = true;
+      const ok = await this.check(id, inp.value);
+      go.disabled = false;
+      if (!ok) { document.getElementById('clErr').textContent = pin ? 'Wrong PIN' : 'Wrong password'; inp.value = ''; inp.focus(); return; }
+      this.open[id] = true; closeModal(); then();
+    };
+    go.onclick = tryIt;
+    inp.onkeydown = (ev) => { if (ev.key === 'Enter') tryIt(); };
+    setTimeout(() => inp.focus(), 50);
+  },
+  /** Set, change or remove this chat's lock (asks for the current one first). */
+  configure(id) {
+    if (this.needs(id)) { this.prompt(id, () => this.configure(id)); return; }
+    const cur = this.locked(id) ? this.all[id].type : 'none';
+    showModal(`<button class="close-x" onclick="closeModal()" aria-label="Close">${ic('close')}</button>
+      <h2>${ic('lock', 'inl')}Lock the chat with ${esc(chatTitle(id))}</h2>
+      <p style="color:var(--text-dim);margin:6px 0 12px">Its messages stay hidden until the lock is entered, here and on your phone. Fingerprint locks can be set on the phone.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn${cur === 'none' ? ' primary' : ''}" data-k="none">Off</button>
+        <button class="btn${cur === 'pin' ? ' primary' : ''}" data-k="pin">PIN</button>
+        <button class="btn${cur === 'password' ? ' primary' : ''}" data-k="password">Password</button>
+      </div>
+      <div id="clSet" style="display:none">
+        <input type="password" id="clN1" class="nl-input" autocomplete="new-password">
+        <input type="password" id="clN2" class="nl-input" autocomplete="new-password" placeholder="Again" style="margin-top:8px">
+        <div id="clErr2" style="color:var(--danger);min-height:18px;margin-top:6px"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+          <button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="clSave">Save</button>
+        </div>
+      </div>`);
+    let kind = null;
+    document.querySelectorAll('#modal button[data-k], .modal button[data-k]').forEach(btn => {
+      btn.onclick = () => {
+        kind = btn.dataset.k;
+        if (kind === 'none') { delete this.all[id]; this.save(); closeModal(); toast('Lock removed'); return; }
+        const pin = kind === 'pin';
+        const n1 = document.getElementById('clN1'), n2 = document.getElementById('clN2');
+        n1.placeholder = pin ? 'New PIN (4 or more digits)' : 'New password (6 or more)';
+        n1.inputMode = n2.inputMode = pin ? 'numeric' : 'text';
+        document.getElementById('clSet').style.display = '';
+        n1.focus();
+      };
+    });
+    const saveBtn = document.getElementById('clSave');
+    if (saveBtn) saveBtn.onclick = async () => {
+      const s1 = document.getElementById('clN1').value, s2 = document.getElementById('clN2').value;
+      const err = document.getElementById('clErr2');
+      const pin = kind === 'pin';
+      if (pin && !/^\d{4,}$/.test(s1)) { err.textContent = 'At least 4 digits'; return; }
+      if (!pin && s1.length < 6) { err.textContent = 'At least 6 characters'; return; }
+      if (s1 !== s2) { err.textContent = "They don't match"; return; }
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const saltB64 = b64.enc(salt);
+      this.all[id] = { type: kind, salt: saltB64, hash: await this.hash(s1, saltB64) };
+      this.open[id] = true;
+      this.save(); closeModal(); toast('Chat locked');
+    };
+  },
+};
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) ChatLocksW.hiddenAt = Date.now();
+  else if (ChatLocksW.hiddenAt && Date.now() - ChatLocksW.hiddenAt > 60000) ChatLocksW.relock();
+});
+
 function openChat(c) {
   if (isNotes(c) && NotesLockW.cfg && !NotesLockW.unlocked) { NotesLockW.open(() => openChat(c)); return; }
+  if (ChatLocksW.needs(c)) { ChatLocksW.prompt(c, () => openChat(c)); return; }
   state.current = c;
   state.unread[c] = 0;
   state.scrolledOnce[c] = false;   // entering a chat always scrolls to bottom once
@@ -5512,7 +5648,7 @@ function notify(title, body, conv) {
   // silent:true - we play our own chime above, so don't double up with an OS sound.
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
-      const n = new Notification(title, { body, silent: true, tag: conv ? 'gs-' + conv : undefined, renotify: !!conv });
+      const n = new Notification(title, { body: (conv && ChatLocksW.locked(conv)) ? 'New message' : body, silent: true, tag: conv ? 'gs-' + conv : undefined, renotify: !!conv });
       n.onclick = () => {
         try { window.focus(); } catch (_) {}
         if (conv && (isGroup(conv) || state.contacts.includes(conv))) openChat(conv);
@@ -6859,6 +6995,7 @@ function openChatMenu(e) {
     LS.set('mutes', state.mutes);
     renderContacts();
   });
+  add(ChatLocksW.locked(c) ? '🔒 Chat lock (on)' : '🔒 Lock this chat', () => ChatLocksW.configure(c));
   add('📤 Export chat (.txt)', () => exportChat(c));
   if (isGroup(c)) add('🚪 Leave group', () => { if (confirm(`Leave "${displayName(c)}"?`)) leaveGroup(c); }, true);
   else add('🗑 Remove contact', () => {
@@ -7690,9 +7827,12 @@ const WebCall = {
       document.getElementById('wcDecline').onclick = () => this.reject();
       document.getElementById('wcAccept').onclick = () => this.accept();
     } else {
-      b.innerHTML = btn('wcMute', this.muted ? 'Unmute' : 'Mute') + (v ? btn('wcCam', this.camOff ? 'Camera on' : 'Camera off') : '') + btn('wcEnd', 'End', 'danger');
+      const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+      b.innerHTML = btn('wcMute', this.muted ? 'Unmute' : 'Mute') + (v ? btn('wcCam', this.camOff ? 'Camera on' : 'Camera off') : '')
+        + (canShare ? btn('wcScreen', this.sharing ? 'Stop sharing' : 'Share screen') : '') + btn('wcEnd', 'End', 'danger');
       document.getElementById('wcMute').onclick = () => this.toggleMute();
       if (v) document.getElementById('wcCam').onclick = () => this.toggleCam();
+      if (canShare) document.getElementById('wcScreen').onclick = () => this.toggleScreen();
       document.getElementById('wcEnd').onclick = () => this.end(true);
     }
     this._attachMedia();
@@ -7760,6 +7900,61 @@ const WebCall = {
     this._rtc({ kind: 'video_state', video: !this.camOff });
     const b = document.getElementById('wcCam'); if (b) b.textContent = this.camOff ? 'Camera on' : 'Camera off';
   },
+  // ── Share screen: in place of the camera (video calls) or added to a voice call ──
+  sharing: false, screenStream: null, screenSender: null, _shareSender: null, _camTrack: null, remoteSharing: false, _screenHidden: false,
+  async toggleScreen() {
+    if (this.sharing) { this.stopScreen(); return; }
+    if (!this.pc || !this.connected) { toast('Wait until the call connects'); return; }
+    let ss;
+    try { ss = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }); }
+    catch (_) { return; }                         // cancelled in the browser's picker
+    const track = ss.getVideoTracks()[0]; if (!track) return;
+    try { track.contentHint = 'detail'; } catch (_) {}
+    this.screenStream = ss; this.sharing = true;
+    try {
+      const cam = this.pc.getSenders().find(s => s !== this.screenSender && s.track && s.track.kind === 'video');
+      if (cam) { this._camTrack = cam.track; await cam.replaceTrack(track); this._shareSender = cam; }
+      else if (this.screenSender) { await this.screenSender.replaceTrack(track); this._shareSender = this.screenSender; }
+      else { this.screenSender = this.pc.addTrack(track, this.stream || ss); this._shareSender = this.screenSender; await this._offer(false); }
+    } catch (e) { console.warn('share', e); this.stopScreen(); return; }
+    track.onended = () => this.stopScreen();      // the browser's own "Stop sharing"
+    this._rtc({ kind: 'screen_state', on: true });
+    this._rtc({ kind: 'video_state', video: true });
+    const lv = document.getElementById('wcLocal'); if (lv) { lv.srcObject = ss; lv.style.transform = 'none'; }
+    const b = document.getElementById('wcScreen'); if (b) b.textContent = 'Stop sharing';
+  },
+  stopScreen() {
+    if (!this.sharing) return;
+    this.sharing = false;
+    const s = this._shareSender; this._shareSender = null;
+    try { if (s) s.replaceTrack(s === this.screenSender ? null : (this._camTrack || null)); } catch (_) {}
+    try { this.screenStream && this.screenStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+    this.screenStream = null;
+    this._rtc({ kind: 'screen_state', on: false });
+    if (this.kind === 'video') this._rtc({ kind: 'video_state', video: !this.camOff });
+    const lv = document.getElementById('wcLocal'); if (lv && this.stream) { lv.srcObject = this.stream; lv.style.transform = 'scaleX(-1)'; }
+    const b = document.getElementById('wcScreen'); if (b) b.textContent = 'Share screen';
+  },
+  /** Their shared screen: a voice call gets a viewer of its own (a video call shows it in place). */
+  _paintRemoteScreen() {
+    let el = document.getElementById('wcScreenView');
+    const vids = this.remoteStream ? this.remoteStream.getVideoTracks() : [];
+    const show = this.remoteSharing && !this._screenHidden && this.kind !== 'video' && vids.length;
+    if (!show) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'wcScreenView';
+      el.style.cssText = 'position:fixed;inset:4vh 4vw 120px;z-index:12001;background:#000;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6);display:flex;flex-direction:column';
+      el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;color:#fff;background:rgba(0,0,0,.6)">
+          <span>${esc(displayName(this.peer || ''))}'s screen</span>
+          <button class="btn" type="button" id="wcScreenHide">Hide</button></div>
+        <video id="wcScreenVideo" autoplay playsinline muted style="flex:1;min-height:0;width:100%;object-fit:contain;background:#000"></video>`;
+      document.body.appendChild(el);
+      document.getElementById('wcScreenHide').onclick = () => { this._screenHidden = true; this._paintRemoteScreen(); };
+    }
+    const v = document.getElementById('wcScreenVideo');
+    if (v && (!v.srcObject || v.srcObject.getVideoTracks()[0] !== vids[0])) v.srcObject = new MediaStream([vids[0]]);
+  },
   async _getMedia() {
     if (this.stream) return true;
     try {
@@ -7783,6 +7978,7 @@ const WebCall = {
       if (!this.remoteStream) this.remoteStream = new MediaStream();
       if (!this.remoteStream.getTracks().includes(e.track)) this.remoteStream.addTrack(e.track);
       this._attachMedia();
+      this._paintRemoteScreen();
     };
     pc.oniceconnectionstatechange = () => {
       const s = pc.iceConnectionState;
@@ -7826,6 +8022,11 @@ const WebCall = {
         if (this.remoteSet) await pc.addIceCandidate(m.candidate); else this.pendingIce.push(m.candidate);
       } else if (m.kind === 'video_state') {
         const c = document.getElementById('wcCamOff'); if (c) c.style.display = m.video === false ? 'flex' : 'none';
+      } else if (m.kind === 'screen_state') {
+        this.remoteSharing = !!m.on;
+        if (m.on) this._screenHidden = false;
+        const c = document.getElementById('wcCamOff'); if (c && m.on) c.style.display = 'none';
+        this._paintRemoteScreen();
       }
     } catch (e) { console.warn('rtc', e); }
   },
@@ -7863,6 +8064,9 @@ const WebCall = {
 
   _cleanup() {
     this._stopRing(); clearTimeout(this._ringTimer); clearInterval(this._timer);
+    try { this.screenStream && this.screenStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+    Object.assign(this, { sharing: false, screenStream: null, screenSender: null, _shareSender: null, _camTrack: null, remoteSharing: false, _screenHidden: false });
+    { const sv = document.getElementById('wcScreenView'); if (sv) sv.remove(); }
     try { this.pc && this.pc.close(); } catch (_) {}
     try { this.stream && this.stream.getTracks().forEach(t => t.stop()); } catch (_) {}
     Object.assign(this, { pc: null, stream: null, remoteStream: null, state: 'idle', peer: null, peerDevice: null, kind: null,

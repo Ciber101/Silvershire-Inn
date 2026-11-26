@@ -724,6 +724,8 @@ object PreferenceManager {
         put("chatAvatarMode",      chatAvatarMode)
         // Notes lock (salted PBKDF2 of the PIN / password, never the secret): the web app asks for it too
         put("notesLock", JSONObject().put("type", notesLockType).put("salt", notesLockSalt).put("hash", notesLockHash))
+        // Locks on single chats (salted PBKDF2 hashes only)
+        put("chatLocks", ChatLocks.all)
         put("msgAvatarSize",       msgAvatarSize)
         put("listAvatarSize",      listAvatarSize)
         put("showMyAvatar",        showMyAvatar)
@@ -813,6 +815,7 @@ object PreferenceManager {
                 showFullTimestamps  = json.optBoolean("fullTimestamps", false)
             if (json.has("compactBubbles"))
                 compactBubbles      = json.optBoolean("compactBubbles", false)
+            json.optJSONObject("chatLocks")?.let { ChatLocks.all = it }
             json.optJSONObject("notesLock")?.let { nl ->
                 notesLockType = nl.optString("type", "none").ifBlank { "none" }
                 notesLockSalt = nl.optString("salt", "")

@@ -1566,6 +1566,14 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
                 }
                 // Real-time online/last-seen subtitle - only for 1:1 chats
                 if (viewModel.groupId == null) {
+                    // once a minute too, so "last seen 5m ago" keeps counting
+                    launch {
+                        while (true) {
+                            kotlinx.coroutines.delay(60_000)
+                            if (isNotesChat() || binding.tvChatSubtitle.text?.contains("typing", true) == true) continue
+                            setChatSubtitle(com.silvershireinn.app.network.OnlineStatusManager.statusLabel(contactName))
+                        }
+                    }
                     launch {
                         try {
                             com.silvershireinn.app.network.OnlineStatusManager.statusFlow.collect {
@@ -1707,9 +1715,25 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
 
     private var notesPrompting = false
 
-    /** Notes lock (PIN / password / fingerprint): nothing shows until it is opened. */
+    /** The id a chat lock is kept under (the group id for groups). */
+    private fun lockId(): String = viewModel.groupId ?: contactName
+
+    /** Notes lock (PIN / password / fingerprint): nothing shows until it is opened. Any chat can
+     *  have a lock too (Chat settings > Lock this chat). */
     private fun gateNotes() {
-        if (!isNotesChat()) return
+        if (!isNotesChat()) {
+            val id = lockId()
+            if (!com.silvershireinn.app.utils.ChatLocks.needsUnlock(id)) { if (com.silvershireinn.app.utils.ChatLocks.isLocked(id)) showNotesContent(true); return }
+            showNotesContent(false)
+            if (notesPrompting) return
+            notesPrompting = true
+            val who = viewModel.groupName.ifBlank { com.silvershireinn.app.utils.PreferenceManager.displayNameFor(contactName) }
+            com.silvershireinn.app.utils.ChatLocks.prompt(this, id, who) { ok ->
+                notesPrompting = false
+                if (ok) showNotesContent(true) else finish()
+            }
+            return
+        }
         if (!com.silvershireinn.app.utils.NotesLock.needsUnlock()) { showNotesContent(true); return }
         showNotesContent(false)
         if (notesPrompting) return
@@ -1806,6 +1830,7 @@ class ChatActivity : AppCompatActivity(), SharedFilesBottomSheet.Listener {
     override fun onStop() {
         super.onStop()
         if (isNotesChat() && !notesPrompting) com.silvershireinn.app.utils.NotesLock.noteLeft()
+        if (!isNotesChat() && !notesPrompting) com.silvershireinn.app.utils.ChatLocks.left(lockId())
         try { unregisterReceiver(profileUpdatedReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(chatFontChangedReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(contactRemovedReceiver) } catch (_: Exception) {}

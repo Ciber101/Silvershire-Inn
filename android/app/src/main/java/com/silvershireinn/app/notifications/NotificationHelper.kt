@@ -243,7 +243,8 @@ object NotificationHelper {
             notifId    = fromUser.hashCode(),
             conversationKey = fromUser,
             title      = display,
-            preview    = preview,
+            // a locked chat never shows what was said
+            preview    = if (com.silvershireinn.app.utils.ChatLocks.isLocked(fromUser)) "New message" else preview,
             personName = display,
             personKey  = fromUser,
             chatIntent = Intent(context, ChatActivity::class.java).apply {
@@ -275,7 +276,7 @@ object NotificationHelper {
             notifId    = groupId.hashCode(),
             conversationKey = "group_$groupId",
             title      = displayName,
-            preview    = preview,
+            preview    = if (com.silvershireinn.app.utils.ChatLocks.isLocked(groupId)) "New message" else preview,
             personName = senderName,
             personKey  = fromUser.ifBlank { groupId },
             chatIntent = Intent(context, ChatActivity::class.java).apply {

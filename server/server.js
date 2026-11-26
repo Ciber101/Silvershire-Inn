@@ -134,8 +134,8 @@ const BRANDING_DIR    = path.join(DATA_DIR, 'branding');
 const APP_VERSION     = {
   // Raise versionCode / versionName together with android/app/build.gradle.kts for every update
   // you publish; notes = what people see in the "Silvershire Updates" chat.
-  versionCode: 33,
-  versionName: '1.0.32',
+  versionCode: 34,
+  versionName: '1.0.33',
   notes: '- Borders: dragons curve smoothly around square and diamond pictures, wings stay on the body\n- Web: pictures with borders shrink to fit their space, profile sheet opens at its final size, picture and shape stay in sync with the phone'
 };
 const UPDATES_USER    = 'Silvershire Updates';
@@ -217,7 +217,7 @@ function buildOnlineStatusMsgRaw(username, isConnected) {
   }
   // Connected. "active" = someone is using it right now (app / tab on screen); otherwise the
   // app or tab is only open in the background: shown as Online, not Active.
-  const active = isUserActive(username);
+  const active = isUserShownActive(username);
   const msg = { type: 'online_status', name: username, online: true, active };
   if (!active) { const ls = lastSeenMap.get(username) || users[username]?.lastSeen; if (ls) msg.lastSeen = ls; }
   if (mode && mode !== 'online') {
@@ -1004,6 +1004,27 @@ function isUserConnected(username) {
   if (panicLocked(username)) return false;
   const set = connections.get(username);
   return !!(set && set.size > 0);
+}
+
+/** Stopping use doesn't drop someone from Active at once: a minute's grace (a quick look at
+ *  another app, a phone call) keeps them Active; after that they show Online + last seen. */
+const ACTIVE_GRACE_MS = 60 * 1000;
+const activeGrace = new Map();        // username -> timer
+function isUserShownActive(username) { return isUserActive(username) || activeGrace.has(username); }
+function leftActive(username) {
+  markLastSeen(username);             // last seen = when they actually stopped
+  clearTimeout(activeGrace.get(username));
+  activeGrace.set(username, setTimeout(() => {
+    activeGrace.delete(username);
+    if (!isUserActive(username) && isUserConnected(username)) notifyOnlineStatus(username, true);
+  }, ACTIVE_GRACE_MS));
+}
+/** Back in use: true when they were still inside the grace minute (nothing to announce). */
+function backActive(username) {
+  const t = activeGrace.get(username);
+  if (!t) return false;
+  clearTimeout(t); activeGrace.delete(username);
+  return true;
 }
 
 /** True while at least one of the user's devices is actually in use (not just connected). */
@@ -2738,6 +2759,9 @@ wss.on('connection', (ws, req) => {
           // Other devices (the web app) learn about changes that matter to them (Notes lock)
           if (Object.prototype.hasOwnProperty.call(incoming, 'notesLock'))
             sendToOtherDevices(username, ws, { type: 'settings_updated', settings: { notesLock: users[username].settings.notesLock } });
+          // Locks on single chats: every device asks for the same PIN / password
+          if (Object.prototype.hasOwnProperty.call(incoming, 'chatLocks'))
+            sendToOtherDevices(username, ws, { type: 'settings_updated', settings: { chatLocks: users[username].settings.chatLocks } });
         }
         break;
       }
@@ -2756,8 +2780,8 @@ wss.on('connection', (ws, req) => {
         const wasActive = isUserActive(username);
         ws.isActive = msg.active !== false;
         const nowActive = isUserActive(username);
-        if (wasActive && !nowActive) markLastSeen(username);
-        if (wasActive !== nowActive) notifyOnlineStatus(username, true);   // Active <-> Online (still connected)
+        if (wasActive && !nowActive) leftActive(username);                 // Online + last seen after a minute
+        else if (!wasActive && nowActive && !backActive(username)) notifyOnlineStatus(username, true);   // Active again
         break;
       }
 
@@ -2938,7 +2962,8 @@ wss.on('connection', (ws, req) => {
         const to = msg.to;
         if (!to || !areMutualFriends(username, to)) return;
         sendToDevice(to, msg.toDevice, { type: 'rtc_signal', from: username, fromDevice: ws.deviceId,
-          kind: msg.kind, sdp: msg.sdp, candidate: msg.candidate, video: msg.video });
+          kind: msg.kind, sdp: msg.sdp, candidate: msg.candidate, video: msg.video,
+          on: typeof msg.on === 'boolean' ? msg.on : undefined });       // screen sharing on / off
         break;
       }
 
@@ -3378,14 +3403,14 @@ wss.on('connection', (ws, req) => {
       const fullyOffline = removeConnection(username, ws);
       if (fullyOffline) {
         connectionIPs.delete(username);
+        backActive(username);              // gone: offline now (no grace)
         if (wasActive) markLastSeen(username);
         console.log(`[DISCONNECT] ${username}`);
         notifyOnlineStatus(username, false);
       } else if (wasActive && !isUserActive(username)) {
         // The device that was in use went away; the others are only background connections:
-        // still Online, no longer Active.
-        markLastSeen(username);
-        notifyOnlineStatus(username, true);
+        // still Online, no longer Active (after the grace minute).
+        leftActive(username);
       } else {
         console.log(`[DISCONNECT] ${username} (device -------- still online elsewhere)`);
       }

@@ -50,6 +50,8 @@ object RtcCall {
         fun onReconnecting() {}
         fun onFailed(reason: String)
         fun onRemoteVideoChanged(hasVideo: Boolean) {}
+        /** The other side started / stopped sharing their screen. */
+        fun onRemoteScreenShare(on: Boolean) {}
     }
 
     private const val TAG = "RtcCall"
@@ -75,6 +77,17 @@ object RtcCall {
     private var capturer: CameraVideoCapturer? = null
     private var surfaceHelper: SurfaceTextureHelper? = null
     private var remoteVideoTrack: VideoTrack? = null
+    private var videoSender: org.webrtc.RtpSender? = null
+    // ── Screen sharing ──
+    private var screenCapturer: org.webrtc.ScreenCapturerAndroid? = null
+    private var screenHelper: SurfaceTextureHelper? = null
+    private var screenSource: VideoSource? = null
+    private var screenTrack: VideoTrack? = null
+    private var screenSender: org.webrtc.RtpSender? = null      // voice calls: a video sender added for the screen
+    @Volatile var sharingScreen = false; private set
+    @Volatile var remoteSharing = false; private set
+    /** Sharing stopped by itself (the system's "Stop sharing", the call ended). */
+    var onScreenShareChanged: (() -> Unit)? = null
     private val pendingCandidates = mutableListOf<IceCandidate>()
     private val earlySignals = mutableListOf<JSONObject>()
     private var remoteDescSet = false
@@ -201,6 +214,7 @@ object RtcCall {
             videoTrack = f.createVideoTrack("video0", videoSource).also {
                 it.addSink(localSink)
                 val sender = p.addTrack(it, listOf("s0"))
+                videoSender = sender
                 try {
                     val params = sender.parameters
                     params.encodings.firstOrNull()?.maxBitrateBps = if (low) 600_000 else 1_800_000
@@ -370,6 +384,7 @@ object RtcCall {
                 if (remoteDescSet) p.addIceCandidate(ice) else pendingCandidates.add(ice)
             }
             "video_state" -> main.post { listener?.onRemoteVideoChanged(json.optBoolean("video", true)) }
+            "screen_state" -> main.post { remoteSharing = json.optBoolean("on"); listener?.onRemoteScreenShare(remoteSharing) }
         }
     }
 
@@ -434,9 +449,104 @@ object RtcCall {
         override fun onRenegotiationNeeded() {}
     }
 
+    // ── Screen sharing ────────────────────────────────────────────────────────
+    /**
+     * Shares this phone's screen in place of the camera (video calls), or as a picture added to a
+     * voice call. [data] is the result of Android's "Start recording or casting?" screen.
+     * The other side is told, so it shows the whole screen (fitted, not cropped).
+     */
+    fun startScreenShare(ctx: Context, data: android.content.Intent): Boolean {
+        val f = factory ?: return false
+        val p = pc ?: return false
+        if (sharingScreen) return true
+        try {
+            val cap = org.webrtc.ScreenCapturerAndroid(data, object : android.media.projection.MediaProjection.Callback() {
+                override fun onStop() { main.post { stopScreenShare() } }      // "Stop sharing" from the system
+            })
+            screenHelper = SurfaceTextureHelper.create("screen", egl!!.eglBaseContext)
+            screenSource = f.createVideoSource(true)
+            cap.initialize(screenHelper, ctx.applicationContext, screenSource!!.capturerObserver)
+            val dm = ctx.resources.displayMetrics
+            val s = minOf(1f, 1280f / maxOf(dm.widthPixels, dm.heightPixels))
+            cap.startCapture(((dm.widthPixels * s).toInt() / 2) * 2, ((dm.heightPixels * s).toInt() / 2) * 2, 15)
+            screenCapturer = cap
+            val track = f.createVideoTrack("screen0", screenSource)
+            screenTrack = track
+            val sender = videoSender ?: screenSender
+            if (sender != null) sender.setTrack(track, false)
+            else {
+                // A voice call has no picture yet: add one and agree on it again
+                screenSender = p.addTrack(track, listOf("s0"))
+                makeOffer(iceRestart = false)
+            }
+            (videoSender ?: screenSender)?.let { snd ->
+                try {
+                    val params = snd.parameters
+                    params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.MAINTAIN_RESOLUTION
+                    params.encodings.firstOrNull()?.maxBitrateBps = 2_500_000
+                    snd.parameters = params
+                } catch (_: Throwable) {}
+            }
+            // the camera rests meanwhile; my small preview shows what is shared
+            try { capturer?.stopCapture() } catch (_: Throwable) {}
+            try { videoTrack?.removeSink(localSink) } catch (_: Throwable) {}
+            track.addSink(localSink)
+            sharingScreen = true
+            sendSignal(JSONObject().put("kind", "screen_state").put("on", true))
+            sendSignal(JSONObject().put("kind", "video_state").put("video", true))
+            main.post { onScreenShareChanged?.invoke() }
+            return true
+        } catch (e: Throwable) {
+            Log.e(TAG, "screen share", e)
+            disposeScreen()
+            return false
+        }
+    }
+
+    fun stopScreenShare() {
+        if (Looper.myLooper() != Looper.getMainLooper()) { main.post { stopScreenShare() }; return }
+        if (!sharingScreen) return
+        sharingScreen = false
+        try { screenTrack?.removeSink(localSink) } catch (_: Throwable) {}
+        try {
+            val v = videoSender
+            if (v != null) {
+                v.setTrack(videoTrack, false)          // the camera again
+                try {
+                    val params = v.parameters
+                    params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.BALANCED
+                    params.encodings.firstOrNull()?.maxBitrateBps = if (DeviceTier.isLowEnd) 600_000 else 1_800_000
+                    v.parameters = params
+                } catch (_: Throwable) {}
+            } else screenSender?.setTrack(null, false)
+        } catch (_: Throwable) {}
+        disposeScreen()
+        try { videoTrack?.addSink(localSink) } catch (_: Throwable) {}
+        if (videoTrack != null && cameraOn) try {
+            capturer?.startCapture(if (DeviceTier.isLowEnd) 640 else 1280, if (DeviceTier.isLowEnd) 480 else 720, if (DeviceTier.isLowEnd) 24 else 30)
+        } catch (_: Throwable) {}
+        sendSignal(JSONObject().put("kind", "screen_state").put("on", false))
+        if (videoTrack != null) sendSignal(JSONObject().put("kind", "video_state").put("video", cameraOn))
+        WebSocketService.setScreenShare(false)
+        onScreenShareChanged?.invoke()
+    }
+
+    private fun disposeScreen() {
+        try { screenCapturer?.stopCapture() } catch (_: Throwable) {}
+        try { screenCapturer?.dispose() } catch (_: Throwable) {}
+        try { screenTrack?.dispose() } catch (_: Throwable) {}
+        try { screenSource?.dispose() } catch (_: Throwable) {}
+        try { screenHelper?.dispose() } catch (_: Throwable) {}
+        screenCapturer = null; screenTrack = null; screenSource = null; screenHelper = null
+    }
+
     /** Hang up the media side. Safe to call any time. */
     fun stop(silent: Boolean = false) {
         if (Looper.myLooper() != Looper.getMainLooper()) { main.post { stop(silent) }; return }
+        if (sharingScreen) { sharingScreen = false; WebSocketService.setScreenShare(false); main.post { onScreenShareChanged?.invoke() } }
+        try { screenTrack?.removeSink(localSink) } catch (_: Throwable) {}
+        disposeScreen()
+        screenSender = null; videoSender = null; remoteSharing = false
         main.removeCallbacks(connectTimeout); main.removeCallbacks(reconnectRunnable)
         earlySignals.clear(); pendingCandidates.clear()
         try { remoteVideoTrack?.removeSink(remoteSink) } catch (_: Throwable) {}

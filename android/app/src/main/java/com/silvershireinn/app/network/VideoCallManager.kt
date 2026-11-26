@@ -160,6 +160,10 @@ object VideoCallManager {
                 override fun onRemoteVideoChanged(hasVideo: Boolean) {
                     remoteVideoOn = hasVideo; main.post { onStatusChanged?.invoke() }
                 }
+                override fun onRemoteScreenShare(on: Boolean) {
+                    if (on) remoteVideoOn = true
+                    main.post { onStatusChanged?.invoke() }
+                }
             })
     }
 

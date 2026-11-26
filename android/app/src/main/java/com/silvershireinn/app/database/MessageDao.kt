@@ -15,6 +15,10 @@ interface MessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: Message)
 
+    /** Unread received messages per conversation (the app icon's number and notifications follow it). */
+    @Query("SELECT conversationId, COUNT(*) AS n FROM messages WHERE isSent = 0 AND isRead = 0 AND isDeleted = 0 GROUP BY conversationId")
+    fun unreadByConversation(): kotlinx.coroutines.flow.Flow<List<ConvUnread>>
+
     /** Marks only RECEIVED (not sent) messages as locally read — for badge/unread clearing. */
     @Query("UPDATE messages SET isRead = 1 WHERE conversationId = :conversationId AND isSent = 0")
     suspend fun markAllRead(conversationId: String)

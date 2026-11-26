@@ -97,6 +97,27 @@ class VideoCallActivity : AppCompatActivity() {
         pendingAction?.invoke(); pendingAction = null
     }
 
+    // ── Share screen ──
+    private lateinit var btnScreen: ImageButton
+    private val screenLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        val data = r.data
+        if (r.resultCode != RESULT_OK || data == null) return@registerForActivityResult
+        if (!com.silvershireinn.app.network.WebSocketService.setScreenShare(true)) {
+            android.widget.Toast.makeText(this, "Screen sharing isn't allowed on this phone", android.widget.Toast.LENGTH_LONG).show(); return@registerForActivityResult
+        }
+        if (!RtcCall.startScreenShare(this, data)) {
+            com.silvershireinn.app.network.WebSocketService.setScreenShare(false)
+            android.widget.Toast.makeText(this, "Couldn't share the screen", android.widget.Toast.LENGTH_LONG).show()
+        }
+        refreshButtons()
+    }
+    private fun toggleScreenShare() {
+        if (RtcCall.sharingScreen) { RtcCall.stopScreenShare(); refreshButtons(); return }
+        if (!VideoCallManager.isConnected) return
+        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as? android.media.projection.MediaProjectionManager ?: return
+        try { screenLauncher.launch(mpm.createScreenCaptureIntent()) } catch (_: Exception) {}
+    }
+
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,7 +133,8 @@ class VideoCallActivity : AppCompatActivity() {
         initRenderers()
 
         val stateL: (VideoCallManager.State) -> Unit = { s -> runOnUiThread { applyState(s) } }
-        val statusL: () -> Unit = { runOnUiThread { updateStatus(); updatePlaceholder() } }
+        val statusL: () -> Unit = { runOnUiThread { updateStatus(); updatePlaceholder(); refreshButtons() } }
+        RtcCall.onScreenShareChanged = { runOnUiThread { refreshButtons() } }
         myStateL = stateL; myStatusL = statusL
         VideoCallManager.onStateChanged = stateL
         VideoCallManager.onStatusChanged = statusL
@@ -206,9 +228,11 @@ class VideoCallActivity : AppCompatActivity() {
         btnCam = roundBtn(R.drawable.ic_video_call, 0x44FFFFFF) { VideoCallManager.toggleCamera(); refreshButtons(); updateLocalVisibility() }
         val btnFlip = roundBtn(R.drawable.ic_flip_camera, 0x44FFFFFF) { VideoCallManager.flipCamera(); ui.postDelayed({ localView.setMirror(RtcCall.frontCamera) }, 400) }
         btnSpeaker = roundBtn(R.drawable.ic_speaker, 0x44FFFFFF) { VideoCallManager.toggleSpeaker(); refreshButtons() }
+        btnScreen = roundBtn(R.drawable.ic_screen_share, 0x44FFFFFF) { toggleScreenShare() }
+        btnScreen.contentDescription = "Share screen"
         val btnEnd = roundBtn(R.drawable.ic_call_end, 0xFFE53935.toInt()) { VideoCallManager.endCall(); finish() }
-        listOf(btnMute, btnCam, btnFlip, btnSpeaker, btnEnd).forEach {
-            activeBar.addView(it, LinearLayout.LayoutParams(dp(56), dp(56)).apply { marginStart = dp(7); marginEnd = dp(7) })
+        listOf(btnMute, btnCam, btnFlip, btnScreen, btnSpeaker, btnEnd).forEach {
+            activeBar.addView(it, LinearLayout.LayoutParams(dp(52), dp(52)).apply { marginStart = dp(5); marginEnd = dp(5) })
         }
         root.addView(activeBar, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
 
@@ -312,6 +336,18 @@ class VideoCallActivity : AppCompatActivity() {
         btnCam.alpha = if (VideoCallManager.cameraOn) 1f else 0.5f
         btnSpeaker.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(if (VideoCallManager.isSpeaker) Color.WHITE else 0x44FFFFFF) }
         btnSpeaker.setColorFilter(if (VideoCallManager.isSpeaker) Color.BLACK else Color.WHITE)
+        if (::btnScreen.isInitialized) {
+            val on = RtcCall.sharingScreen
+            btnScreen.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(if (on) 0xFF34C759.toInt() else 0x44FFFFFF) }
+            btnScreen.contentDescription = if (on) "Stop sharing screen" else "Share screen"
+        }
+        // their shared screen is shown whole (fitted), their camera fills the screen
+        if (renderersReady) try {
+            remoteView.setScalingType(if (RtcCall.remoteSharing) RendererCommon.ScalingType.SCALE_ASPECT_FIT else RendererCommon.ScalingType.SCALE_ASPECT_FILL,
+                RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+        } catch (_: Throwable) {}
+        // what I share isn't mirrored in my small preview
+        if (renderersReady) try { localView.setMirror(!swapped && RtcCall.frontCamera && !RtcCall.sharingScreen) } catch (_: Throwable) {}
     }
 
     private fun updateLocalVisibility() {
@@ -419,6 +455,7 @@ class VideoCallActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         ui.removeCallbacksAndMessages(null)
+        RtcCall.onScreenShareChanged = null
         stopRinging()
         try { tone?.release() } catch (_: Throwable) {}
         if (RtcCall.remoteSink.target === remoteView || RtcCall.remoteSink.target === localView) RtcCall.remoteSink.target = null

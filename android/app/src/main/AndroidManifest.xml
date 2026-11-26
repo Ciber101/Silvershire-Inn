@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The unread number on the app icon (Huawei / Honor launchers) -->
+    <uses-permission android:name="com.huawei.android.launcher.permission.CHANGE_BADGE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Needed to switch calls between earpiece / speaker (and by the call engine) -->
@@ -31,6 +33,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <!-- Sharing the screen in a call -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <!-- Route call audio to a Bluetooth headset on Android 11 and older -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <!-- Ask the OS to exempt us from Doze battery optimization so the messaging connection
@@ -246,7 +250,7 @@
             android:name=".network.WebSocketService"
             android:exported="false"
             android:stopWithTask="false"
-            android:foregroundServiceType="dataSync|specialUse|microphone|camera">
+            android:foregroundServiceType="dataSync|specialUse|microphone|camera|mediaProjection">
             <!-- specialUse (Android 14+) avoids the 6h/day dataSync FGS time limit added in
                  Android 15, which was silently killing the long-lived messaging connection. -->
             <property

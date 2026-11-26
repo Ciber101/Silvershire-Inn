@@ -132,18 +132,27 @@ object OnlineStatusManager {
         if (isOnline(username)) {
             val mode = presenceMap[username] ?: "online"
             if (mode != "online") return modeLabel(mode)
-            return if (isActive(username)) "Active" else "Online"
+            if (isActive(username)) return "Active"
+            // Open in the background: when they last actually used it
+            val ago = lastSeenAgo(username)
+            return if (ago.isEmpty()) "Online" else "Online · last seen $ago"
         }
+        val ago = lastSeenAgo(username)
+        return if (ago.isEmpty()) "" else "Last seen $ago"
+    }
+
+    /** "just now" / "5m ago" / "3h ago" / a date, from when they last used the app; "" if unknown. */
+    fun lastSeenAgo(username: String): String {
         val isoStr = lastSeenMap[username] ?: return ""
         // java.time is missing on Android 7 (and the old catch did not cover that error), so
         // this used the app's own parser. Older than a day reads like message times.
         val then = isoToMillis(isoStr) ?: isoStr.toLongOrNull() ?: return ""
         val mins = (System.currentTimeMillis() - then) / 60_000L
         return when {
-            mins < 1 -> "Last seen just now"
-            mins < 60 -> "Last seen ${mins}m ago"
-            mins < 24 * 60 -> "Last seen ${mins / 60}h ago"
-            else -> "Last seen " + com.silvershireinn.app.utils.millisToIso(then).formatTimestamp().replaceFirst("Yesterday", "yesterday")
+            mins < 1 -> "just now"
+            mins < 60 -> "${mins}m ago"
+            mins < 24 * 60 -> "${mins / 60}h ago"
+            else -> com.silvershireinn.app.utils.millisToIso(then).formatTimestamp().replaceFirst("Yesterday", "yesterday")
         }
     }
 

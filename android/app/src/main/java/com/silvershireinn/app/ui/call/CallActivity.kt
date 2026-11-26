@@ -115,7 +115,7 @@ class CallActivity : AppCompatActivity() {
 
         // Wire CallManager state listener (kept so onDestroy only clears OUR listener)
         val stateL: (CallManager.State) -> Unit = { state -> runOnUiThread { applyState(state, remoteUser) } }
-        val statusL: () -> Unit = { runOnUiThread { showStatus() } }
+        val statusL: () -> Unit = { runOnUiThread { showStatus(); refreshScreenUi() } }
         myStateListener = stateL; myStatusListener = statusL
         CallManager.onStateChanged = stateL
         CallManager.onStatusChanged = statusL
@@ -162,6 +162,89 @@ class CallActivity : AppCompatActivity() {
 
         // Back arrow — minimise back to app without ending the call
         binding.btnCallBack.setOnClickListener { HapticUtil.vibrate(this); finish() }
+        setupScreenShare()
+    }
+
+    // ── Share screen (works in voice calls too: the picture is added to the call) ──
+    private var screenBtn: com.google.android.material.button.MaterialButton? = null
+    private var screenView: org.webrtc.SurfaceViewRenderer? = null
+    private var screenBox: android.widget.FrameLayout? = null
+    private var screenViewReady = false
+    private var screenHidden = false            // "Back to call" pressed: hidden until they share again
+    private val screenLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { r ->
+        val data = r.data
+        if (r.resultCode != RESULT_OK || data == null) return@registerForActivityResult
+        if (!com.silvershireinn.app.network.WebSocketService.setScreenShare(true)) {
+            android.widget.Toast.makeText(this, "Screen sharing isn't allowed on this phone", android.widget.Toast.LENGTH_LONG).show(); return@registerForActivityResult
+        }
+        if (!com.silvershireinn.app.network.RtcCall.startScreenShare(this, data)) {
+            com.silvershireinn.app.network.WebSocketService.setScreenShare(false)
+            android.widget.Toast.makeText(this, "Couldn't share the screen", android.widget.Toast.LENGTH_LONG).show()
+        }
+        refreshScreenUi()
+    }
+
+    private fun setupScreenShare() {
+        val root = binding.root as? androidx.constraintlayout.widget.ConstraintLayout ?: return
+        val d = resources.displayMetrics.density
+        val gold = 0xFFC9A84C.toInt()
+        val b = com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = "Share screen"; isAllCaps = false
+            setTextColor(gold)
+            strokeColor = android.content.res.ColorStateList.valueOf(gold)
+            icon = androidx.core.content.ContextCompat.getDrawable(this@CallActivity, R.drawable.ic_screen_share)
+            iconTint = android.content.res.ColorStateList.valueOf(gold)
+            visibility = View.GONE
+            setOnClickListener {
+                HapticUtil.vibrate(this@CallActivity)
+                if (com.silvershireinn.app.network.RtcCall.sharingScreen) { com.silvershireinn.app.network.RtcCall.stopScreenShare(); refreshScreenUi(); return@setOnClickListener }
+                val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as? android.media.projection.MediaProjectionManager ?: return@setOnClickListener
+                try { screenLauncher.launch(mpm.createScreenCaptureIntent()) } catch (_: Exception) {}
+            }
+        }
+        root.addView(b, androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(-2, -2).apply {
+            topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            topMargin = (6 * d).toInt(); marginEnd = (12 * d).toInt()
+        })
+        screenBtn = b
+        // Their shared screen, over the whole call screen
+        val box = android.widget.FrameLayout(this).apply { setBackgroundColor(android.graphics.Color.BLACK); visibility = View.GONE; elevation = 30f }
+        val sv = org.webrtc.SurfaceViewRenderer(this)
+        box.addView(sv, android.widget.FrameLayout.LayoutParams(-1, -1))
+        val back = com.google.android.material.button.MaterialButton(this).apply {
+            text = "Back to call"; isAllCaps = false
+            setOnClickListener { screenHidden = true; refreshScreenUi() }
+        }
+        box.addView(back, android.widget.FrameLayout.LayoutParams(-2, -2, android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL).apply { bottomMargin = (36 * d).toInt() })
+        root.addView(box, androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(0, 0).apply {
+            val P = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            topToTop = P; bottomToBottom = P; startToStart = P; endToEnd = P
+        })
+        screenBox = box; screenView = sv
+        com.silvershireinn.app.network.RtcCall.onScreenShareChanged = { runOnUiThread { refreshScreenUi() } }
+        refreshScreenUi()
+    }
+
+    private fun refreshScreenUi() {
+        val rtc = com.silvershireinn.app.network.RtcCall
+        val live = CallManager.state == CallManager.State.ACTIVE && rtc.isActive
+        screenBtn?.visibility = if (live) View.VISIBLE else View.GONE
+        screenBtn?.text = if (rtc.sharingScreen) "Stop sharing" else "Share screen"
+        if (!rtc.remoteSharing) screenHidden = false
+        val sv = screenView ?: return
+        val show = live && rtc.remoteSharing && !screenHidden
+        if (show) {
+            if (!screenViewReady) {
+                val egl = rtc.eglContext ?: return
+                try { sv.init(egl, null); sv.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FIT); screenViewReady = true } catch (_: Throwable) { return }
+            }
+            rtc.remoteSink.target = sv
+            screenBox?.visibility = View.VISIBLE
+        } else {
+            if (rtc.remoteSink.target === sv) rtc.remoteSink.target = null
+            screenBox?.visibility = View.GONE
+        }
     }
 
     private var myStateListener: ((CallManager.State) -> Unit)? = null
@@ -351,6 +434,9 @@ class CallActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        com.silvershireinn.app.network.RtcCall.onScreenShareChanged = null
+        screenView?.let { sv -> if (com.silvershireinn.app.network.RtcCall.remoteSink.target === sv) com.silvershireinn.app.network.RtcCall.remoteSink.target = null
+            if (screenViewReady) try { sv.release() } catch (_: Throwable) {} }
         stopTimer()
         stopIncomingVibration()
         stopCallerTone()

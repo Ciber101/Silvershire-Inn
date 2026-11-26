@@ -146,6 +146,7 @@ class ConversationAdapter(
             tvLastMessage.text = com.silvershireinn.app.utils.ThemeIcons.iconize(tvLastMessage.context,
                 if (!isGroup && com.silvershireinn.app.utils.PeerLocks.isLocked(conv.contactUsername)) "🔒 Locked"
                 else if (isNotes && com.silvershireinn.app.utils.NotesLock.enabled) "🔒 Locked"
+                else if (com.silvershireinn.app.utils.ChatLocks.isLocked(conv.contactUsername)) "🔒 Locked"
                 else conv.lastMessagePreview,
                 (tvLastMessage.textSize * 1.2f).toInt())
             // Unread chats stand out: brighter, bold preview.
