@@ -1433,7 +1433,14 @@ class ChatHeadService : Service() {
             box.background = com.silvershireinn.app.utils.AvatarShapeHelper.backgroundDrawable(contactId.toAvatarColor(), shape)
             com.silvershireinn.app.utils.AvatarShapeHelper.applyClip(box, shape)
             view.findViewById<TextView?>(R.id.tvOverlayInitials)?.text = (group?.second ?: PreferenceManager.displayNameFor(contactId)).toInitials()
-            com.silvershireinn.app.utils.ProfileFrames.applyFloating(box, contactId)
+            // the status dot is drawn on the picture's rim, above the border
+            com.silvershireinn.app.utils.ProfileFrames.applyFloating(box, contactId, dot = view.findViewById(R.id.overlayStatusDot))
+        }
+        // Is the friend Active / Online / away? Shown by the picture and under the name, live.
+        refreshOverlayStatus()
+        overlayJobs += ensureOverlayScope().launch(Dispatchers.Main) {
+            launch { com.silvershireinn.app.network.OnlineStatusManager.statusFlow.collect { refreshOverlayStatus() } }
+            while (true) { kotlinx.coroutines.delay(60_000); refreshOverlayStatus() }     // "Last seen 5m ago" stays right
         }
 
 
@@ -3104,10 +3111,21 @@ class ChatHeadService : Service() {
                 visibility = if (unread > 0 && !isCurrent) View.VISIBLE else View.GONE
                 layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, (16 * dp).toInt(), Gravity.TOP or Gravity.END)
             })
+            // Status dot (Active / Online / ...) on the head's lower right
+            val sDot = androidx.cardview.widget.CardView(this).apply {
+                tag = "status_dot"
+                radius = 5.5f * dp
+                cardElevation = 0f
+                val osm = com.silvershireinn.app.network.OnlineStatusManager
+                setCardBackgroundColor(osm.statusColor(user))
+                visibility = if (!groupExtras.containsKey(user) && user != "Silvershire Updates" && osm.isOnline(user)) View.VISIBLE else View.GONE
+                layoutParams = FrameLayout.LayoutParams((11 * dp).toInt(), (11 * dp).toInt(), Gravity.BOTTOM or Gravity.END)
+            }
+            avatar.addView(sDot)
             attachSwitcherHeadDrag(avatar, user)
             avatar.setTag(R.id.switcher_user, user)
             row.addView(avatar)
-            com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatar, user)   // their border, in room of its own
+            com.silvershireinn.app.utils.ProfileFrames.applyFloating(avatar, user, dot = sDot)   // their border, in room of its own; the dot on top
         }
     }
 
@@ -3294,6 +3312,40 @@ class ChatHeadService : Service() {
             com.silvershireinn.app.ui.chat.ChatActivity.activeChatContact = null
         }
         overlaySetActiveChat = null
+    }
+
+    /** The open chat's friend: status dot by the picture, "Active" / "Online" / "Last seen ..." under
+     *  the name; and a dot on every head in the top row. */
+    private fun refreshOverlayStatus() {
+        val v = overlayView ?: return
+        val c = overlayContact ?: return
+        val osm = com.silvershireinn.app.network.OnlineStatusManager
+        val dot = v.findViewById<androidx.cardview.widget.CardView?>(R.id.overlayStatusDot)
+        val tv = v.findViewById<TextView?>(R.id.tvOverlayStatus)
+        val person = overlayGroup == null && c != PreferenceManager.username && c != "Silvershire Updates"
+        if (!person) { dot?.visibility = View.GONE; tv?.visibility = View.GONE }
+        else {
+            val online = osm.isOnline(c)
+            dot?.setCardBackgroundColor(osm.statusColor(c))
+            dot?.visibility = if (online) View.VISIBLE else View.GONE
+            val label = osm.statusLabel(c)
+            tv?.text = label
+            tv?.setTextColor(if (online) osm.statusColor(c) else resources.getColor(R.color.color_text_secondary, null))
+            tv?.visibility = if (label.isBlank()) View.GONE else View.VISIBLE
+        }
+        v.findViewById<View?>(R.id.overlayAvatarBox)?.let { com.silvershireinn.app.utils.ProfileFrames.refresh(it) }
+        // the heads in the top row
+        val row = v.findViewById<LinearLayout?>(R.id.overlayStackSwitcher) ?: return
+        for (i in 0 until row.childCount) {
+            val chip = row.getChildAt(i)
+            val u = chip.getTag(R.id.switcher_user) as? String ?: continue
+            val d = chip.findViewWithTag<androidx.cardview.widget.CardView?>("status_dot") ?: continue
+            val on = !groupExtras.containsKey(u) && u != "Silvershire Updates" && osm.isOnline(u)
+            d.setCardBackgroundColor(osm.statusColor(u))
+            d.visibility = if (on) View.VISIBLE else View.GONE
+            com.silvershireinn.app.utils.ProfileFrames.refresh(chip)
+        }
+        row.invalidate()
     }
 
     /** Contact the overlay put into ChatActivity.activeChatContact (null if none). */
