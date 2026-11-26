@@ -2748,7 +2748,16 @@ function reportWebUse(force) {
 ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel'].forEach(ev =>
   window.addEventListener(ev, () => {
     webActivity.last = Date.now();
-    if (webActivity.reported === false) reportWebUse();
+    if (webActivity.reported === false) {
+      reportWebUse();
+      // Back at the keyboard: what's on screen in the open chat is seen now
+      try {
+        const c = state.current, cont = document.getElementById('messages');
+        if (c && !isGroup(c) && document.hasFocus() && cont && cont.scrollHeight - cont.scrollTop - cont.clientHeight < 80) {
+          state.unread[c] = 0; notifyConversationRead(c); receiptUpTo(c);
+        }
+      } catch (_) {}
+    }
   }, { passive: true }));
 document.addEventListener('visibilitychange', () => { webActivity.last = Date.now(); reportWebUse(); });
 setInterval(() => reportWebUse(), 30000);
@@ -3588,7 +3597,10 @@ async function ingestMessage({ from, to, payload, messageId, timestamp, live, ec
     // whether to auto-scroll, so the two never disagree.
     const scrolledUp = viewing && (cont.scrollHeight - cont.scrollTop - cont.clientHeight >= 80);
 
-    if (viewing && focused && !scrolledUp) {
+    // Seen only by someone actually here: the window in front AND used in the last few minutes
+    // (a focused but untouched page left open used to mark everything read at once while it
+    // showed as just "Online").
+    if (viewing && focused && webInUse() && !scrolledUp) {
       // Actively reading at the bottom → it's seen. Mark read + tell the sender (✓✓).
       m.receipted = true;
       sendReadReceipt(partner, messageId);

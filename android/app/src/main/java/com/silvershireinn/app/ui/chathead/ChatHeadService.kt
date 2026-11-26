@@ -2183,6 +2183,9 @@ class ChatHeadService : Service() {
             overlayView   = view
             view.post { try { com.silvershireinn.app.utils.OrnateTheme.attachRoot(view) } catch (_: Throwable) {} }   // same theme as the app
             com.silvershireinn.app.SilvershireApp.overlayOpen = true   // chatting in the floating window = online
+            // ...and say so: reading here sends read receipts, so friends must see Active, not
+            // "Online · last seen 6m ago" next to a message marked read at once
+            com.silvershireinn.app.SilvershireApp.reportUse()
             // Re-add bubble on top so it stays visible and tappable over the overlay.
             // Keep still-frame ImageViews visible across the remove+re-add so video
             // TextureViews do not blank while their surfaces are recreated.
@@ -3315,6 +3318,7 @@ class ChatHeadService : Service() {
         overlayJobs.forEach { it.cancel() }
         overlayJobs.clear()
         com.silvershireinn.app.SilvershireApp.overlayOpen = false
+        com.silvershireinn.app.SilvershireApp.reportUse()
         overlayHiddenForPicker = false   // if overlay is fully closed, cancel any pending restore
         bubbleHiddenForPicker = false
         overlayOpening = false
