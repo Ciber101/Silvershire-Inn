@@ -689,29 +689,74 @@ class ChatHeadService : Service() {
         }
         (view as? FrameLayout)?.let { layoutBubbleFrames(it, listOf(cvBack to backUser, cvMid to midUser, cvFront to frontUser)) }
 
-        // Total unread badge (top-end)
-        val totalUnread = activeSenders.values.sum()
-        val badgeCard   = view.findViewById<View>(R.id.chatHeadBadgeCard)
-        val badgeTv     = view.findViewById<TextView>(R.id.tvChatHeadBadge)
-        if (totalUnread > 0) {
-            badgeCard.visibility = View.VISIBLE
-            badgeTv.text         = if (totalUnread > 99) "99+" else totalUnread.toString()
-        } else {
-            badgeCard.visibility = View.GONE
-        }
-
-        // Yellow total-chat count when stack exceeds 3 (top-start, opposite unread)
+        // Each head carries its own red count (the one total count sat on the front head even
+        // when only a head behind it had new messages). A count belongs to its head and is
+        // layered with it: the head in front still covers what it covers, and the counts of the
+        // heads behind sit on the side of them that peeks out, so they stay in sight.
+        view.findViewById<View>(R.id.chatHeadBadgeCard)?.visibility = View.GONE
         val stackCountCard = view.findViewById<View?>(R.id.chatHeadStackCountCard)
         val stackCountTv   = view.findViewById<TextView?>(R.id.tvChatHeadStackCount)
+        val many = senders.size > 3
+        // Yellow total-chat count when stack exceeds 3 (top-start)
         if (stackCountCard != null && stackCountTv != null) {
-            val totalChats = senders.size
-            if (totalChats > 3) {
-                stackCountCard.visibility = View.VISIBLE
-                stackCountTv.text = totalChats.toString()
-            } else {
-                stackCountCard.visibility = View.GONE
+            if (many) { stackCountCard.visibility = View.VISIBLE; stackCountTv.text = senders.size.toString() }
+            else stackCountCard.visibility = View.GONE
+        }
+        (view as? FrameLayout)?.let { root ->
+            fun unread(u: String?) = if (u == null) 0 else (activeSenders[u] ?: 0)
+            // chats beyond the three shown: their new messages count on the last head shown
+            val hidden = senders.dropLast(3).sumOf { activeSenders[it] ?: 0 }
+            val shown = listOfNotNull(backUser?.let { cvBack }, midUser?.let { cvMid }, frontUser?.let { cvFront })
+            val counts = mapOf(cvBack to unread(backUser), cvMid to unread(midUser), cvFront to unread(frontUser)).toMutableMap()
+            shown.firstOrNull()?.let { counts[it] = (counts[it] ?: 0) + hidden }
+            // back to front, so each count lands right above its own head (and border)
+            for (cv in listOf(cvBack, cvMid, cvFront)) {
+                val front = cv === cvFront
+                placeHeadBadge(root, cv, if (cv in shown) counts[cv] ?: 0 else 0, front,
+                    low = many && cv === shown.firstOrNull() && !front)
             }
         }
+    }
+
+    /** One head's red count: on its top right when it is the front head, on its top left (the
+     *  side that peeks out) when it is behind; [low] puts it at the bottom left instead (the
+     *  yellow "how many chats" count is at the top left). */
+    private fun placeHeadBadge(root: FrameLayout, cv: View, count: Int, front: Boolean, low: Boolean) {
+        val tag = "head_badge_${cv.id}"
+        var b = root.findViewWithTag<TextView>(tag)
+        if (count <= 0 || cv.visibility != View.VISIBLE) { b?.visibility = View.GONE; return }
+        val sc = (PreferenceManager.chatHeadSize / 56f).coerceIn(0.7f, 2.5f)
+        val h = (18 * dp * sc).toInt()
+        if (b == null) {
+            b = TextView(this).apply {
+                this.tag = tag
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                isClickable = false; isFocusable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+        }
+        b.background = GradientDrawable().apply { cornerRadius = h / 2f; setColor(0xFFE53935.toInt()); setStroke((1.5f * dp * sc).toInt().coerceAtLeast(2), Color.WHITE) }
+        b.textSize = 10.5f * sc
+        b.minWidth = h
+        b.setPadding((4 * dp * sc).toInt(), 0, (4 * dp * sc).toInt(), 0)
+        b.text = if (count > 99) "99+" else count.toString()
+        b.visibility = View.VISIBLE
+        // Right above its own head (and that head's border), below the heads in front of it
+        val anchor = root.findViewWithTag<View>("bubble_frame_${cv.id}")?.takeIf { it.parent === root && it.visibility == View.VISIBLE } ?: cv
+        if (b.parent === root && root.indexOfChild(b) != root.indexOfChild(anchor) + 1) root.removeView(b)
+        if (b.parent == null) root.addView(b, root.indexOfChild(anchor) + 1,
+            FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, h, Gravity.START or Gravity.CENTER_VERTICAL))
+        else (b.layoutParams as? FrameLayout.LayoutParams)?.let { lp -> if (lp.height != h) { lp.height = h; b.layoutParams = lp } }
+        b.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY))
+        val w = b.measuredWidth
+        val a = (cv.layoutParams?.width ?: cv.width).toFloat()
+        val half = a * cv.scaleX / 2f                     // the head's real size (it shrinks to fit its border)
+        val cx = cv.translationX + a / 2f                 // the head's centre, from the row's left
+        b.translationX = if (front) cx + half - w else cx - half
+        b.translationY = if (low) half - h / 2f else -half + h / 2f
     }
 
     // ── Avatar rendering ──────────────────────────────────────────────────────
