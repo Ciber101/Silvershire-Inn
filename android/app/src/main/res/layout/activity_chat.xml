@@ -141,12 +141,14 @@
                     android:textColor="@color/color_text_primary"
                     android:textSize="17sp"
                     android:fontFamily="sans-serif-medium" />
+                <!-- "Online · last seen 5m ago": wraps to a second line rather than being cut off -->
                 <TextView
                     android:id="@+id/tvChatSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:singleLine="true"
+                    android:maxLines="2"
                     android:ellipsize="end"
+                    android:lineSpacingMultiplier="0.95"
                     android:textColor="@color/color_text_secondary"
                     android:textSize="12sp"
                     android:visibility="gone" />

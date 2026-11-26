@@ -322,7 +322,15 @@ class ChatHeadService : Service() {
     private var enteredDismissZone = false
 
     /** True while the floating bubble is being dragged (skip avatar rebinds). */
-    private var isDraggingBubble = false
+    /** A head (or the top row) is being dragged. It can never stay stuck: a drag that went
+     *  quiet for 15 s no longer counts (a stuck flag kept the heads from settling at the edge,
+     *  so a new head popped up in the wrong spot until it was tapped). */
+    private var draggingFlag = false
+    private var dragTouchedAt = 0L
+    private var isDraggingBubble: Boolean
+        get() = draggingFlag && SystemClock.uptimeMillis() - dragTouchedAt < 15_000L
+        set(v) { draggingFlag = v; dragTouchedAt = SystemClock.uptimeMillis() }
+    private fun dragAlive() { if (draggingFlag) dragTouchedAt = SystemClock.uptimeMillis() }
     private var lastBubbleTapMs = 0L
     private var overlayOpening = false
 
@@ -565,9 +573,12 @@ class ChatHeadService : Service() {
         val seenNow = overlayView != null && !overlayHiddenForPicker && overlayContact == fromUser
         activeSenders[fromUser] = if (seenNow) 0 else if (manual) prev else prev + 1
 
-        if (bubbleView == null) createBubble()
+        val fresh = bubbleView == null
+        if (fresh) createBubble()
         updateBubble()
         refreshSwitcherIfOpen()
+        // once it is on screen and measured: settle exactly at its edge
+        bubbleView?.postDelayed({ if (bubbleView != null) updateBubble(refreshAvatars = false) }, if (fresh) 250L else 120L)
         bubbleVideoHelpers.values.forEach { it.wake() }      // new message: the heads move again for a moment
     }
 
@@ -898,6 +909,14 @@ class ChatHeadService : Service() {
         }
     }
 
+    private fun saveDrawn(key: String, d: FloatArray) {
+        try { getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE).edit().putString("drawn|$key", d.joinToString(",")).apply() } catch (_: Exception) {}
+    }
+    private fun loadDrawn(key: String): FloatArray? = try {
+        getSharedPreferences("chat_head_frames", Context.MODE_PRIVATE).getString("drawn|$key", null)
+            ?.split(',')?.map { it.toFloat() }?.takeIf { it.size == 4 }?.toFloatArray()
+    } catch (_: Exception) { null }
+
     /** Drawn area of each border picture used on the bubble (key: frame|shape|size). */
     private val bubbleDrawn = HashMap<String, FloatArray>()
     private var bubblePad = -1
@@ -953,9 +972,12 @@ class ChatHeadService : Service() {
                 com.silvershireinn.app.utils.FrameRenderer.get(applicationContext, id, shape, px, "full") { b ->
                     if (b == null || target.getTag(R.id.profile_frame_key) != key) return@get
                     target.setImageBitmap(b)
-                    if (bubbleDrawn[key] == null) { bubbleDrawn[key] = PF.drawnArea(b); root.post { updateBubble(refreshAvatars = false) } }
+                    if (bubbleDrawn[key] == null) { bubbleDrawn[key] = PF.drawnArea(b).also { saveDrawn(key, it) }; root.post { updateBubble(refreshAvatars = false) } }
                 }
             }
+            // Where a border reaches is remembered across restarts: a head that pops up is sized and
+            // placed right away (it used to show unfitted, then shrink and move once its border was drawn)
+            if (bubbleDrawn[key] == null) loadDrawn(key)?.let { bubbleDrawn[key] = it }
             live.add(S(cv, iv, a, full, bubbleDrawn[key]))
         }
         // Room the borders need past the pictures, worked out for each side on its own: a side
@@ -1138,6 +1160,7 @@ class ChatHeadService : Service() {
                         showDismissOverlay()
                     }
                     if (!moved) return@setOnTouchListener true
+                    dragAlive()
                     var nx = (downPX + dx).toInt()
                     var ny = (downPY + dy).toInt()
                     if (isOverDismiss(event.rawX, event.rawY)) {
@@ -3604,7 +3627,7 @@ class ChatHeadService : Service() {
                     if (yieldedToScroll) return@setOnTouchListener false
                     val dx = ev.rawX - downRawX
                     val dy = ev.rawY - downRawY
-                    if (reordering) { moveReorder(v, dx); return@setOnTouchListener true }
+                    if (reordering) { dragAlive(); moveReorder(v, dx); return@setOnTouchListener true }
                     val sideways = kotlin.math.abs(dx) >= kotlin.math.abs(dy)
                     if (!dragged && ((sideways && kotlin.math.abs(dx) > 8 * dp) || kotlin.math.abs(dy) > slop)) {
                         main.removeCallbacks(hold)
@@ -3637,6 +3660,7 @@ class ChatHeadService : Service() {
                         ensureDragZOrder(bringBubble = false)
                     }
                     if (!dragged) return@setOnTouchListener true
+                    dragAlive()
                     moveSwitcherDragGhost(ev.rawX, ev.rawY, ghostSize)
                     if (isOverDismiss(ev.rawX, ev.rawY)) {
                         if (!enteredDismissZone) {

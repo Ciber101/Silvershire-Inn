@@ -125,7 +125,8 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/color_text_secondary"
                 android:textSize="12sp"
-                android:singleLine="true"
+                android:maxLines="2"
+                android:lineSpacingMultiplier="0.95"
                 android:ellipsize="end"
                 android:visibility="gone"/>
         </LinearLayout>
