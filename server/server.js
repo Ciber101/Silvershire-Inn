@@ -824,16 +824,50 @@ async function migrateAtRest() {
 /** In the server window: type the master password to unlock (when started with one set). */
 function promptMasterPassword() {
   if (!process.stdin.isTTY) return;
-  const readline = require('readline');
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-  rl._writeToOutput = function (s) { if (s.includes('Master password')) rl.output.write(s); else rl.output.write('*'); };
-  const ask = () => rl.question('Master password: ', (pw) => {
-    rl.output.write('\n');
-    if (!AtRest.locked()) { rl.close(); return; }
-    try { AtRest.unlockWithPassword(pw); onVaultUnlocked('server window'); rl.close(); }
+  // Read key by key with nothing echoed but a star per character. (The old prompt hid the
+  // typing by rewriting what the console printed, and a backspace redrew the whole line, so
+  // the password showed in clear.)
+  const ask = () => readHidden('Master password: ', (pw) => {
+    if (!AtRest.locked()) return;              // unlocked meanwhile (admin page)
+    try { AtRest.unlockWithPassword(pw); onVaultUnlocked('server window'); }
     catch (e) { console.log('  ' + e.message); setTimeout(ask, 1200); }
   });
   ask();
+}
+
+/** Asks for a secret in the console: shows * per character, backspace removes one, the typed
+ *  text is never printed. Ctrl+C still stops the server. */
+function readHidden(prompt, done) {
+  const stdin = process.stdin;
+  process.stdout.write(prompt);
+  let buf = '', esc = false;
+  try { stdin.setRawMode(true); } catch (_) {}
+  stdin.setEncoding('utf8');
+  stdin.resume();
+  const finish = (value) => {
+    stdin.removeListener('data', onData);
+    try { stdin.setRawMode(false); } catch (_) {}
+    stdin.pause();
+    process.stdout.write('\n');
+    if (value !== null) done(value);
+  };
+  const onData = (chunk) => {
+    for (const ch of chunk) {
+      if (esc) { if (/[A-Za-z~]/.test(ch)) esc = false; continue; }   // arrow keys and the like: ignored
+      if (ch === '\u001b') { esc = true; continue; }
+      if (ch === '\r' || ch === '\n') { finish(buf); return; }
+      if (ch === '\u0003') { finish(null); process.emit('SIGINT'); return; }      // Ctrl+C
+      if (ch === '\u007f' || ch === '\b') {                                      // Backspace
+        if (buf.length) { buf = buf.slice(0, -1); process.stdout.write('\b \b'); }
+        continue;
+      }
+      if (ch === '\u0015') { process.stdout.write('\b \b'.repeat(buf.length)); buf = ''; continue; }   // Ctrl+U: clear
+      if (ch < ' ') continue;
+      buf += ch;
+      process.stdout.write('*');
+    }
+  };
+  stdin.on('data', onData);
 }
 
 const connections    = new Map();   // username -> Set<ws>  (multi-device: phone + web client)
